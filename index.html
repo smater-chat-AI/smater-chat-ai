@@ -2,1030 +2,919 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="theme-color" content="#080b14">
+
+<meta
+  name="viewport"
+  content="width=device-width, initial-scale=1.0"
+>
+
+<meta
+  name="theme-color"
+  content="#111827"
+>
+
+<meta
+  name="description"
+  content="SMATER CHAT AI - intelligent AI assistant built to help, learn, create and solve."
+>
 
 <title>SMATER CHAT AI</title>
 
 <style>
 
-*{
-  box-sizing:border-box;
-  margin:0;
-  padding:0;
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
-:root{
-  --bg:#080b14;
-  --panel:#0e1320;
-  --panel2:#121827;
-  --border:#252c3e;
-  --text:#f5f7ff;
-  --muted:#8d96aa;
-  --accent:#795cff;
-  --accent2:#28c9ff;
+:root {
+  --bg: #0b1020;
+  --panel: #111827;
+  --panel-2: #182033;
+  --border: rgba(255,255,255,.09);
+  --text: #f5f7fb;
+  --muted: #9ca8bd;
+  --accent: #7c5cff;
+  --accent-2: #5b8cff;
+  --user: #253a68;
+  --ai: #151d2d;
+  --danger: #ef4444;
+  --shadow: 0 20px 60px rgba(0,0,0,.25);
 }
 
-body.light{
-  --bg:#f5f7fb;
-  --panel:#ffffff;
-  --panel2:#ffffff;
-  --border:#dfe4ee;
-  --text:#172033;
-  --muted:#687386;
+body.light {
+  --bg: #f5f7fb;
+  --panel: #ffffff;
+  --panel-2: #eef2f8;
+  --border: rgba(15,23,42,.10);
+  --text: #111827;
+  --muted: #667085;
+  --user: #e7edff;
+  --ai: #ffffff;
+  --shadow: 0 20px 60px rgba(15,23,42,.10);
 }
 
 html,
-body{
-  width:100%;
-  height:100%;
+body {
+  width: 100%;
+  height: 100%;
 }
 
-body{
+body {
   font-family:
-    Arial,
-    Helvetica,
+    Inter,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
     sans-serif;
 
-  background:var(--bg);
-  color:var(--text);
-
-  overflow:hidden;
+  background: var(--bg);
+  color: var(--text);
+  overflow: hidden;
 }
-
 
 /* =========================
    APP
 ========================= */
 
-.app{
-  width:100%;
-  height:100vh;
-
-  display:flex;
+.app {
+  display: flex;
+  width: 100%;
+  height: 100vh;
 }
-
 
 /* =========================
    SIDEBAR
 ========================= */
 
-.sidebar{
-  width:270px;
-
-  flex-shrink:0;
-
-  background:#0a0e18;
-
-  border-right:
-    1px solid var(--border);
-
-  display:flex;
-  flex-direction:column;
-
-  padding:15px;
-
-  transition:
-    transform .25s ease;
+.sidebar {
+  width: 270px;
+  min-width: 270px;
+  height: 100%;
+  background: var(--panel);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  z-index: 20;
 }
 
-body.light .sidebar{
-  background:#eef1f7;
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 8px 4px 20px;
 }
 
+.brand-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
 
-/* BRAND */
-
-.brand{
-  display:flex;
-
-  align-items:center;
-
-  gap:10px;
-
-  padding:
-    5px
-    4px
-    18px;
-}
-
-.logo{
-  width:40px;
-  height:40px;
-
-  border-radius:13px;
-
-  display:grid;
-  place-items:center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
   background:
     linear-gradient(
       135deg,
       var(--accent),
-      var(--accent2)
+      var(--accent-2)
     );
 
-  font-size:20px;
+  color: white;
+  font-size: 20px;
+  font-weight: 800;
 
-  font-weight:bold;
+  box-shadow:
+    0 8px 25px
+    rgba(92,80,220,.30);
 }
 
-.brand-title{
-  font-size:15px;
-  font-weight:bold;
+.brand-text {
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: .2px;
 }
 
-.brand-subtitle{
-  font-size:10px;
-
-  color:var(--muted);
-
-  margin-top:3px;
+.brand-subtitle {
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 2px;
 }
 
+.new-chat {
+  width: 100%;
+  border: 1px solid var(--border);
+  background: var(--panel-2);
+  color: var(--text);
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
 
-/* NEW CHAT */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 
-.new-chat{
-  width:100%;
-
-  padding:12px;
-
-  border-radius:12px;
-
-  border:
-    1px solid var(--border);
-
-  background:var(--panel2);
-
-  color:var(--text);
-
-  text-align:left;
+  transition:
+    transform .15s ease,
+    background .15s ease;
 }
 
-.new-chat:hover{
-  border-color:
-    var(--accent);
+.new-chat:hover {
+  transform: translateY(-1px);
+  background: var(--user);
 }
 
-
-/* SIDEBAR SECTION */
-
-.section-title{
-  color:var(--muted);
-
-  font-size:10px;
-
-  margin:
-    22px
-    5px
-    8px;
-
-  text-transform:
-    uppercase;
+.history-title {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .8px;
+  margin: 22px 5px 10px;
 }
 
-
-/* HISTORY */
-
-.history{
-  flex:1;
-
-  overflow-y:auto;
+.history {
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 3px;
 }
 
-.history-item{
-  width:100%;
+.history-item {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  padding: 10px;
+  border-radius: 9px;
+  cursor: pointer;
+  font-size: 13px;
+  margin-bottom: 3px;
 
-  border:0;
-
-  background:transparent;
-
-  color:var(--text);
-
-  padding:10px;
-
-  border-radius:9px;
-
-  text-align:left;
-
-  white-space:nowrap;
-
-  overflow:hidden;
-
-  text-overflow:ellipsis;
-
-  margin-bottom:3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.history-item:hover{
-  background:#171d2b;
+.history-item:hover {
+  background: var(--panel-2);
 }
 
-
-/* SIDEBAR BOTTOM */
-
-.side-bottom{
-  border-top:
-    1px solid var(--border);
-
-  padding-top:10px;
+.sidebar-bottom {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
 }
 
-.side-btn{
-  width:100%;
-
-  border:0;
-
-  background:transparent;
-
-  color:var(--muted);
-
-  padding:10px;
-
-  text-align:left;
-
-  border-radius:9px;
+.sidebar-button {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  border-radius: 9px;
+  padding: 10px;
+  text-align: left;
+  cursor: pointer;
+  font-size: 13px;
 }
 
-.side-btn:hover{
-  background:#171d2b;
-
-  color:var(--text);
+.sidebar-button:hover {
+  color: var(--text);
+  background: var(--panel-2);
 }
-
 
 /* =========================
    MAIN
 ========================= */
 
-.main{
-  flex:1;
-
-  min-width:0;
-
-  height:100%;
-
-  display:flex;
-
-  flex-direction:column;
+.main {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
-
-
-/* HEADER */
-
-.header{
-  height:65px;
-
-  flex-shrink:0;
-
-  display:flex;
-
-  align-items:center;
-
-  justify-content:space-between;
-
-  padding:
-    0
-    18px;
-
-  border-bottom:
-    1px solid var(--border);
-
-  background:var(--panel);
-}
-
-.header-left{
-  display:flex;
-
-  align-items:center;
-}
-
-.mobile-menu{
-  display:none;
-
-  border:0;
-
-  background:transparent;
-
-  color:var(--text);
-
-  font-size:22px;
-
-  margin-right:10px;
-}
-
-.header-name{
-  font-size:15px;
-
-  font-weight:bold;
-}
-
-.header-sub{
-  font-size:10px;
-
-  color:var(--muted);
-
-  margin-top:3px;
-}
-
-.online{
-  display:flex;
-
-  align-items:center;
-
-  gap:7px;
-
-  color:var(--muted);
-
-  font-size:11px;
-}
-
-.online-dot{
-  width:7px;
-  height:7px;
-
-  border-radius:50%;
-
-  background:#35dc83;
-}
-
 
 /* =========================
-   CHAT AREA
+   TOP BAR
 ========================= */
 
-.chat{
-  flex:1;
-
-  overflow-y:auto;
-
-  padding:
-    25px
-    15px
-    155px;
+.topbar {
+  height: 64px;
+  min-height: 64px;
+  border-bottom: 1px solid var(--border);
+  background: var(--panel);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
 }
 
-.chat-inner{
-  width:
-    min(900px,100%);
-
-  margin:auto;
+.topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
+.mobile-menu {
+  display: none;
+
+  width: 38px;
+  height: 38px;
+
+  border: 1px solid var(--border);
+  background: var(--panel-2);
+  color: var(--text);
+
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.page-title {
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 11px;
+  margin-top: 2px;
+}
+
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #22c55e;
+}
+
+/* =========================
+   CHAT
+========================= */
+
+.chat {
+  flex: 1;
+  overflow-y: auto;
+  scroll-behavior: smooth;
+  padding: 34px 22px 130px;
+}
+
+.chat-inner {
+  width: min(920px, 100%);
+  margin: auto;
+}
 
 /* =========================
    WELCOME
 ========================= */
 
-.welcome{
-  text-align:center;
+.welcome {
+  min-height: 55vh;
 
-  padding:
-    55px
-    10px
-    30px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  text-align: center;
+  padding: 30px 15px;
 }
 
-.welcome-logo{
-  width:82px;
-  height:82px;
+.welcome-icon {
+  width: 70px;
+  height: 70px;
+  border-radius: 22px;
 
-  margin:
-    auto
-    auto
-    22px;
-
-  border-radius:25px;
-
-  display:grid;
-
-  place-items:center;
-
-  font-size:34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
   background:
     linear-gradient(
       135deg,
       var(--accent),
-      var(--accent2)
+      var(--accent-2)
     );
+
+  color: white;
+  font-size: 32px;
+  font-weight: 900;
 
   box-shadow:
-    0 0 50px
-    rgba(121,92,255,.20);
+    0 18px 50px
+    rgba(92,80,220,.25);
+
+  margin-bottom: 20px;
 }
 
-.welcome h1{
-  font-size:
-    clamp(
-      28px,
-      7vw,
-      48px
-    );
-
-  margin-bottom:12px;
+.welcome h1 {
+  font-size: clamp(27px, 5vw, 42px);
+  line-height: 1.1;
+  letter-spacing: -.8px;
+  margin-bottom: 10px;
 }
 
-.gradient{
-  background:
-    linear-gradient(
-      90deg,
-      #a995ff,
-      #55dbff
-    );
-
-  -webkit-background-clip:
-    text;
-
-  background-clip:
-    text;
-
-  color:transparent;
+.welcome p {
+  color: var(--muted);
+  max-width: 560px;
+  line-height: 1.6;
+  font-size: 14px;
 }
-
-.welcome p{
-  max-width:650px;
-
-  margin:auto;
-
-  color:var(--muted);
-
-  line-height:1.65;
-
-  font-size:14px;
-}
-
 
 /* =========================
-   QUICK FEATURES
+   QUICK ACTIONS
 ========================= */
 
-.quick-grid{
-  max-width:700px;
-
-  margin:
-    28px
-    auto;
-
-  display:grid;
-
+.quick-grid {
+  display: grid;
   grid-template-columns:
-    repeat(2,1fr);
+    repeat(2, minmax(0, 1fr));
 
-  gap:10px;
+  gap: 10px;
+  width: min(700px, 100%);
+  margin-top: 26px;
 }
 
-.quick{
-  border:
-    1px solid var(--border);
+.quick {
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--text);
 
-  background:var(--panel);
+  border-radius: 13px;
+  padding: 13px;
 
-  color:var(--text);
-
-  padding:15px;
-
-  border-radius:14px;
-
-  text-align:left;
+  text-align: left;
+  cursor: pointer;
 
   transition:
-    border-color .2s,
-    transform .2s;
+    transform .15s ease,
+    border-color .15s ease;
 }
 
-.quick:hover{
-  border-color:
-    var(--accent);
-
-  transform:
-    translateY(-1px);
+.quick:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent);
 }
 
-.quick strong{
-  display:block;
-
-  font-size:13px;
-
-  margin-bottom:5px;
+.quick-title {
+  font-weight: 700;
+  font-size: 13px;
 }
 
-.quick span{
-  color:var(--muted);
-
-  font-size:11px;
+.quick-desc {
+  color: var(--muted);
+  font-size: 11px;
+  margin-top: 4px;
 }
-
 
 /* =========================
-   MESSAGES
+   MESSAGE ROW
 ========================= */
 
-.message{
-  display:flex;
-
-  gap:11px;
-
-  max-width:850px;
-
-  margin:
-    0
-    auto
-    26px;
+.message {
+  width: 100%;
+  display: flex;
+  gap: 12px;
+  margin: 22px 0;
+  align-items: flex-start;
 }
 
-.avatar{
-  flex:
-    0 0 36px;
+/* User = RIGHT */
 
-  width:36px;
-  height:36px;
-
-  border-radius:11px;
-
-  display:grid;
-
-  place-items:center;
-
-  background:
-    linear-gradient(
-      135deg,
-      var(--accent),
-      var(--accent2)
-    );
+.message.user-message {
+  justify-content: flex-end;
 }
 
-.avatar.user{
-  background:#293146;
+.message.user-message .message-content {
+  order: 1;
 }
 
-.message-body{
-  min-width:0;
-
-  flex:1;
+.message.user-message .avatar {
+  order: 2;
 }
 
-.message-name{
-  color:var(--muted);
+/* AI = LEFT */
 
-  font-size:11px;
-
-  margin-bottom:6px;
+.message.ai-message {
+  justify-content: flex-start;
 }
 
-.message-text{
-  font-size:14px;
-
-  line-height:1.7;
-
-  overflow-wrap:anywhere;
+.message.ai-message .message-content {
+  order: 2;
 }
 
-.message-text code{
-  background:#171d2b;
+.message.ai-message .avatar {
+  order: 1;
+}
 
-  border:
-    1px solid #293147;
+/* =========================
+   AVATAR
+========================= */
 
-  border-radius:5px;
+.avatar {
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
 
-  padding:
-    2px
-    5px;
+  border-radius: 11px;
 
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+
+  font-size: 15px;
+  font-weight: 800;
+}
+
+/* =========================
+   MESSAGE CONTENT
+========================= */
+
+.message-content {
+  max-width: min(76%, 720px);
+}
+
+.message-name {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+  margin: 0 3px 5px;
+}
+
+.message.user-message .message-name {
+  text-align: right;
+}
+
+.message-text {
+  border: 1px solid var(--border);
+  padding: 13px 15px;
+  border-radius: 17px;
+  line-height: 1.65;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+  box-shadow: var(--shadow);
+}
+
+/* User bubble */
+
+.message.user-message .message-text {
+  background: var(--user);
+  border-top-right-radius: 5px;
+}
+
+/* AI bubble */
+
+.message.ai-message .message-text {
+  background: var(--ai);
+  border-top-left-radius: 5px;
+}
+
+/* =========================
+   CODE
+========================= */
+
+.message-text code {
+  background: rgba(127,127,127,.16);
+  padding: 2px 5px;
+  border-radius: 5px;
   font-family:
+    ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    Consolas,
     monospace;
-
-  font-size:12px;
+  font-size: 12px;
 }
 
-.message-text pre{
-  background:#05070d;
-
-  border:
-    1px solid var(--border);
-
-  border-radius:10px;
-
-  padding:13px;
-
-  overflow-x:auto;
-
-  margin:
-    10px
-    0;
+.message-text pre {
+  margin: 12px 0 2px;
+  padding: 13px;
+  overflow-x: auto;
+  border-radius: 10px;
+  background: #080b12;
+  color: #e5e7eb;
+  border: 1px solid rgba(255,255,255,.08);
 }
 
+.message-text pre code {
+  background: transparent;
+  padding: 0;
+  color: inherit;
+}
 
 /* =========================
    MESSAGE ACTIONS
 ========================= */
 
-.message-actions{
-  display:flex;
-
-  gap:5px;
-
-  margin-top:7px;
+.message-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 7px;
 }
 
-.action{
-  border:0;
-
-  background:transparent;
-
-  color:#737d91;
-
-  padding:
-    5px
-    7px;
-
-  border-radius:7px;
-
-  font-size:11px;
+.message.user-message .message-actions {
+  justify-content: flex-end;
 }
 
-.action:hover{
-  background:#171d2b;
-
-  color:var(--text);
+.action {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  padding: 5px 7px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 11px;
 }
 
+.action:hover {
+  background: var(--panel-2);
+  color: var(--text);
+}
 
 /* =========================
    TYPING
 ========================= */
 
-.typing{
-  display:flex;
-
-  gap:5px;
-
-  padding-top:8px;
+.typing {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  min-height: 20px;
 }
 
-.typing span{
-  width:7px;
-  height:7px;
-
-  border-radius:50%;
-
-  background:#a4adbf;
-
+.typing span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--muted);
   animation:
-    typing 1s infinite;
+    typingAnimation 1.1s infinite ease-in-out;
 }
 
-.typing span:nth-child(2){
-  animation-delay:.15s;
+.typing span:nth-child(2) {
+  animation-delay: .15s;
 }
 
-.typing span:nth-child(3){
-  animation-delay:.30s;
+.typing span:nth-child(3) {
+  animation-delay: .3s;
 }
 
-@keyframes typing{
+@keyframes typingAnimation {
 
   0%,
-  100%{
-    opacity:.25;
+  60%,
+  100% {
+    transform: translateY(0);
+    opacity: .45;
   }
 
-  50%{
-    opacity:1;
+  30% {
+    transform: translateY(-5px);
+    opacity: 1;
   }
 
 }
-
 
 /* =========================
    COMPOSER
 ========================= */
 
-.composer-wrap{
-  position:fixed;
+.composer-area {
+  position: fixed;
+  left: 270px;
+  right: 0;
+  bottom: 0;
 
-  left:270px;
-  right:0;
-  bottom:0;
-
-  padding:
-    10px
-    15px
-    17px;
+  padding: 12px 20px 16px;
 
   background:
     linear-gradient(
-      transparent,
-      var(--bg) 30%
+      to top,
+      var(--bg) 70%,
+      transparent
     );
+
+  z-index: 10;
 }
 
-.composer{
-  width:
-    min(900px,100%);
+.composer {
+  width: min(920px, 100%);
+  margin: auto;
 
-  margin:auto;
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
 
-  background:
-    var(--panel2);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 18px;
 
-  border:
-    1px solid var(--border);
+  padding: 8px;
 
-  border-radius:18px;
-
-  padding:
-    10px
-    11px
-    9px
-    15px;
+  box-shadow: var(--shadow);
 }
 
-.input-row{
-  display:flex;
+#messageInput {
+  flex: 1;
+  min-width: 0;
 
-  align-items:flex-end;
+  resize: none;
 
-  gap:9px;
+  max-height: 150px;
+  min-height: 42px;
+
+  border: 0;
+  outline: 0;
+
+  background: transparent;
+  color: var(--text);
+
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.5;
+
+  padding: 10px 9px;
 }
 
-#messageInput{
-  flex:1;
-
-  min-width:0;
-
-  min-height:30px;
-
-  max-height:150px;
-
-  resize:none;
-
-  outline:none;
-
-  border:0;
-
-  background:transparent;
-
-  color:var(--text);
-
-  line-height:1.5;
-
-  font-size:14px;
+#messageInput::placeholder {
+  color: var(--muted);
 }
 
-#messageInput::placeholder{
-  color:#687186;
-}
+#sendButton {
+  width: 42px;
+  height: 42px;
+  min-width: 42px;
 
-
-/* SEND BUTTON */
-
-.send{
-  width:43px;
-  height:43px;
-
-  flex:
-    0 0 43px;
-
-  border:0;
-
-  border-radius:13px;
+  border: 0;
+  border-radius: 12px;
 
   background:
     linear-gradient(
       135deg,
       var(--accent),
-      var(--accent2)
+      var(--accent-2)
     );
 
-  color:white;
+  color: white;
+  font-size: 17px;
+  font-weight: 900;
 
-  font-size:18px;
+  cursor: pointer;
 
-  display:grid;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
-  place-items:center;
+  transition:
+    transform .15s ease,
+    opacity .15s ease;
 }
 
-.send:hover{
-  transform:
-    translateY(-1px);
+#sendButton:hover {
+  transform: translateY(-1px);
 }
 
-.send:disabled{
-  opacity:.45;
-
-  cursor:not-allowed;
-
-  transform:none;
+#sendButton:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+  transform: none;
 }
 
-.composer-info{
-  display:flex;
+.composer-note {
+  width: min(920px, 100%);
+  margin: 6px auto 0;
 
-  justify-content:space-between;
+  text-align: center;
 
-  color:#626c80;
-
-  font-size:9px;
-
-  margin-top:7px;
+  color: var(--muted);
+  font-size: 9px;
 }
-
 
 /* =========================
-   SETTINGS MODAL
+   SETTINGS
 ========================= */
 
-.overlay{
-  position:fixed;
+.settings-overlay {
+  position: fixed;
+  inset: 0;
 
-  inset:0;
+  background: rgba(0,0,0,.55);
 
-  z-index:100;
+  display: none;
+  align-items: center;
+  justify-content: center;
 
-  display:none;
-
-  align-items:center;
-
-  justify-content:center;
-
-  padding:20px;
-
-  background:
-    rgba(0,0,0,.65);
+  z-index: 100;
+  padding: 18px;
 }
 
-.overlay.show{
-  display:flex;
+.settings-overlay.show {
+  display: flex;
 }
 
-.modal{
-  width:
-    min(480px,100%);
-
-  background:var(--panel);
-
-  border:
-    1px solid var(--border);
-
-  border-radius:18px;
-
-  padding:20px;
+.settings-box {
+  width: min(430px, 100%);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 20px;
+  box-shadow: var(--shadow);
 }
 
-.modal-head{
-  display:flex;
-
-  justify-content:space-between;
-
-  align-items:center;
-
-  margin-bottom:15px;
+.settings-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 18px;
 }
 
-.modal-head h2{
-  font-size:18px;
+.settings-head h2 {
+  font-size: 18px;
 }
 
-.close{
-  border:0;
-
-  background:transparent;
-
-  color:var(--text);
-
-  font-size:22px;
+.close-settings {
+  border: 0;
+  background: var(--panel-2);
+  color: var(--text);
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  cursor: pointer;
 }
 
-.setting{
-  padding:14px 0;
-
-  border-top:
-    1px solid var(--border);
+.setting-row {
+  padding: 13px 0;
+  border-bottom: 1px solid var(--border);
 }
 
-.setting strong{
-  display:block;
-
-  font-size:13px;
-
-  margin-bottom:5px;
+.setting-label {
+  font-size: 13px;
+  font-weight: 700;
 }
 
-.setting p{
-  color:var(--muted);
-
-  font-size:11px;
-
-  line-height:1.5;
+.setting-buttons {
+  display: flex;
+  gap: 8px;
+  margin-top: 9px;
 }
 
-.theme-buttons{
-  display:flex;
-
-  gap:8px;
-
-  margin-top:10px;
+.setting-buttons button {
+  border: 1px solid var(--border);
+  background: var(--panel-2);
+  color: var(--text);
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
 }
 
-.theme-buttons button{
-  border:
-    1px solid var(--border);
+/* =========================
+   SCROLLBAR
+========================= */
 
-  background:var(--panel2);
-
-  color:var(--text);
-
-  padding:
-    8px
-    12px;
-
-  border-radius:8px;
+::-webkit-scrollbar {
+  width: 7px;
 }
 
+::-webkit-scrollbar-thumb {
+  background: rgba(127,127,127,.25);
+  border-radius: 20px;
+}
 
 /* =========================
    MOBILE
 ========================= */
 
-@media(max-width:800px){
+@media (max-width: 760px) {
 
-  .sidebar{
-    position:fixed;
+  .sidebar {
+    position: fixed;
+    left: -290px;
+    top: 0;
+    bottom: 0;
 
-    z-index:80;
+    transition: left .2s ease;
 
-    top:0;
-    bottom:0;
-    left:0;
-
-    transform:
-      translateX(-100%);
+    box-shadow:
+      20px 0 50px
+      rgba(0,0,0,.25);
   }
 
-  .sidebar.open{
-    transform:
-      translateX(0);
+  .sidebar.open {
+    left: 0;
   }
 
-  .mobile-menu{
-    display:block;
+  .mobile-menu {
+    display: block;
   }
 
-  .composer-wrap{
-    left:0;
+  .composer-area {
+    left: 0;
+    padding:
+      9px 10px 12px;
   }
 
-  .quick-grid{
-    grid-template-columns:1fr;
+  .chat {
+    padding:
+      22px 12px 125px;
+  }
+
+  .topbar {
+    padding: 0 11px;
+  }
+
+  .message-content {
+    max-width: 82%;
+  }
+
+  .message-text {
+    font-size: 13px;
+    padding: 11px 12px;
+  }
+
+  .quick-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .welcome {
+    min-height: 55vh;
+  }
+
+  .welcome h1 {
+    font-size: 28px;
   }
 
 }
 
+@media (max-width: 430px) {
 
-@media(max-width:500px){
-
-  .header{
-    padding:
-      0
-      12px;
+  .avatar {
+    width: 30px;
+    min-width: 30px;
+    height: 30px;
+    border-radius: 9px;
+    font-size: 13px;
   }
 
-  .chat{
-    padding-left:10px;
-    padding-right:10px;
+  .message {
+    gap: 7px;
   }
 
-  .welcome{
-    padding-top:30px;
-  }
-
-  .welcome-logo{
-    width:70px;
-    height:70px;
-
-    font-size:29px;
-  }
-
-  .message{
-    gap:8px;
-  }
-
-  .avatar{
-    width:33px;
-    height:33px;
-
-    flex-basis:33px;
-  }
-
-  .composer-wrap{
-    padding:
-      8px
-      9px
-      12px;
+  .message-content {
+    max-width: 84%;
   }
 
 }
@@ -1037,6 +926,10 @@ body.light .sidebar{
 
 <div class="app">
 
+  <!-- =========================
+       SIDEBAR
+  ========================== -->
+
   <aside
     class="sidebar"
     id="sidebar"
@@ -1044,13 +937,13 @@ body.light .sidebar{
 
     <div class="brand">
 
-      <div class="logo">
+      <div class="brand-icon">
         ✦
       </div>
 
       <div>
 
-        <div class="brand-title">
+        <div class="brand-text">
           SMATER CHAT AI
         </div>
 
@@ -1072,7 +965,7 @@ body.light .sidebar{
     </button>
 
 
-    <div class="section-title">
+    <div class="history-title">
       Recent chats
     </div>
 
@@ -1083,23 +976,22 @@ body.light .sidebar{
     ></div>
 
 
-    <div class="side-bottom">
+    <div class="sidebar-bottom">
 
       <button
-        class="side-btn"
-        id="settingsButton"
-        type="button"
-      >
-        ⚙ Settings
-      </button>
-
-
-      <button
-        class="side-btn"
+        class="sidebar-button"
         id="clearHistoryButton"
         type="button"
       >
         🗑 Clear history
+      </button>
+
+      <button
+        class="sidebar-button"
+        id="settingsButton"
+        type="button"
+      >
+        ⚙ Settings
       </button>
 
     </div>
@@ -1107,79 +999,84 @@ body.light .sidebar{
   </aside>
 
 
-  <section class="main">
+  <!-- =========================
+       MAIN
+  ========================== -->
 
-    <header class="header">
+  <main class="main">
 
-      <div class="header-left">
+    <header class="topbar">
+
+      <div class="topbar-left">
 
         <button
           class="mobile-menu"
           id="mobileMenu"
           type="button"
+          aria-label="Open menu"
         >
           ☰
         </button>
 
-
         <div>
 
-          <div class="header-name">
+          <div class="page-title">
             SMATER CHAT AI
           </div>
 
-          <div class="header-sub">
-            Your intelligent general-purpose assistant
+          <div class="status">
+
+            <span
+              class="status-dot"
+            ></span>
+
+            <span id="connectionText">
+              AI ready
+            </span>
+
           </div>
 
         </div>
 
       </div>
 
-
-      <div class="online">
-
-        <span class="online-dot"></span>
-
-        Online
-
-      </div>
-
     </header>
 
 
-    <main
+    <!-- =========================
+         CHAT AREA
+    ========================== -->
+
+    <section
       class="chat"
       id="chat"
     >
 
-      <div class="chat-inner">
+      <div
+        class="chat-inner"
+        id="messages"
+      >
 
-        <section
+        <!-- WELCOME -->
+
+        <div
           class="welcome"
           id="welcome"
         >
 
-          <div class="welcome-logo">
+          <div class="welcome-icon">
             ✦
           </div>
 
-
           <h1>
-
-            Meet
-
-            <span class="gradient">
-              SMATER CHAT AI
-            </span>
-
+            How can I help you?
           </h1>
 
-
           <p>
-            Think smarter. Ask anything. Get more done.
-            A friendly AI assistant built to help,
-            learn, create, understand and solve.
+            Ask questions, learn something new,
+            solve problems, create ideas,
+            write, code and explore with
+            SMATER CHAT AI.
           </p>
 
 
@@ -1187,124 +1084,189 @@ body.light .sidebar{
 
             <button
               class="quick"
-              data-prompt="Mujhe kisi difficult topic ko simple Hinglish mein step by step samjhao."
               type="button"
+              data-prompt="Explain this topic to me in simple Hinglish step by step."
             >
 
-              <strong>
-                🧠 Learn
-              </strong>
+              <div class="quick-title">
+                📚 Learn something
+              </div>
 
-              <span>
-                Difficult topics ko simple banao.
-              </span>
+              <div class="quick-desc">
+                Get a simple explanation.
+              </div>
 
             </button>
 
 
             <button
               class="quick"
-              data-prompt="Mere liye creative ideas brainstorm karo aur best options explain karo."
               type="button"
+              data-prompt="Help me solve this problem step by step and verify the final answer."
             >
 
-              <strong>
-                💡 Create
-              </strong>
+              <div class="quick-title">
+                🧠 Solve a problem
+              </div>
 
-              <span>
-                Ideas aur possibilities explore karo.
-              </span>
+              <div class="quick-desc">
+                Reason through it carefully.
+              </div>
 
             </button>
 
 
             <button
               class="quick"
-              data-prompt="Meri problem ko logically analyze karke step by step solution do."
               type="button"
+              data-prompt="Give me some creative ideas for a useful project."
             >
 
-              <strong>
-                ⚡ Solve
-              </strong>
+              <div class="quick-title">
+                💡 Get ideas
+              </div>
 
-              <span>
-                Problems ko clearly solve karo.
-              </span>
+              <div class="quick-desc">
+                Brainstorm something useful.
+              </div>
 
             </button>
 
 
             <button
               class="quick"
-              data-prompt="Mere liye ek professional message likhne mein help karo."
               type="button"
+              data-prompt="Help me write this clearly and naturally."
             >
 
-              <strong>
-                ✍️ Write
-              </strong>
+              <div class="quick-title">
+                ✍️ Write something
+              </div>
 
-              <span>
-                Better writing ke liye help lo.
-              </span>
+              <div class="quick-desc">
+                Improve or create text.
+              </div>
 
             </button>
 
           </div>
 
-        </section>
-
-
-        <section
-          id="messages"
-        ></section>
+        </div>
 
       </div>
 
-    </main>
+    </section>
 
-  </section>
+
+    <!-- =========================
+         COMPOSER
+    ========================== -->
+
+    <div class="composer-area">
+
+      <div class="composer">
+
+        <textarea
+          id="messageInput"
+          rows="1"
+          placeholder="Message SMATER CHAT AI..."
+          autocomplete="off"
+          spellcheck="true"
+        ></textarea>
+
+        <button
+          id="sendButton"
+          type="button"
+          aria-label="Send message"
+        >
+          ➤
+        </button>
+
+      </div>
+
+      <div class="composer-note">
+        SMATER CHAT AI can make mistakes. Verify important information.
+      </div>
+
+    </div>
+
+  </main>
 
 </div>
 
 
-<div class="composer-wrap">
+<!-- =========================
+     SETTINGS MODAL
+========================== -->
 
-  <div class="composer">
+<div
+  class="settings-overlay"
+  id="settingsOverlay"
+>
 
-    <div class="input-row">
+  <div class="settings-box">
 
-      <textarea
-        id="messageInput"
-        rows="1"
-        placeholder="Message SMATER CHAT AI..."
-        autocomplete="off"
-      ></textarea>
+    <div class="settings-head">
 
+      <h2>
+        Settings
+      </h2>
 
       <button
-        class="send"
-        id="sendButton"
+        class="close-settings"
+        id="closeSettings"
         type="button"
-        aria-label="Send message"
       >
-        ➤
+        ✕
       </button>
 
     </div>
 
 
-    <div class="composer-info">
+    <div class="setting-row">
 
-      <span>
-        Enter to send • Shift + Enter for new line
-      </span>
+      <div class="setting-label">
+        Appearance
+      </div>
 
-      <span id="connectionText">
-        AI ready
-      </span>
+      <div class="setting-buttons">
+
+        <button
+          id="darkButton"
+          type="button"
+        >
+          🌙 Dark
+        </button>
+
+        <button
+          id="lightButton"
+          type="button"
+        >
+          ☀️ Light
+        </button>
+
+      </div>
+
+    </div>
+
+
+    <div class="setting-row">
+
+      <div class="setting-label">
+        Privacy
+      </div>
+
+      <div
+        style="
+          color:var(--muted);
+          font-size:11px;
+          margin-top:6px;
+          line-height:1.5;
+        "
+      >
+        Your API key is handled by the
+        server and is not placed in this page.
+      </div>
 
     </div>
 
@@ -1313,17 +1275,15 @@ body.light .sidebar{
 </div>
 <script>
 
-/* =========================
-   SMATER CHAT AI
-   MAIN APPLICATION LOGIC
-========================= */
+/* =========================================
+   SMATER CHAT AI — PART 2
+   CHAT ENGINE + STREAMING + HISTORY
+========================================= */
 
 "use strict";
 
 
-/* =========================
-   ELEMENTS
-========================= */
+/* ---------- ELEMENTS ---------- */
 
 const input =
   document.getElementById("messageInput");
@@ -1374,105 +1334,77 @@ const mobileMenu =
   document.getElementById("mobileMenu");
 
 
-/* =========================
-   APPLICATION STATE
-========================= */
-
-let isSending = false;
+/* ---------- STATE ---------- */
 
 let conversation = [];
 
 let savedChats = [];
 
-
-/* =========================
-   LOCAL STORAGE
-========================= */
-
-function loadSavedData(){
-
-  try{
-
-    const history =
-      localStorage.getItem(
-        "smater_chat_history"
-      );
-
-    if(history){
-
-      const parsed =
-        JSON.parse(history);
-
-      if(Array.isArray(parsed)){
-
-        savedChats =
-          parsed;
-
-      }
-
-    }
-
-  }catch(error){
-
-    console.warn(
-      "History could not be loaded."
-    );
-
-    savedChats = [];
-
-  }
-
-}
+let isSending = false;
 
 
-loadSavedData();
+/* ---------- SAFE HTML ---------- */
 
-
-/* =========================
-   SAFE HTML
-========================= */
-
-function escapeHTML(value){
+function escapeHTML(value) {
 
   return String(value)
-    .replaceAll("&","&amp;")
-    .replaceAll("<","&lt;")
-    .replaceAll(">","&gt;")
-    .replaceAll('"',"&quot;")
-    .replaceAll("'","&#039;");
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
 
 }
 
 
-/* =========================
-   AI TEXT FORMATTER
-========================= */
+/* ---------- FORMAT AI RESPONSE ---------- */
 
-function formatAIText(text){
+function formatAIText(text) {
 
-  let safe =
-    escapeHTML(text);
+  let result =
+    escapeHTML(text || "");
 
 
-  const codeBlocks = [];
+  /*
+    Remove provider/internal safety
+    metadata if it accidentally appears.
+  */
+
+  result =
+    result.replace(
+      /User Safety:\s*safe/gi,
+      ""
+    );
+
+  result =
+    result.replace(
+      /Response Safety:\s*safe/gi,
+      ""
+    );
 
 
-  safe =
-    safe.replace(
+  /*
+    Code blocks
+  */
+
+  const blocks = [];
+
+  result =
+    result.replace(
       /```(?:[\w+-]+)?\s*([\s\S]*?)```/g,
-      function(match, code){
+      function (_, code) {
 
         const index =
-          codeBlocks.length;
+          blocks.length;
 
-        codeBlocks.push(
+        blocks.push(
           "<pre><code>" +
           code.trim() +
           "</code></pre>"
         );
 
         return (
-          "___SMATER_CODE_" +
+          "___CODE_" +
           index +
           "___"
         );
@@ -1481,34 +1413,80 @@ function formatAIText(text){
     );
 
 
-  safe =
-    safe.replace(
+  /*
+    Inline code
+  */
+
+  result =
+    result.replace(
       /`([^`]+)`/g,
       "<code>$1</code>"
     );
 
 
-  safe =
-    safe.replace(
+  /*
+    Bold
+  */
+
+  result =
+    result.replace(
       /\*\*(.*?)\*\*/g,
       "<strong>$1</strong>"
     );
 
 
-  safe =
-    safe.replace(
+  /*
+    Simple headings
+  */
+
+  result =
+    result.replace(
+      /^### (.*)$/gm,
+      "<strong>$1</strong>"
+    );
+
+  result =
+    result.replace(
+      /^## (.*)$/gm,
+      "<strong>$1</strong>"
+    );
+
+  result =
+    result.replace(
+      /^# (.*)$/gm,
+      "<strong>$1</strong>"
+    );
+
+
+  /*
+    Bullets
+  */
+
+  result =
+    result.replace(
+      /^[•*-]\s+(.*)$/gm,
+      "• $1"
+    );
+
+
+  result =
+    result.replace(
       /\n/g,
       "<br>"
     );
 
 
-  safe =
-    safe.replace(
-      /___SMATER_CODE_(\d+)___/g,
-      function(match,index){
+  /*
+    Restore code blocks
+  */
+
+  result =
+    result.replace(
+      /___CODE_(\d+)___/g,
+      function (_, index) {
 
         return (
-          codeBlocks[
+          blocks[
             Number(index)
           ] || ""
         );
@@ -1517,42 +1495,17 @@ function formatAIText(text){
     );
 
 
-  return safe;
+  return result.trim();
 
 }
 
 
-/* =========================
-   AUTO RESIZE INPUT
-========================= */
+/* ---------- SCROLL ---------- */
 
-function resizeInput(){
-
-  input.style.height =
-    "auto";
-
-
-  const height =
-    Math.min(
-      input.scrollHeight,
-      150
-    );
-
-
-  input.style.height =
-    height + "px";
-
-}
-
-
-/* =========================
-   SCROLL TO BOTTOM
-========================= */
-
-function scrollToBottom(){
+function scrollToBottom() {
 
   requestAnimationFrame(
-    function(){
+    function () {
 
       chat.scrollTop =
         chat.scrollHeight;
@@ -1563,26 +1516,36 @@ function scrollToBottom(){
 }
 
 
-/* =========================
-   ADD USER MESSAGE
-========================= */
+/* ---------- RESIZE INPUT ---------- */
 
-function addUserMessage(text){
+function resizeInput() {
 
-  const article =
+  input.style.height =
+    "auto";
+
+  input.style.height =
+    Math.min(
+      input.scrollHeight,
+      150
+    ) + "px";
+
+}
+
+
+/* ---------- USER MESSAGE ---------- */
+
+function addUserMessage(text) {
+
+  const row =
     document.createElement("article");
 
-  article.className =
-    "message";
+  row.className =
+    "message user-message";
 
 
-  article.innerHTML = `
+  row.innerHTML = `
 
-    <div class="avatar user">
-      👤
-    </div>
-
-    <div class="message-body">
+    <div class="message-content">
 
       <div class="message-name">
         You
@@ -1592,16 +1555,16 @@ function addUserMessage(text){
 
     </div>
 
+    <div class="avatar">
+      👤
+    </div>
+
   `;
 
 
-  const textBox =
-    article.querySelector(
-      ".message-text"
-    );
-
-
-  textBox.innerHTML =
+  row.querySelector(
+    ".message-text"
+  ).innerHTML =
     escapeHTML(text)
       .replaceAll(
         "\n",
@@ -1609,39 +1572,34 @@ function addUserMessage(text){
       );
 
 
-  messages.appendChild(
-    article
-  );
-
+  messages.appendChild(row);
 
   scrollToBottom();
 
 }
 
 
-/* =========================
-   ADD AI MESSAGE
-========================= */
+/* ---------- AI MESSAGE ---------- */
 
-function addAIMessage(text){
+function createAIMessage() {
 
-  const article =
+  const row =
     document.createElement("article");
 
-  article.className =
-    "message";
+  row.className =
+    "message ai-message";
 
 
-  article.innerHTML = `
+  row.innerHTML = `
 
     <div class="avatar">
       ✦
     </div>
 
-    <div class="message-body">
+    <div class="message-content">
 
       <div class="message-name">
-        SMATER Intelligence
+        SMATER AI
       </div>
 
       <div class="message-text"></div>
@@ -1662,36 +1620,361 @@ function addAIMessage(text){
   `;
 
 
-  const textBox =
-    article.querySelector(
+  messages.appendChild(row);
+
+  scrollToBottom();
+
+  return row;
+
+}
+
+
+/* ---------- TYPING ---------- */
+
+function showTyping() {
+
+  removeTyping();
+
+
+  const row =
+    document.createElement("article");
+
+  row.id =
+    "typingIndicator";
+
+  row.className =
+    "message ai-message";
+
+
+  row.innerHTML = `
+
+    <div class="avatar">
+      ✦
+    </div>
+
+    <div class="message-content">
+
+      <div class="message-name">
+        SMATER AI
+      </div>
+
+      <div class="message-text">
+
+        <div class="typing">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+
+      </div>
+
+    </div>
+
+  `;
+
+
+  messages.appendChild(row);
+
+  scrollToBottom();
+
+}
+
+
+function removeTyping() {
+
+  const element =
+    document.getElementById(
+      "typingIndicator"
+    );
+
+  if (element) {
+    element.remove();
+  }
+
+}
+
+
+/* ---------- CLEAN RESPONSE ---------- */
+
+function cleanAIResponse(text) {
+
+  return String(text || "")
+    .replace(
+      /User Safety:\s*safe/gi,
+      ""
+    )
+    .replace(
+      /Response Safety:\s*safe/gi,
+      ""
+    )
+    .trim();
+
+}
+
+
+/* ---------- STREAM API ---------- */
+
+async function streamAI(message) {
+
+  const response =
+    await fetch(
+      "/api/chat",
+      {
+        method: "POST",
+
+        headers: {
+          "Content-Type":
+            "application/json"
+        },
+
+        body: JSON.stringify({
+
+          message: message,
+
+          history:
+            conversation.slice(-10)
+
+        })
+
+      }
+    );
+
+
+  if (!response.ok) {
+
+    const raw =
+      await response.text();
+
+    let errorText =
+      "AI request failed.";
+
+    try {
+
+      const data =
+        JSON.parse(raw);
+
+      errorText =
+        data?.error ||
+        errorText;
+
+    } catch {}
+
+    throw new Error(
+      errorText
+    );
+
+  }
+
+
+  if (!response.body) {
+
+    throw new Error(
+      "Streaming is not supported by the server."
+    );
+
+  }
+
+
+  const reader =
+    response.body.getReader();
+
+  const decoder =
+    new TextDecoder();
+
+  let buffer = "";
+
+  let fullReply = "";
+
+
+  const aiRow =
+    createAIMessage();
+
+  const textElement =
+    aiRow.querySelector(
       ".message-text"
     );
 
 
-  textBox.innerHTML =
-    formatAIText(text);
+  while (true) {
 
+    const result =
+      await reader.read();
+
+
+    if (result.done) {
+      break;
+    }
+
+
+    buffer +=
+      decoder.decode(
+        result.value,
+        {
+          stream: true
+        }
+      );
+
+
+    const events =
+      buffer.split("\n\n");
+
+
+    buffer =
+      events.pop() || "";
+
+
+    for (
+      const event of events
+    ) {
+
+      const lines =
+        event.split("\n");
+
+
+      for (
+        const line of lines
+      ) {
+
+        if (
+          !line.startsWith(
+            "data:"
+          )
+        ) {
+          continue;
+        }
+
+
+        const rawData =
+          line
+            .slice(5)
+            .trim();
+
+
+        if (
+          !rawData ||
+          rawData === "[DONE]"
+        ) {
+          continue;
+        }
+
+
+        try {
+
+          const data =
+            JSON.parse(
+              rawData
+            );
+
+
+          if (
+            data.error
+          ) {
+
+            throw new Error(
+              data.error
+            );
+
+          }
+
+
+          if (
+            typeof data.text ===
+            "string"
+          ) {
+
+            fullReply +=
+              data.text;
+
+
+            const cleaned =
+              cleanAIResponse(
+                fullReply
+              );
+
+
+            textElement.innerHTML =
+              formatAIText(
+                cleaned
+              );
+
+
+            scrollToBottom();
+
+          }
+
+        } catch (error) {
+
+          /*
+            Ignore JSON chunks that are
+            incomplete or provider noise.
+          */
+
+          if (
+            error &&
+            error.message &&
+            !String(
+              error.message
+            ).includes(
+              "Unexpected"
+            )
+          ) {
+
+            throw error;
+
+          }
+
+        }
+
+      }
+
+    }
+
+  }
+
+
+  fullReply =
+    cleanAIResponse(
+      fullReply
+    );
+
+
+  if (!fullReply) {
+
+    aiRow.remove();
+
+    throw new Error(
+      "AI returned an empty response."
+    );
+
+  }
+
+
+  /*
+    Copy button
+  */
 
   const copyButton =
-    article.querySelector(
+    aiRow.querySelector(
       ".copy-button"
     );
 
 
   copyButton.addEventListener(
     "click",
-    async function(){
+    async function () {
 
-      try{
+      try {
 
         await navigator.clipboard
-          .writeText(text);
+          .writeText(
+            fullReply
+          );
 
         copyButton.textContent =
           "✓ Copied";
 
         setTimeout(
-          function(){
+          function () {
 
             copyButton.textContent =
               "📋 Copy";
@@ -1700,7 +1983,7 @@ function addAIMessage(text){
           1200
         );
 
-      }catch(error){
+      } catch {
 
         copyButton.textContent =
           "Copy failed";
@@ -1711,161 +1994,228 @@ function addAIMessage(text){
   );
 
 
-  messages.appendChild(
-    article
-  );
-
-
-  scrollToBottom();
+  return fullReply;
 
 }
 
 
-/* =========================
-   TYPING INDICATOR
-========================= */
+/* ---------- SEND ---------- */
 
-function showTyping(){
+async function sendMessage() {
 
-  removeTyping();
-
-
-  const article =
-    document.createElement("article");
-
-  article.id =
-    "typingIndicator";
-
-  article.className =
-    "message";
-
-
-  article.innerHTML = `
-
-    <div class="avatar">
-      ✦
-    </div>
-
-    <div class="message-body">
-
-      <div class="message-name">
-        SMATER Intelligence
-      </div>
-
-      <div class="typing">
-
-        <span></span>
-        <span></span>
-        <span></span>
-
-      </div>
-
-    </div>
-
-  `;
-
-
-  messages.appendChild(
-    article
-  );
-
-
-  scrollToBottom();
-
-}
-
-
-function removeTyping(){
-
-  const typing =
-    document.getElementById(
-      "typingIndicator"
-    );
-
-
-  if(typing){
-
-    typing.remove();
-
+  if (isSending) {
+    return;
   }
 
-}
+
+  const message =
+    input.value.trim();
 
 
-/* =========================
-   SAVE CURRENT CHAT
-========================= */
+  if (!message) {
 
-function saveCurrentChat(){
-
-  if(
-    !Array.isArray(conversation) ||
-    conversation.length === 0
-  ){
+    input.focus();
 
     return;
 
   }
 
 
-  const firstUserMessage =
+  isSending =
+    true;
+
+
+  sendButton.disabled =
+    true;
+
+
+  input.disabled =
+    true;
+
+
+  connectionText.textContent =
+    "Thinking...";
+
+
+  welcome.style.display =
+    "none";
+
+
+  addUserMessage(
+    message
+  );
+
+
+  input.value =
+    "";
+
+  resizeInput();
+
+  showTyping();
+
+
+  try {
+
+    removeTyping();
+
+
+    const reply =
+      await streamAI(
+        message
+      );
+
+
+    conversation.push({
+
+      role: "user",
+
+      content: message
+
+    });
+
+
+    conversation.push({
+
+      role: "assistant",
+
+      content: reply
+
+    });
+
+
+    conversation =
+      conversation.slice(-10);
+
+
+    saveCurrentChat();
+
+    renderHistory();
+
+
+    connectionText.textContent =
+      "AI ready";
+
+
+  } catch (error) {
+
+    console.error(
+      "SMATER CHAT AI:",
+      error
+    );
+
+
+    removeTyping();
+
+
+    addAIMessageWithError(
+      "Sorry, I couldn't connect to the AI right now. Please try again."
+    );
+
+
+    connectionText.textContent =
+      "Connection error";
+
+  } finally {
+
+    isSending =
+      false;
+
+    sendButton.disabled =
+      false;
+
+    input.disabled =
+      false;
+
+    input.focus();
+
+  }
+
+}
+
+
+/* ---------- ERROR MESSAGE ---------- */
+
+function addAIMessageWithError(text) {
+
+  const row =
+    createAIMessage();
+
+
+  const box =
+    row.querySelector(
+      ".message-text"
+    );
+
+
+  box.innerHTML =
+    formatAIText(
+      text
+    );
+
+
+  const actions =
+    row.querySelector(
+      ".message-actions"
+    );
+
+
+  actions.style.display =
+    "none";
+
+}
+
+
+/* ---------- SAVE CHAT ---------- */
+
+function saveCurrentChat() {
+
+  if (
+    !conversation.length
+  ) {
+    return;
+  }
+
+
+  const first =
     conversation.find(
-      function(item){
-
-        return (
-          item &&
-          item.role === "user"
-        );
-
-      }
+      item =>
+        item.role === "user"
     );
 
 
-  if(!firstUserMessage){
-
+  if (!first) {
     return;
-
   }
 
 
   let title =
     String(
-      firstUserMessage.content || ""
+      first.content || ""
     )
-    .replace(/\s+/g," ")
-    .trim();
+      .replace(
+        /\s+/g,
+        " "
+      )
+      .trim();
 
 
-  if(!title){
-
-    title =
-      "New chat";
-
+  if (!title) {
+    title = "New chat";
   }
 
 
   title =
-    title.slice(0,60);
-
-
-  const existingIndex =
-    savedChats.findIndex(
-      function(item){
-
-        return (
-          item &&
-          item.title === title
-        );
-
-      }
+    title.slice(
+      0,
+      55
     );
 
 
   const chatData = {
 
-    id:Date.now(),
+    id: Date.now(),
 
-    title:title,
+    title: title,
 
     messages:
       conversation.slice()
@@ -1873,14 +2223,15 @@ function saveCurrentChat(){
   };
 
 
-  if(existingIndex >= 0){
+  /*
+    Remove older copy of same title
+  */
 
-    savedChats.splice(
-      existingIndex,
-      1
+  savedChats =
+    savedChats.filter(
+      chat =>
+        chat.title !== title
     );
-
-  }
 
 
   savedChats.unshift(
@@ -1889,10 +2240,13 @@ function saveCurrentChat(){
 
 
   savedChats =
-    savedChats.slice(0,30);
+    savedChats.slice(
+      0,
+      30
+    );
 
 
-  try{
+  try {
 
     localStorage.setItem(
       "smater_chat_history",
@@ -1901,46 +2255,70 @@ function saveCurrentChat(){
       )
     );
 
-  }catch(error){
+  } catch {}
 
-    console.warn(
-      "Could not save chat history."
-    );
+}
+
+
+/* ---------- LOAD HISTORY ---------- */
+
+function loadHistory() {
+
+  try {
+
+    const stored =
+      localStorage.getItem(
+        "smater_chat_history"
+      );
+
+
+    if (stored) {
+
+      const parsed =
+        JSON.parse(
+          stored
+        );
+
+
+      if (
+        Array.isArray(parsed)
+      ) {
+
+        savedChats =
+          parsed;
+
+      }
+
+    }
+
+  } catch {
+
+    savedChats =
+      [];
 
   }
 
 }
 
 
-/* =========================
-   RENDER CHAT HISTORY
-========================= */
+/* ---------- RENDER HISTORY ---------- */
 
-function renderHistory(){
+function renderHistory() {
 
   historyBox.innerHTML =
     "";
 
 
-  if(savedChats.length === 0){
-
-    return;
-
-  }
-
-
   savedChats.forEach(
-    function(chatData){
+    function (item) {
 
-      if(
-        !chatData ||
+      if (
+        !item ||
         !Array.isArray(
-          chatData.messages
+          item.messages
         )
-      ){
-
+      ) {
         return;
-
       }
 
 
@@ -1953,22 +2331,20 @@ function renderHistory(){
       button.type =
         "button";
 
-
       button.className =
         "history-item";
 
-
       button.textContent =
-        chatData.title ||
+        item.title ||
         "New chat";
 
 
       button.addEventListener(
         "click",
-        function(){
+        function () {
 
           openSavedChat(
-            chatData
+            item
           );
 
           sidebar.classList.remove(
@@ -1989,18 +2365,12 @@ function renderHistory(){
 }
 
 
-/* =========================
-   OPEN SAVED CHAT
-========================= */
+/* ---------- OPEN HISTORY ---------- */
 
-function openSavedChat(chatData){
+function openSavedChat(item) {
 
   conversation =
-    Array.isArray(
-      chatData.messages
-    )
-      ? chatData.messages.slice()
-      : [];
+    item.messages.slice();
 
 
   messages.innerHTML =
@@ -2012,32 +2382,69 @@ function openSavedChat(chatData){
 
 
   conversation.forEach(
-    function(item){
+    function (message) {
 
-      if(!item){
-
-        return;
-
-      }
-
-
-      if(
-        item.role === "user"
-      ){
+      if (
+        message.role ===
+        "user"
+      ) {
 
         addUserMessage(
-          item.content || ""
+          message.content
         );
 
       }
 
+      if (
+        message.role ===
+        "assistant"
+      ) {
 
-      if(
-        item.role === "assistant"
-      ){
+        const row =
+          createAIMessage();
 
-        addAIMessage(
-          item.content || ""
+
+        row.querySelector(
+          ".message-text"
+        ).innerHTML =
+          formatAIText(
+            message.content
+          );
+
+
+        const copyButton =
+          row.querySelector(
+            ".copy-button"
+          );
+
+
+        copyButton.addEventListener(
+          "click",
+          async function () {
+
+            try {
+
+              await navigator.clipboard
+                .writeText(
+                  message.content
+                );
+
+              copyButton.textContent =
+                "✓ Copied";
+
+              setTimeout(
+                function () {
+
+                  copyButton.textContent =
+                    "📋 Copy";
+
+                },
+                1200
+              );
+
+            } catch {}
+
+          }
         );
 
       }
@@ -2051,244 +2458,13 @@ function openSavedChat(chatData){
 }
 
 
-/* =========================
-   SEND MESSAGE
-========================= */
+/* ---------- NEW CHAT ---------- */
 
-async function sendMessage(){
+function startNewChat() {
 
-  if(isSending){
-
-    return;
-
-  }
-
-
-  const message =
-    input.value.trim();
-
-
-  if(!message){
-
-    input.focus();
-
-    return;
-
-  }
-
-
-  isSending =
-    true;
-
-
-  sendButton.disabled =
-    true;
-
-
-  connectionText.textContent =
-    "Thinking...";
-
-
-  welcome.style.display =
-    "none";
-
-
-  addUserMessage(
-    message
-  );
-
-
-  input.value =
-    "";
-
-
-  resizeInput();
-
-
-  showTyping();
-
-
-  try{
-
-    /*
-      IMPORTANT:
-
-      API key frontend mein nahi hai.
-
-      Request directly /api/chat
-      par ja rahi hai.
-    */
-
-    const response =
-      await fetch(
-        "/api/chat",
-        {
-          method:"POST",
-
-          headers:{
-            "Content-Type":
-              "application/json"
-          },
-
-          body:JSON.stringify({
-
-            message:
-              message,
-
-            history:
-              conversation.slice(-12)
-
-          })
-
-        }
-      );
-
-
-    const rawText =
-      await response.text();
-
-
-    let data;
-
-
-    try{
-
-      data =
-        JSON.parse(
-          rawText
-        );
-
-    }catch(error){
-
-      throw new Error(
-        "Server returned an invalid response."
-      );
-
-    }
-
-
-    if(!response.ok){
-
-      throw new Error(
-        data?.error ||
-        "AI request failed."
-      );
-
-    }
-
-
-    const reply =
-      typeof data?.reply === "string"
-        ? data.reply.trim()
-        : "";
-
-
-    if(!reply){
-
-      throw new Error(
-        "AI returned no reply."
-      );
-
-    }
-
-
-    removeTyping();
-
-
-    addAIMessage(
-      reply
-    );
-
-
-    conversation.push(
-
-      {
-        role:"user",
-
-        content:
-          message
-      },
-
-      {
-        role:"assistant",
-
-        content:
-          reply
-      }
-
-    );
-
-
-    /*
-      Keep only the latest messages
-      so the request stays fast.
-    */
-
-    conversation =
-      conversation.slice(-12);
-
-
-    saveCurrentChat();
-
-    renderHistory();
-
-
-    connectionText.textContent =
-      "AI ready";
-
-
-  }catch(error){
-
-    console.error(
-      "SMATER CHAT AI:",
-      error
-    );
-
-
-    removeTyping();
-
-
-    const errorMessage =
-      error?.message ||
-      "Something went wrong.";
-
-
-    addAIMessage(
-      "Sorry, I couldn't connect to the AI engine right now.\n\nError: " +
-      errorMessage
-    );
-
-
-    connectionText.textContent =
-      "Connection error";
-
-
-  }finally{
-
-    isSending =
-      false;
-
-
-    sendButton.disabled =
-      false;
-
-
-    input.focus();
-
-  }
-
-}
-
-
-/* =========================
-   NEW CHAT
-========================= */
-
-function startNewChat(){
-
-  if(
-    conversation.length > 0
-  ){
+  if (
+    conversation.length
+  ) {
 
     saveCurrentChat();
 
@@ -2301,6 +2477,11 @@ function startNewChat(){
 
   messages.innerHTML =
     "";
+
+
+  messages.appendChild(
+    welcome
+  );
 
 
   welcome.style.display =
@@ -2324,55 +2505,11 @@ function startNewChat(){
 }
 
 
-/* =========================
-   QUICK ACTIONS
-========================= */
-
-document
-  .querySelectorAll(".quick")
-  .forEach(
-    function(button){
-
-      button.addEventListener(
-        "click",
-        function(){
-
-          const prompt =
-            button.dataset.prompt ||
-            "";
-
-
-          if(!prompt){
-
-            return;
-
-          }
-
-
-          input.value =
-            prompt;
-
-
-          resizeInput();
-
-          input.focus();
-
-          sendMessage();
-
-        }
-      );
-
-    }
-  );
-
-
-/* =========================
-   SEND BUTTON
-========================= */
+/* ---------- EVENTS ---------- */
 
 sendButton.addEventListener(
   "click",
-  function(event){
+  function (event) {
 
     event.preventDefault();
 
@@ -2382,18 +2519,14 @@ sendButton.addEventListener(
 );
 
 
-/* =========================
-   ENTER TO SEND
-========================= */
-
 input.addEventListener(
   "keydown",
-  function(event){
+  function (event) {
 
-    if(
+    if (
       event.key === "Enter" &&
       !event.shiftKey
-    ){
+    ) {
 
       event.preventDefault();
 
@@ -2405,49 +2538,32 @@ input.addEventListener(
 );
 
 
-/* =========================
-   INPUT RESIZE
-========================= */
-
 input.addEventListener(
   "input",
   resizeInput
 );
 
 
-/* =========================
-   NEW CHAT BUTTON
-========================= */
-
 newChatButton.addEventListener(
   "click",
-  function(){
-
-    startNewChat();
-
-  }
+  startNewChat
 );
 
 
-/* =========================
-   CLEAR HISTORY
-========================= */
-
 clearHistoryButton.addEventListener(
   "click",
-  function(){
+  function () {
 
     savedChats =
       [];
 
-    try{
+    try {
 
       localStorage.removeItem(
         "smater_chat_history"
       );
 
-    }catch(error){}
-
+    } catch {}
 
     renderHistory();
 
@@ -2455,13 +2571,11 @@ clearHistoryButton.addEventListener(
 );
 
 
-/* =========================
-   SETTINGS
-========================= */
+/* ---------- SETTINGS ---------- */
 
 settingsButton.addEventListener(
   "click",
-  function(){
+  function () {
 
     settingsOverlay.classList.add(
       "show"
@@ -2477,7 +2591,7 @@ settingsButton.addEventListener(
 
 closeSettings.addEventListener(
   "click",
-  function(){
+  function () {
 
     settingsOverlay.classList.remove(
       "show"
@@ -2489,12 +2603,12 @@ closeSettings.addEventListener(
 
 settingsOverlay.addEventListener(
   "click",
-  function(event){
+  function (event) {
 
-    if(
+    if (
       event.target ===
       settingsOverlay
-    ){
+    ) {
 
       settingsOverlay.classList.remove(
         "show"
@@ -2506,55 +2620,42 @@ settingsOverlay.addEventListener(
 );
 
 
-/* =========================
-   THEME
-========================= */
+/* ---------- THEME ---------- */
 
-function setTheme(theme){
+function setTheme(theme) {
 
-  if(theme === "light"){
+  if (
+    theme === "light"
+  ) {
 
     document.body.classList.add(
       "light"
     );
 
-
-    try{
-
-      localStorage.setItem(
-        "smater_theme",
-        "light"
-      );
-
-    }catch(error){}
-
-
-  }else{
+  } else {
 
     document.body.classList.remove(
       "light"
     );
 
-
-    try{
-
-      localStorage.setItem(
-        "smater_theme",
-        "dark"
-      );
-
-    }catch(error){}
-
   }
+
+
+  try {
+
+    localStorage.setItem(
+      "smater_theme",
+      theme
+    );
+
+  } catch {}
 
 }
 
-
-/* DARK */
 
 darkButton.addEventListener(
   "click",
-  function(){
+  function () {
 
     setTheme(
       "dark"
@@ -2563,12 +2664,10 @@ darkButton.addEventListener(
   }
 );
 
-
-/* LIGHT */
 
 lightButton.addEventListener(
   "click",
-  function(){
+  function () {
 
     setTheme(
       "light"
@@ -2578,48 +2677,11 @@ lightButton.addEventListener(
 );
 
 
-/* =========================
-   LOAD THEME
-========================= */
-
-try{
-
-  const savedTheme =
-    localStorage.getItem(
-      "smater_theme"
-    );
-
-
-  if(savedTheme === "light"){
-
-    setTheme(
-      "light"
-    );
-
-  }else{
-
-    setTheme(
-      "dark"
-    );
-
-  }
-
-}catch(error){
-
-  setTheme(
-    "dark"
-  );
-
-}
-
-
-/* =========================
-   MOBILE MENU
-========================= */
+/* ---------- MOBILE ---------- */
 
 mobileMenu.addEventListener(
   "click",
-  function(){
+  function () {
 
     sidebar.classList.toggle(
       "open"
@@ -2629,52 +2691,269 @@ mobileMenu.addEventListener(
 );
 
 
-/* =========================
-   INITIALIZE
-========================= */
+/* ---------- QUICK PROMPTS ---------- */
+
+document
+  .querySelectorAll(".quick")
+  .forEach(
+    function (button) {
+
+      button.addEventListener(
+        "click",
+        function () {
+
+          const prompt =
+            button.dataset.prompt ||
+            "";
+
+          if (!prompt) {
+            return;
+          }
+
+          input.value =
+            prompt;
+
+          resizeInput();
+
+          input.focus();
+
+          sendMessage();
+
+        }
+      );
+
+    }
+  );
+
+
+/* ---------- INITIAL LOAD ---------- */
+
+loadHistory();
 
 renderHistory();
 
 resizeInput();
 
+
+try {
+
+  const theme =
+    localStorage.getItem(
+      "smater_theme"
+    );
+
+  setTheme(
+    theme === "light"
+      ? "light"
+      : "dark"
+  );
+
+} catch {
+
+  setTheme(
+    "dark"
+  );
+
+}
+
+
 input.focus();
 
-</script>
-<!-- =========================================
-     SMATER CHAT AI
-     FINAL PAGE INITIALIZATION
+      </script>
+      <!-- =========================================
+     SMATER CHAT AI — PART 3/3
+     FINAL CLEANUP + ACCESSIBILITY
 ========================================= -->
 
 <script>
-/*
-  Final safety check.
-  This makes sure the page does not break
-  if any browser feature is unavailable.
-*/
+
+/* =========================================
+   FINAL UI HELPERS
+========================================= */
 
 (function () {
 
-  try {
+  const input =
+    document.getElementById("messageInput");
 
-    if (
-      typeof window.fetch !== "function"
-    ) {
+  const sendButton =
+    document.getElementById("sendButton");
 
-      console.warn(
-        "Fetch API is not available in this browser."
-      );
+  if (!input || !sendButton) {
+    return;
+  }
+
+
+  /* Prevent accidental form-like behaviour */
+
+  document.addEventListener(
+    "keydown",
+    function (event) {
+
+      if (
+        event.key === "Enter" &&
+        event.shiftKey
+      ) {
+        return;
+      }
 
     }
+  );
 
-  } catch (error) {
 
-    console.warn(
-      "Browser compatibility check failed."
-    );
+  /* Keep send button state correct */
+
+  function updateSendButton() {
+
+    if (
+      window.isSending === true
+    ) {
+      sendButton.disabled = true;
+      return;
+    }
+
+    sendButton.disabled =
+      !input.value.trim();
 
   }
 
+
+  input.addEventListener(
+    "input",
+    updateSendButton
+  );
+
+
+  /* Do not disable button forever */
+
+  setInterval(
+    updateSendButton,
+    500
+  );
+
+
+  /* Focus input after clicking anywhere
+     outside the sidebar */
+
+  document.addEventListener(
+    "click",
+    function (event) {
+
+      const target =
+        event.target;
+
+      if (
+        target.closest(
+          ".quick"
+        ) ||
+        target.closest(
+          ".new-chat"
+        )
+      ) {
+        return;
+      }
+
+    }
+  );
+
+
 })();
+
+
+/* =========================================
+   PREVENT DOUBLE INITIALIZATION
+========================================= */
+
+window.SMATER_CHAT_AI =
+  window.SMATER_CHAT_AI ||
+  {
+    version: "1.0",
+    name: "SMATER CHAT AI"
+  };
+
+
+/* =========================================
+   VISIBILITY / MOBILE CLEANUP
+========================================= */
+
+document.addEventListener(
+  "visibilitychange",
+  function () {
+
+    if (
+      document.hidden
+    ) {
+      return;
+    }
+
+    const input =
+      document.getElementById(
+        "messageInput"
+      );
+
+    if (
+      input &&
+      !input.disabled
+    ) {
+
+      /*
+        Don't automatically open keyboard
+        on mobile. Just restore the UI.
+      */
+
+      input.style.opacity =
+        "1";
+
+    }
+
+  }
+);
+
+
+/* =========================================
+   GLOBAL ERROR PROTECTION
+========================================= */
+
+window.addEventListener(
+  "error",
+  function (event) {
+
+    console.error(
+      "SMATER CHAT AI UI error:",
+      event.error || event.message
+    );
+
+  }
+);
+
+
+/* =========================================
+   UNHANDLED PROMISE PROTECTION
+========================================= */
+
+window.addEventListener(
+  "unhandledrejection",
+  function (event) {
+
+    console.error(
+      "SMATER CHAT AI async error:",
+      event.reason
+    );
+
+  }
+);
+
+
+/* =========================================
+   FINAL READY STATE
+========================================= */
+
+document.documentElement
+  .setAttribute(
+    "data-smater-ready",
+    "true"
+  );
+
 </script>
 
 
