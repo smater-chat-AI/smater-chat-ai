@@ -6,7 +6,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { message } = req.body || {};
+    const { message, history = [] } = req.body || {};
 
     if (!message || !message.trim()) {
       return res.status(400).json({
@@ -18,33 +18,78 @@ export default async function handler(req, res) {
 
     if (!apiKey) {
       return res.status(500).json({
-        error: "OPENROUTER_API_KEY is missing in Vercel"
+        error: "OPENROUTER_API_KEY is missing in Vercel."
       });
     }
+
+    const safeHistory = Array.isArray(history)
+      ? history
+          .filter(item =>
+            item &&
+            (item.role === "user" ||
+             item.role === "assistant") &&
+            typeof item.content === "string"
+          )
+          .slice(-12)
+      : [];
+
+    const messages = [
+      {
+        role: "system",
+        content: `
+You are SMATER CHAT AI.
+
+You are a friendly, intelligent and helpful general-purpose AI assistant.
+
+Communication style:
+- Understand Hindi, Hinglish and English naturally.
+- Reply in the language/style the user is using.
+- If the user uses Hinglish, reply naturally in Hinglish.
+- Be warm, friendly and easy to understand.
+- Do not sound robotic.
+- Explain difficult things step by step.
+- For study questions, teach instead of encouraging cheating.
+- For coding questions, give clear working code and explain where it goes.
+- For calculations, carefully verify the answer.
+- If you are unsure about something, say so instead of inventing facts.
+- Keep answers concise when the question is simple.
+- Give more detail when the user asks for it.
+- Remember the conversation context provided in the messages.
+- Never claim to have abilities or tools that you do not actually have.
+
+Your name is SMATER CHAT AI.
+        `.trim()
+      },
+
+      ...safeHistory,
+
+      {
+        role: "user",
+        content: message.trim()
+      }
+    ];
 
     const response = await fetch(
       "https://openrouter.ai/api/v1/chat/completions",
       {
         method: "POST",
+
         headers: {
           "Authorization": `Bearer ${apiKey}`,
           "Content-Type": "application/json",
-          "HTTP-Referer": "https://smater-chat-ai.vercel.app",
-          "X-Title": "SMATER CHAT AI"
+          "HTTP-Referer":
+            "https://smater-chat-ai.vercel.app",
+          "X-Title":
+            "SMATER CHAT AI"
         },
+
         body: JSON.stringify({
           model: "openrouter/free",
-          messages: [
-            {
-              role: "system",
-              content:
-                "You are SMATER CHAT AI, a helpful, clear and friendly general-purpose AI assistant."
-            },
-            {
-              role: "user",
-              content: message.trim()
-            }
-          ]
+          messages,
+
+          temperature: 0.7,
+
+          max_tokens: 1200
         })
       }
     );
@@ -57,7 +102,8 @@ export default async function handler(req, res) {
       data = JSON.parse(rawText);
     } catch {
       return res.status(502).json({
-        error: `OpenRouter returned a non-JSON response: ${rawText.slice(0, 300)}`
+        error:
+          "AI server returned an invalid response."
       });
     }
 
@@ -65,27 +111,34 @@ export default async function handler(req, res) {
       return res.status(response.status).json({
         error:
           data?.error?.message ||
-          "OpenRouter request failed"
+          "OpenRouter request failed."
       });
     }
 
-    const reply = data?.choices?.[0]?.message?.content;
+    const reply =
+      data?.choices?.[0]?.message?.content;
 
     if (!reply) {
       return res.status(502).json({
-        error: "OpenRouter returned no AI message"
+        error:
+          "SMATER CHAT AI received no answer."
       });
     }
 
     return res.status(200).json({
-      reply
+      reply: reply.trim()
     });
 
   } catch (error) {
-    console.error("SMATER CHAT AI error:", error);
+    console.error(
+      "SMATER CHAT AI error:",
+      error
+    );
 
     return res.status(500).json({
-      error: error?.message || "Server error"
+      error:
+        error?.message ||
+        "Internal server error."
     });
   }
 }
