@@ -17,7 +17,7 @@ export default async function handler(req, res) {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        model: model: "openai/gpt-oss-20b",
+        model: model:"openrouter/free",
         messages: [
           {
             role: "system",
