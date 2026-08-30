@@ -163,6 +163,16 @@ function getRequestBody(req) {
   if (!req) {
     return {};
   }
+
+  if (
+    req.body &&
+    typeof req.body === "object"
+  ) {
+    return req.body;
+  }
+
+  return {};
+}
 module.exports = async function handler(req, res) {
   if (req.method !== "POST") {
     return jsonResponse(res, 405, {
@@ -345,12 +355,3 @@ module.exports = async function handler(req, res) {
     } catch {}
   }
 };
-  if (
-    req.body &&
-    typeof req.body === "object"
-  ) {
-    return req.body;
-  }
-
-  return {};
-}
