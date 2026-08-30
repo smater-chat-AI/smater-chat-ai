@@ -3,20 +3,14 @@
 <head>
 <meta charset="UTF-8">
 
-<meta
-  name="viewport"
-  content="width=device-width, initial-scale=1.0"
->
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0">
 
-<meta
-  name="theme-color"
-  content="#111827"
->
+<meta name="theme-color"
+      content="#0b1020">
 
-<meta
-  name="description"
-  content="SMATER CHAT AI - intelligent AI assistant built to help, learn, create and solve."
->
+<meta name="description"
+      content="SMATER CHAT AI — Think smarter. Ask anything. Get more done.">
 
 <title>SMATER CHAT AI</title>
 
@@ -31,22 +25,21 @@
 :root {
   --bg: #0b1020;
   --panel: #111827;
-  --panel-2: #182033;
+  --panel2: #182033;
   --border: rgba(255,255,255,.09);
   --text: #f5f7fb;
   --muted: #9ca8bd;
   --accent: #7c5cff;
-  --accent-2: #5b8cff;
+  --accent2: #5b8cff;
   --user: #253a68;
   --ai: #151d2d;
-  --danger: #ef4444;
   --shadow: 0 20px 60px rgba(0,0,0,.25);
 }
 
 body.light {
   --bg: #f5f7fb;
   --panel: #ffffff;
-  --panel-2: #eef2f8;
+  --panel2: #eef2f8;
   --border: rgba(15,23,42,.10);
   --text: #111827;
   --muted: #667085;
@@ -80,9 +73,9 @@ body {
 ========================= */
 
 .app {
-  display: flex;
   width: 100%;
   height: 100vh;
+  display: flex;
 }
 
 /* =========================
@@ -95,8 +88,10 @@ body {
   height: 100%;
   background: var(--panel);
   border-right: 1px solid var(--border);
+
   display: flex;
   flex-direction: column;
+
   padding: 16px;
   z-index: 20;
 }
@@ -111,6 +106,8 @@ body {
 .brand-icon {
   width: 38px;
   height: 38px;
+  min-width: 38px;
+
   border-radius: 12px;
 
   display: flex;
@@ -121,7 +118,7 @@ body {
     linear-gradient(
       135deg,
       var(--accent),
-      var(--accent-2)
+      var(--accent2)
     );
 
   color: white;
@@ -129,8 +126,7 @@ body {
   font-weight: 800;
 
   box-shadow:
-    0 8px 25px
-    rgba(92,80,220,.30);
+    0 8px 25px rgba(92,80,220,.30);
 }
 
 .brand-text {
@@ -140,20 +136,24 @@ body {
 }
 
 .brand-subtitle {
-  font-size: 10px;
   color: var(--muted);
+  font-size: 10px;
   margin-top: 2px;
 }
 
 .new-chat {
   width: 100%;
+
   border: 1px solid var(--border);
-  background: var(--panel-2);
+  background: var(--panel2);
   color: var(--text);
+
   border-radius: 12px;
   padding: 12px 14px;
+
   font-size: 14px;
   font-weight: 700;
+
   cursor: pointer;
 
   display: flex;
@@ -175,8 +175,10 @@ body {
   color: var(--muted);
   font-size: 11px;
   font-weight: 800;
+
   text-transform: uppercase;
   letter-spacing: .8px;
+
   margin: 22px 5px 10px;
 }
 
@@ -188,13 +190,18 @@ body {
 
 .history-item {
   width: 100%;
+
   border: 0;
   background: transparent;
   color: var(--text);
+
   text-align: left;
+
   padding: 10px;
   border-radius: 9px;
+
   cursor: pointer;
+
   font-size: 13px;
   margin-bottom: 3px;
 
@@ -204,13 +211,14 @@ body {
 }
 
 .history-item:hover {
-  background: var(--panel-2);
+  background: var(--panel2);
 }
 
 .sidebar-bottom {
   display: flex;
   flex-direction: column;
   gap: 6px;
+
   padding-top: 10px;
   border-top: 1px solid var(--border);
 }
@@ -219,16 +227,19 @@ body {
   border: 0;
   background: transparent;
   color: var(--muted);
+
   border-radius: 9px;
   padding: 10px;
+
   text-align: left;
+
   cursor: pointer;
   font-size: 13px;
 }
 
 .sidebar-button:hover {
   color: var(--text);
-  background: var(--panel-2);
+  background: var(--panel2);
 }
 
 /* =========================
@@ -239,6 +250,7 @@ body {
   flex: 1;
   min-width: 0;
   height: 100%;
+
   display: flex;
   flex-direction: column;
 }
@@ -250,11 +262,14 @@ body {
 .topbar {
   height: 64px;
   min-height: 64px;
+
   border-bottom: 1px solid var(--border);
   background: var(--panel);
+
   display: flex;
   align-items: center;
   justify-content: space-between;
+
   padding: 0 20px;
 }
 
@@ -271,7 +286,7 @@ body {
   height: 38px;
 
   border: 1px solid var(--border);
-  background: var(--panel-2);
+  background: var(--panel2);
   color: var(--text);
 
   border-radius: 10px;
@@ -287,6 +302,7 @@ body {
   display: flex;
   align-items: center;
   gap: 6px;
+
   color: var(--muted);
   font-size: 11px;
   margin-top: 2px;
@@ -305,8 +321,10 @@ body {
 
 .chat {
   flex: 1;
+
   overflow-y: auto;
   scroll-behavior: smooth;
+
   padding: 34px 22px 130px;
 }
 
@@ -324,16 +342,19 @@ body {
 
   display: flex;
   flex-direction: column;
+
   align-items: center;
   justify-content: center;
 
   text-align: center;
+
   padding: 30px 15px;
 }
 
 .welcome-icon {
   width: 70px;
   height: 70px;
+
   border-radius: 22px;
 
   display: flex;
@@ -344,16 +365,16 @@ body {
     linear-gradient(
       135deg,
       var(--accent),
-      var(--accent-2)
+      var(--accent2)
     );
 
   color: white;
+
   font-size: 32px;
   font-weight: 900;
 
   box-shadow:
-    0 18px 50px
-    rgba(92,80,220,.25);
+    0 18px 50px rgba(92,80,220,.25);
 
   margin-bottom: 20px;
 }
@@ -361,13 +382,17 @@ body {
 .welcome h1 {
   font-size: clamp(27px, 5vw, 42px);
   line-height: 1.1;
+
   letter-spacing: -.8px;
+
   margin-bottom: 10px;
 }
 
 .welcome p {
   color: var(--muted);
+
   max-width: 560px;
+
   line-height: 1.6;
   font-size: 14px;
 }
@@ -378,23 +403,29 @@ body {
 
 .quick-grid {
   display: grid;
+
   grid-template-columns:
     repeat(2, minmax(0, 1fr));
 
   gap: 10px;
+
   width: min(700px, 100%);
+
   margin-top: 26px;
 }
 
 .quick {
   border: 1px solid var(--border);
+
   background: var(--panel);
   color: var(--text);
 
   border-radius: 13px;
+
   padding: 13px;
 
   text-align: left;
+
   cursor: pointer;
 
   transition:
@@ -419,42 +450,46 @@ body {
 }
 
 /* =========================
-   MESSAGE ROW
+   MESSAGE
 ========================= */
 
 .message {
   width: 100%;
+
   display: flex;
+
   gap: 12px;
+
   margin: 22px 0;
+
   align-items: flex-start;
 }
 
-/* User = RIGHT */
+/* USER RIGHT */
 
-.message.user-message {
+.user-message {
   justify-content: flex-end;
 }
 
-.message.user-message .message-content {
+.user-message .message-content {
   order: 1;
 }
 
-.message.user-message .avatar {
+.user-message .avatar {
   order: 2;
 }
 
-/* AI = LEFT */
+/* AI LEFT */
 
-.message.ai-message {
+.ai-message {
   justify-content: flex-start;
 }
 
-.message.ai-message .message-content {
+.ai-message .message-content {
   order: 2;
 }
 
-.message.ai-message .avatar {
+.ai-message .avatar {
   order: 1;
 }
 
@@ -473,7 +508,8 @@ body {
   align-items: center;
   justify-content: center;
 
-  background: var(--panel-2);
+  background: var(--panel2);
+
   border: 1px solid var(--border);
 
   font-size: 15px;
@@ -490,63 +526,94 @@ body {
 
 .message-name {
   color: var(--muted);
+
   font-size: 11px;
   font-weight: 800;
+
   margin: 0 3px 5px;
 }
 
-.message.user-message .message-name {
+.user-message .message-name {
   text-align: right;
 }
 
 .message-text {
   border: 1px solid var(--border);
+
   padding: 13px 15px;
+
   border-radius: 17px;
+
   line-height: 1.65;
   font-size: 14px;
+
   overflow-wrap: anywhere;
+
   box-shadow: var(--shadow);
 }
 
-/* User bubble */
+/* USER */
 
-.message.user-message .message-text {
+.user-message .message-text {
   background: var(--user);
   border-top-right-radius: 5px;
 }
 
-/* AI bubble */
+/* AI */
 
-.message.ai-message .message-text {
+.ai-message .message-text {
   background: var(--ai);
   border-top-left-radius: 5px;
 }
 
 /* =========================
-   CODE
+   TEXT FORMATTING
 ========================= */
+
+.message-text strong {
+  font-weight: 800;
+}
+
+.message-text ul,
+.message-text ol {
+  padding-left: 20px;
+  margin: 8px 0;
+}
+
+.message-text li {
+  margin: 4px 0;
+}
 
 .message-text code {
   background: rgba(127,127,127,.16);
+
   padding: 2px 5px;
+
   border-radius: 5px;
+
   font-family:
     ui-monospace,
     SFMono-Regular,
     Menlo,
     Consolas,
     monospace;
+
   font-size: 12px;
 }
 
 .message-text pre {
   margin: 12px 0 2px;
+
   padding: 13px;
+
   overflow-x: auto;
+
   border-radius: 10px;
+
   background: #080b12;
+
   color: #e5e7eb;
+
   border: 1px solid rgba(255,255,255,.08);
 }
 
@@ -557,7 +624,7 @@ body {
 }
 
 /* =========================
-   MESSAGE ACTIONS
+   ACTIONS
 ========================= */
 
 .message-actions {
@@ -566,22 +633,24 @@ body {
   margin-top: 7px;
 }
 
-.message.user-message .message-actions {
-  justify-content: flex-end;
-}
-
 .action {
   border: 0;
+
   background: transparent;
+
   color: var(--muted);
+
   padding: 5px 7px;
+
   border-radius: 6px;
+
   cursor: pointer;
+
   font-size: 11px;
 }
 
 .action:hover {
-  background: var(--panel-2);
+  background: var(--panel2);
   color: var(--text);
 }
 
@@ -591,16 +660,22 @@ body {
 
 .typing {
   display: flex;
+
   gap: 5px;
+
   align-items: center;
+
   min-height: 20px;
 }
 
 .typing span {
   width: 6px;
   height: 6px;
+
   border-radius: 50%;
+
   background: var(--muted);
+
   animation:
     typingAnimation 1.1s infinite ease-in-out;
 }
@@ -610,7 +685,7 @@ body {
 }
 
 .typing span:nth-child(3) {
-  animation-delay: .3s;
+  animation-delay: .30s;
 }
 
 @keyframes typingAnimation {
@@ -635,6 +710,7 @@ body {
 
 .composer-area {
   position: fixed;
+
   left: 270px;
   right: 0;
   bottom: 0;
@@ -653,14 +729,19 @@ body {
 
 .composer {
   width: min(920px, 100%);
+
   margin: auto;
 
   display: flex;
+
   align-items: flex-end;
+
   gap: 8px;
 
   background: var(--panel);
+
   border: 1px solid var(--border);
+
   border-radius: 18px;
 
   padding: 8px;
@@ -684,6 +765,7 @@ body {
   color: var(--text);
 
   font-family: inherit;
+
   font-size: 14px;
   line-height: 1.5;
 
@@ -700,16 +782,18 @@ body {
   min-width: 42px;
 
   border: 0;
+
   border-radius: 12px;
 
   background:
     linear-gradient(
       135deg,
       var(--accent),
-      var(--accent-2)
+      var(--accent2)
     );
 
   color: white;
+
   font-size: 17px;
   font-weight: 900;
 
@@ -736,11 +820,13 @@ body {
 
 .composer-note {
   width: min(920px, 100%);
+
   margin: 6px auto 0;
 
   text-align: center;
 
   color: var(--muted);
+
   font-size: 9px;
 }
 
@@ -755,10 +841,12 @@ body {
   background: rgba(0,0,0,.55);
 
   display: none;
+
   align-items: center;
   justify-content: center;
 
   z-index: 100;
+
   padding: 18px;
 }
 
@@ -768,17 +856,24 @@ body {
 
 .settings-box {
   width: min(430px, 100%);
+
   background: var(--panel);
+
   border: 1px solid var(--border);
+
   border-radius: 18px;
+
   padding: 20px;
+
   box-shadow: var(--shadow);
 }
 
 .settings-head {
   display: flex;
+
   justify-content: space-between;
   align-items: center;
+
   margin-bottom: 18px;
 }
 
@@ -788,17 +883,24 @@ body {
 
 .close-settings {
   border: 0;
-  background: var(--panel-2);
+
+  background: var(--panel2);
+
   color: var(--text);
+
   width: 34px;
   height: 34px;
+
   border-radius: 9px;
+
   cursor: pointer;
 }
 
 .setting-row {
   padding: 13px 0;
-  border-bottom: 1px solid var(--border);
+
+  border-bottom:
+    1px solid var(--border);
 }
 
 .setting-label {
@@ -808,30 +910,24 @@ body {
 
 .setting-buttons {
   display: flex;
+
   gap: 8px;
+
   margin-top: 9px;
 }
 
 .setting-buttons button {
   border: 1px solid var(--border);
-  background: var(--panel-2);
+
+  background: var(--panel2);
+
   color: var(--text);
+
   padding: 8px 12px;
+
   border-radius: 8px;
+
   cursor: pointer;
-}
-
-/* =========================
-   SCROLLBAR
-========================= */
-
-::-webkit-scrollbar {
-  width: 7px;
-}
-
-::-webkit-scrollbar-thumb {
-  background: rgba(127,127,127,.25);
-  border-radius: 20px;
 }
 
 /* =========================
@@ -842,15 +938,16 @@ body {
 
   .sidebar {
     position: fixed;
+
     left: -290px;
+
     top: 0;
     bottom: 0;
 
     transition: left .2s ease;
 
     box-shadow:
-      20px 0 50px
-      rgba(0,0,0,.25);
+      20px 0 50px rgba(0,0,0,.25);
   }
 
   .sidebar.open {
@@ -863,6 +960,7 @@ body {
 
   .composer-area {
     left: 0;
+
     padding:
       9px 10px 12px;
   }
@@ -905,7 +1003,9 @@ body {
     width: 30px;
     min-width: 30px;
     height: 30px;
+
     border-radius: 9px;
+
     font-size: 13px;
   }
 
@@ -921,7 +1021,6 @@ body {
 
 </style>
 </head>
-
 <body>
 
 <div class="app">
@@ -1026,9 +1125,7 @@ body {
 
           <div class="status">
 
-            <span
-              class="status-dot"
-            ></span>
+            <span class="status-dot"></span>
 
             <span id="connectionText">
               AI ready
@@ -1057,8 +1154,6 @@ body {
         id="messages"
       >
 
-        <!-- WELCOME -->
-
         <div
           class="welcome"
           id="welcome"
@@ -1073,7 +1168,7 @@ body {
           </h1>
 
           <p>
-            Ask questions, learn something new,
+            Ask anything, learn something new,
             solve problems, create ideas,
             write, code and explore with
             SMATER CHAT AI.
@@ -1110,7 +1205,7 @@ body {
               </div>
 
               <div class="quick-desc">
-                Reason through it carefully.
+                Reason carefully and check the answer.
               </div>
 
             </button>
@@ -1119,7 +1214,7 @@ body {
             <button
               class="quick"
               type="button"
-              data-prompt="Give me some creative ideas for a useful project."
+              data-prompt="Give me useful creative ideas for a project."
             >
 
               <div class="quick-title">
@@ -1144,7 +1239,7 @@ body {
               </div>
 
               <div class="quick-desc">
-                Improve or create text.
+                Create or improve text.
               </div>
 
             </button>
@@ -1172,6 +1267,7 @@ body {
           placeholder="Message SMATER CHAT AI..."
           autocomplete="off"
           spellcheck="true"
+          aria-label="Message"
         ></textarea>
 
         <button
@@ -1204,11 +1300,16 @@ body {
   id="settingsOverlay"
 >
 
-  <div class="settings-box">
+  <div
+    class="settings-box"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="settingsTitle"
+  >
 
     <div class="settings-head">
 
-      <h2>
+      <h2 id="settingsTitle">
         Settings
       </h2>
 
@@ -1216,6 +1317,7 @@ body {
         class="close-settings"
         id="closeSettings"
         type="button"
+        aria-label="Close settings"
       >
         ✕
       </button>
@@ -1264,8 +1366,29 @@ body {
           line-height:1.5;
         "
       >
-        Your API key is handled by the
-        server and is not placed in this page.
+        Your API key stays on the server.
+        It is not placed inside this webpage.
+      </div>
+
+    </div>
+
+
+    <div class="setting-row">
+
+      <div class="setting-label">
+        About
+      </div>
+
+      <div
+        style="
+          color:var(--muted);
+          font-size:11px;
+          margin-top:6px;
+          line-height:1.5;
+        "
+      >
+        SMATER CHAT AI<br>
+        Think smarter. Ask anything. Get more done.
       </div>
 
     </div>
@@ -1273,17 +1396,14 @@ body {
   </div>
 
 </div>
+
+
+<!-- =========================
+     JAVASCRIPT STARTS IN PART 3
+========================== -->
+
 <script>
-
-/* =========================================
-   SMATER CHAT AI — PART 2
-   CHAT ENGINE + STREAMING + HISTORY
-========================================= */
-
 "use strict";
-
-
-/* ---------- ELEMENTS ---------- */
 
 const input =
   document.getElementById("messageInput");
@@ -1333,9 +1453,6 @@ const lightButton =
 const mobileMenu =
   document.getElementById("mobileMenu");
 
-
-/* ---------- STATE ---------- */
-
 let conversation = [];
 
 let savedChats = [];
@@ -1343,175 +1460,12 @@ let savedChats = [];
 let isSending = false;
 
 
-/* ---------- SAFE HTML ---------- */
-
-function escapeHTML(value) {
-
-  return String(value)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-
-}
-
-
-/* ---------- FORMAT AI RESPONSE ---------- */
-
-function formatAIText(text) {
-
-  let result =
-    escapeHTML(text || "");
-
-
-  /*
-    Remove provider/internal safety
-    metadata if it accidentally appears.
-  */
-
-  result =
-    result.replace(
-      /User Safety:\s*safe/gi,
-      ""
-    );
-
-  result =
-    result.replace(
-      /Response Safety:\s*safe/gi,
-      ""
-    );
-
-
-  /*
-    Code blocks
-  */
-
-  const blocks = [];
-
-  result =
-    result.replace(
-      /```(?:[\w+-]+)?\s*([\s\S]*?)```/g,
-      function (_, code) {
-
-        const index =
-          blocks.length;
-
-        blocks.push(
-          "<pre><code>" +
-          code.trim() +
-          "</code></pre>"
-        );
-
-        return (
-          "___CODE_" +
-          index +
-          "___"
-        );
-
-      }
-    );
-
-
-  /*
-    Inline code
-  */
-
-  result =
-    result.replace(
-      /`([^`]+)`/g,
-      "<code>$1</code>"
-    );
-
-
-  /*
-    Bold
-  */
-
-  result =
-    result.replace(
-      /\*\*(.*?)\*\*/g,
-      "<strong>$1</strong>"
-    );
-
-
-  /*
-    Simple headings
-  */
-
-  result =
-    result.replace(
-      /^### (.*)$/gm,
-      "<strong>$1</strong>"
-    );
-
-  result =
-    result.replace(
-      /^## (.*)$/gm,
-      "<strong>$1</strong>"
-    );
-
-  result =
-    result.replace(
-      /^# (.*)$/gm,
-      "<strong>$1</strong>"
-    );
-
-
-  /*
-    Bullets
-  */
-
-  result =
-    result.replace(
-      /^[•*-]\s+(.*)$/gm,
-      "• $1"
-    );
-
-
-  result =
-    result.replace(
-      /\n/g,
-      "<br>"
-    );
-
-
-  /*
-    Restore code blocks
-  */
-
-  result =
-    result.replace(
-      /___CODE_(\d+)___/g,
-      function (_, index) {
-
-        return (
-          blocks[
-            Number(index)
-          ] || ""
-        );
-
-      }
-    );
-
-
-  return result.trim();
-
-}
-
-
 /* ---------- SCROLL ---------- */
 
 function scrollToBottom() {
 
-  requestAnimationFrame(
-    function () {
-
-      chat.scrollTop =
-        chat.scrollHeight;
-
-    }
-  );
+  chat.scrollTop =
+    chat.scrollHeight;
 
 }
 
@@ -1520,14 +1474,71 @@ function scrollToBottom() {
 
 function resizeInput() {
 
-  input.style.height =
-    "auto";
+  input.style.height = "auto";
 
   input.style.height =
     Math.min(
       input.scrollHeight,
       150
     ) + "px";
+
+}
+
+
+/* ---------- HTML ESCAPE ---------- */
+
+function escapeHTML(value) {
+
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+
+}
+
+
+/* ---------- FORMAT AI TEXT ---------- */
+
+function formatAIText(text) {
+
+  let safe =
+    escapeHTML(text);
+
+  safe =
+    safe.replace(
+      /```([\s\S]*?)```/g,
+      function (_, code) {
+
+        return (
+          "<pre><code>" +
+          code.trim() +
+          "</code></pre>"
+        );
+
+      }
+    );
+
+  safe =
+    safe.replace(
+      /\*\*(.*?)\*\*/g,
+      "<strong>$1</strong>"
+    );
+
+  safe =
+    safe.replace(
+      /`([^`]+)`/g,
+      "<code>$1</code>"
+    );
+
+  safe =
+    safe.replace(
+      /\n/g,
+      "<br>"
+    );
+
+  return safe;
 
 }
 
@@ -1541,7 +1552,6 @@ function addUserMessage(text) {
 
   row.className =
     "message user-message";
-
 
   row.innerHTML = `
 
@@ -1561,16 +1571,10 @@ function addUserMessage(text) {
 
   `;
 
-
   row.querySelector(
     ".message-text"
   ).innerHTML =
-    escapeHTML(text)
-      .replaceAll(
-        "\n",
-        "<br>"
-      );
-
+    formatAIText(text);
 
   messages.appendChild(row);
 
@@ -1588,7 +1592,6 @@ function createAIMessage() {
 
   row.className =
     "message ai-message";
-
 
   row.innerHTML = `
 
@@ -1619,7 +1622,6 @@ function createAIMessage() {
 
   `;
 
-
   messages.appendChild(row);
 
   scrollToBottom();
@@ -1627,14 +1629,13 @@ function createAIMessage() {
   return row;
 
 }
-
-
-/* ---------- TYPING ---------- */
+  /* =========================
+   TYPING INDICATOR
+========================= */
 
 function showTyping() {
 
   removeTyping();
-
 
   const row =
     document.createElement("article");
@@ -1644,7 +1645,6 @@ function showTyping() {
 
   row.className =
     "message ai-message";
-
 
   row.innerHTML = `
 
@@ -1672,13 +1672,16 @@ function showTyping() {
 
   `;
 
-
   messages.appendChild(row);
 
   scrollToBottom();
 
 }
 
+
+/* =========================
+   REMOVE TYPING
+========================= */
 
 function removeTyping() {
 
@@ -1694,7 +1697,9 @@ function removeTyping() {
 }
 
 
-/* ---------- CLEAN RESPONSE ---------- */
+/* =========================
+   CLEAN AI RESPONSE
+========================= */
 
 function cleanAIResponse(text) {
 
@@ -1712,7 +1717,9 @@ function cleanAIResponse(text) {
 }
 
 
-/* ---------- STREAM API ---------- */
+/* =========================
+   AI CONNECTION
+========================= */
 
 async function streamAI(message) {
 
@@ -1729,7 +1736,8 @@ async function streamAI(message) {
 
         body: JSON.stringify({
 
-          message: message,
+          message:
+            message.trim(),
 
           history:
             conversation.slice(-10)
@@ -1769,7 +1777,7 @@ async function streamAI(message) {
   if (!response.body) {
 
     throw new Error(
-      "Streaming is not supported by the server."
+      "AI response stream is unavailable."
     );
 
   }
@@ -1836,9 +1844,7 @@ async function streamAI(message) {
       ) {
 
         if (
-          !line.startsWith(
-            "data:"
-          )
+          !line.startsWith("data:")
         ) {
           continue;
         }
@@ -1866,9 +1872,7 @@ async function streamAI(message) {
             );
 
 
-          if (
-            data.error
-          ) {
+          if (data.error) {
 
             throw new Error(
               data.error
@@ -1903,11 +1907,6 @@ async function streamAI(message) {
           }
 
         } catch (error) {
-
-          /*
-            Ignore JSON chunks that are
-            incomplete or provider noise.
-          */
 
           if (
             error &&
@@ -1949,9 +1948,7 @@ async function streamAI(message) {
   }
 
 
-  /*
-    Copy button
-  */
+  /* COPY BUTTON */
 
   const copyButton =
     aiRow.querySelector(
@@ -1999,7 +1996,9 @@ async function streamAI(message) {
 }
 
 
-/* ---------- SEND ---------- */
+/* =========================
+   SEND MESSAGE
+========================= */
 
 async function sendMessage() {
 
@@ -2028,7 +2027,6 @@ async function sendMessage() {
   sendButton.disabled =
     true;
 
-
   input.disabled =
     true;
 
@@ -2056,6 +2054,12 @@ async function sendMessage() {
 
   try {
 
+    /*
+      AI response starts immediately.
+      Language is automatically handled
+      by the server AI instructions.
+    */
+
     removeTyping();
 
 
@@ -2069,7 +2073,8 @@ async function sendMessage() {
 
       role: "user",
 
-      content: message
+      content:
+        message
 
     });
 
@@ -2078,7 +2083,8 @@ async function sendMessage() {
 
       role: "assistant",
 
-      content: reply
+      content:
+        reply
 
     });
 
@@ -2133,7 +2139,9 @@ async function sendMessage() {
 }
 
 
-/* ---------- ERROR MESSAGE ---------- */
+/* =========================
+   ERROR MESSAGE
+========================= */
 
 function addAIMessageWithError(text) {
 
@@ -2165,7 +2173,9 @@ function addAIMessageWithError(text) {
 }
 
 
-/* ---------- SAVE CHAT ---------- */
+/* =========================
+   SAVE CHAT
+========================= */
 
 function saveCurrentChat() {
 
@@ -2200,7 +2210,8 @@ function saveCurrentChat() {
 
 
   if (!title) {
-    title = "New chat";
+    title =
+      "New chat";
   }
 
 
@@ -2213,19 +2224,17 @@ function saveCurrentChat() {
 
   const chatData = {
 
-    id: Date.now(),
+    id:
+      Date.now(),
 
-    title: title,
+    title:
+      title,
 
     messages:
       conversation.slice()
 
   };
 
-
-  /*
-    Remove older copy of same title
-  */
 
   savedChats =
     savedChats.filter(
@@ -2260,7 +2269,9 @@ function saveCurrentChat() {
 }
 
 
-/* ---------- LOAD HISTORY ---------- */
+/* =========================
+   LOAD HISTORY
+========================= */
 
 function loadHistory() {
 
@@ -2275,9 +2286,7 @@ function loadHistory() {
     if (stored) {
 
       const parsed =
-        JSON.parse(
-          stored
-        );
+        JSON.parse(stored);
 
 
       if (
@@ -2301,7 +2310,9 @@ function loadHistory() {
 }
 
 
-/* ---------- RENDER HISTORY ---------- */
+/* =========================
+   RENDER HISTORY
+========================= */
 
 function renderHistory() {
 
@@ -2365,12 +2376,18 @@ function renderHistory() {
 }
 
 
-/* ---------- OPEN HISTORY ---------- */
+/* =========================
+   OPEN SAVED CHAT
+========================= */
 
 function openSavedChat(item) {
 
   conversation =
-    item.messages.slice();
+    Array.isArray(
+      item.messages
+    )
+      ? item.messages.slice()
+      : [];
 
 
   messages.innerHTML =
@@ -2394,6 +2411,7 @@ function openSavedChat(item) {
         );
 
       }
+
 
       if (
         message.role ===
@@ -2432,6 +2450,7 @@ function openSavedChat(item) {
               copyButton.textContent =
                 "✓ Copied";
 
+
               setTimeout(
                 function () {
 
@@ -2458,7 +2477,9 @@ function openSavedChat(item) {
 }
 
 
-/* ---------- NEW CHAT ---------- */
+/* =========================
+   NEW CHAT
+========================= */
 
 function startNewChat() {
 
@@ -2505,7 +2526,9 @@ function startNewChat() {
 }
 
 
-/* ---------- EVENTS ---------- */
+/* =========================
+   EVENTS
+========================= */
 
 sendButton.addEventListener(
   "click",
@@ -2571,7 +2594,9 @@ clearHistoryButton.addEventListener(
 );
 
 
-/* ---------- SETTINGS ---------- */
+/* =========================
+   SETTINGS
+========================= */
 
 settingsButton.addEventListener(
   "click",
@@ -2620,7 +2645,9 @@ settingsOverlay.addEventListener(
 );
 
 
-/* ---------- THEME ---------- */
+/* =========================
+   THEME
+========================= */
 
 function setTheme(theme) {
 
@@ -2657,9 +2684,7 @@ darkButton.addEventListener(
   "click",
   function () {
 
-    setTheme(
-      "dark"
-    );
+    setTheme("dark");
 
   }
 );
@@ -2669,15 +2694,15 @@ lightButton.addEventListener(
   "click",
   function () {
 
-    setTheme(
-      "light"
-    );
+    setTheme("light");
 
   }
 );
 
 
-/* ---------- MOBILE ---------- */
+/* =========================
+   MOBILE MENU
+========================= */
 
 mobileMenu.addEventListener(
   "click",
@@ -2691,7 +2716,9 @@ mobileMenu.addEventListener(
 );
 
 
-/* ---------- QUICK PROMPTS ---------- */
+/* =========================
+   QUICK PROMPTS
+========================= */
 
 document
   .querySelectorAll(".quick")
@@ -2726,7 +2753,9 @@ document
   );
 
 
-/* ---------- INITIAL LOAD ---------- */
+/* =========================
+   INITIAL LOAD
+========================= */
 
 loadHistory();
 
@@ -2742,6 +2771,7 @@ try {
       "smater_theme"
     );
 
+
   setTheme(
     theme === "light"
       ? "light"
@@ -2750,67 +2780,64 @@ try {
 
 } catch {
 
-  setTheme(
-    "dark"
-  );
+  setTheme("dark");
 
 }
 
 
 input.focus();
 
-      </script>
-      <!-- =========================================
-     SMATER CHAT AI — PART 3/3
-     FINAL CLEANUP + ACCESSIBILITY
+</script>
+<!-- =========================================
+     SMATER CHAT AI — PART 4/4
+     FINAL UI + ACCESSIBILITY + ERROR PROTECTION
 ========================================= -->
 
 <script>
 
-/* =========================================
+"use strict";
+
+
+/* =========================
    FINAL UI HELPERS
-========================================= */
+========================= */
 
 (function () {
 
   const input =
-    document.getElementById("messageInput");
+    document.getElementById(
+      "messageInput"
+    );
 
   const sendButton =
-    document.getElementById("sendButton");
+    document.getElementById(
+      "sendButton"
+    );
 
-  if (!input || !sendButton) {
+
+  if (
+    !input ||
+    !sendButton
+  ) {
     return;
   }
 
 
-  /* Prevent accidental form-like behaviour */
-
-  document.addEventListener(
-    "keydown",
-    function (event) {
-
-      if (
-        event.key === "Enter" &&
-        event.shiftKey
-      ) {
-        return;
-      }
-
-    }
-  );
-
-
-  /* Keep send button state correct */
-
   function updateSendButton() {
 
     if (
-      window.isSending === true
+      typeof isSending !==
+      "undefined" &&
+      isSending === true
     ) {
-      sendButton.disabled = true;
+
+      sendButton.disabled =
+        true;
+
       return;
+
     }
+
 
     sendButton.disabled =
       !input.value.trim();
@@ -2824,57 +2851,40 @@ input.focus();
   );
 
 
-  /* Do not disable button forever */
-
   setInterval(
     updateSendButton,
     500
   );
 
 
-  /* Focus input after clicking anywhere
-     outside the sidebar */
-
-  document.addEventListener(
-    "click",
-    function (event) {
-
-      const target =
-        event.target;
-
-      if (
-        target.closest(
-          ".quick"
-        ) ||
-        target.closest(
-          ".new-chat"
-        )
-      ) {
-        return;
-      }
-
-    }
-  );
-
+  updateSendButton();
 
 })();
 
 
-/* =========================================
-   PREVENT DOUBLE INITIALIZATION
-========================================= */
+/* =========================
+   GLOBAL APP INFORMATION
+========================= */
 
 window.SMATER_CHAT_AI =
   window.SMATER_CHAT_AI ||
   {
-    version: "1.0",
-    name: "SMATER CHAT AI"
+
+    name:
+      "SMATER CHAT AI",
+
+    version:
+      "1.0.0",
+
+    ready:
+      true
+
   };
 
 
-/* =========================================
-   VISIBILITY / MOBILE CLEANUP
-========================================= */
+/* =========================
+   VISIBILITY HANDLING
+========================= */
 
 document.addEventListener(
   "visibilitychange",
@@ -2886,20 +2896,17 @@ document.addEventListener(
       return;
     }
 
+
     const input =
       document.getElementById(
         "messageInput"
       );
 
+
     if (
       input &&
       !input.disabled
     ) {
-
-      /*
-        Don't automatically open keyboard
-        on mobile. Just restore the UI.
-      */
 
       input.style.opacity =
         "1";
@@ -2910,9 +2917,114 @@ document.addEventListener(
 );
 
 
-/* =========================================
+/* =========================
+   MOBILE SIDEBAR CLOSE
+========================= */
+
+document.addEventListener(
+  "click",
+  function (event) {
+
+    const sidebar =
+      document.getElementById(
+        "sidebar"
+      );
+
+    const mobileMenu =
+      document.getElementById(
+        "mobileMenu"
+      );
+
+
+    if (
+      !sidebar ||
+      !mobileMenu
+    ) {
+      return;
+    }
+
+
+    if (
+      window.innerWidth <= 760 &&
+      sidebar.classList.contains(
+        "open"
+      ) &&
+      !sidebar.contains(
+        event.target
+      ) &&
+      !mobileMenu.contains(
+        event.target
+      )
+    ) {
+
+      sidebar.classList.remove(
+        "open"
+      );
+
+    }
+
+  }
+);
+
+
+/* =========================
+   ESC KEY
+========================= */
+
+document.addEventListener(
+  "keydown",
+  function (event) {
+
+    if (
+      event.key !== "Escape"
+    ) {
+      return;
+    }
+
+
+    const settings =
+      document.getElementById(
+        "settingsOverlay"
+      );
+
+
+    if (
+      settings &&
+      settings.classList.contains(
+        "show"
+      )
+    ) {
+
+      settings.classList.remove(
+        "show"
+      );
+
+    }
+
+
+    const sidebar =
+      document.getElementById(
+        "sidebar"
+      );
+
+
+    if (
+      sidebar
+    ) {
+
+      sidebar.classList.remove(
+        "open"
+      );
+
+    }
+
+  }
+);
+
+
+/* =========================
    GLOBAL ERROR PROTECTION
-========================================= */
+========================= */
 
 window.addEventListener(
   "error",
@@ -2920,16 +3032,17 @@ window.addEventListener(
 
     console.error(
       "SMATER CHAT AI UI error:",
-      event.error || event.message
+      event.error ||
+      event.message
     );
 
   }
 );
 
 
-/* =========================================
-   UNHANDLED PROMISE PROTECTION
-========================================= */
+/* =========================
+   PROMISE ERROR PROTECTION
+========================= */
 
 window.addEventListener(
   "unhandledrejection",
@@ -2944,9 +3057,9 @@ window.addEventListener(
 );
 
 
-/* =========================================
-   FINAL READY STATE
-========================================= */
+/* =========================
+   ACCESSIBILITY
+========================= */
 
 document.documentElement
   .setAttribute(
@@ -2954,8 +3067,41 @@ document.documentElement
     "true"
   );
 
-</script>
 
+const messageInput =
+  document.getElementById(
+    "messageInput"
+  );
+
+
+if (
+  messageInput
+) {
+
+  messageInput.setAttribute(
+    "aria-label",
+    "Message SMATER CHAT AI"
+  );
+
+}
+
+
+/* =========================
+   FINAL READY STATE
+========================= */
+
+document.body
+  .setAttribute(
+    "data-app",
+    "smater-chat-ai"
+  );
+
+
+console.log(
+  "SMATER CHAT AI is ready."
+);
+
+</script>
 
 </body>
 </html>
