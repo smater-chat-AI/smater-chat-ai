@@ -164,7 +164,7 @@ Answer the user's actual question.
         },
 
         body: JSON.stringify({
-          model: "openrouter/free",
+          model: "openai/gpt-oss-20b:free",
 
           messages,
 
