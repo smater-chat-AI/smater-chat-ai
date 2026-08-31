@@ -1,6 +1,8 @@
 export default async function handler(req, res) {
   if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
+    return res.status(405).json({
+      error: "Method not allowed"
+    });
   }
 
   try {
@@ -33,6 +35,10 @@ export default async function handler(req, res) {
 
     const file = body.file || null;
 
+    /* =========================
+       SMATER CHAT AI IDENTITY
+       ========================= */
+
     const systemPrompt = `
 You are SMATER CHAT AI, an intelligent multilingual AI assistant.
 
@@ -42,40 +48,58 @@ understand information, write content, and complete everyday tasks.
 Respond naturally and professionally in the user's language.
 Support Hindi, Hinglish and English.
 
-IMPORTANT FOUNDER IDENTITY RULE:
-Only mention the founder when the user specifically asks about
-who created, founded, developed, owns, or started SMATER CHAT AI.
+FOUNDER IDENTITY RULE:
+
+Only mention the founder when the user specifically asks:
+- Who created SMATER CHAT AI?
+- Who founded SMATER CHAT AI?
+- Who developed SMATER CHAT AI?
+- Who is the founder?
+- Who started SMATER CHAT AI?
+- Who made you?
 
 The founder is:
+
 Damini Singh Bhadauria.
 
-When specifically asked who created or founded SMATER CHAT AI,
-give a natural professional introduction such as:
+When specifically asked about the founder, respond naturally
+and professionally:
 
 "I’m SMATER CHAT AI, an intelligent multilingual AI assistant.
 I was founded and developed by Damini Singh Bhadauria as an
 independent AI project. I’m designed to help users with questions,
 learning, problem-solving, writing, creativity and everyday tasks."
 
-Do NOT mention Damini Singh Bhadauria in unrelated normal answers.
+Do NOT mention Damini Singh Bhadauria in unrelated answers.
 
-If the user asks about another AI company or product, such as
-OpenAI or ChatGPT, answer about that company/product factually.
-Do not incorrectly claim that SMATER CHAT AI created it.
+If the user asks about another company or AI such as OpenAI
+or ChatGPT, answer about that company or AI accurately.
+Do not claim that SMATER CHAT AI created another AI.
 
 FILE RULE:
-Never claim to have read a file unless its actual readable content
-is available in this request.
 
-If readable file content is supplied, use that content to answer
-the user's question.
+If a file is attached, use the actual file when answering.
 
-If a PDF or other file cannot be read, clearly say that its content
-could not be extracted instead of inventing information.
+For PDF files, read the PDF content and answer from the actual
+document.
 
-Selected language: ${language}
-Selected mode: ${mode}
+Never invent PDF contents.
+
+If the attached PDF cannot be processed by the selected AI model,
+clearly say that the PDF could not be read instead of guessing.
+
+For images, analyze the actual image when supported.
+
+Selected language:
+${language}
+
+Selected AI mode:
+${mode}
 `;
+
+    /* =========================
+       BUILD MESSAGES
+       ========================= */
 
     const requestMessages = [
       {
@@ -85,42 +109,86 @@ Selected mode: ${mode}
       ...messages
     ];
 
-    /*
-      Handle attached files.
-    */
+    /* =========================
+       ATTACHED FILE
+       ========================= */
 
     if (file && file.data) {
-      const fileType =
-        String(file.type || "").toLowerCase();
 
       const fileName =
-        String(file.name || "attached file");
+        String(file.name || "attached-file");
+
+      const fileType =
+        String(file.type || "").toLowerCase();
 
       const lastUserIndex =
         findLastUserMessage(requestMessages);
 
       if (lastUserIndex !== -1) {
 
-        /*
-          Images
-        */
+        const userText =
+          typeof requestMessages[lastUserIndex].content === "string"
+            ? requestMessages[lastUserIndex].content
+            : "Please analyze the attached file.";
 
-        if (fileType.startsWith("image/")) {
+        /* =========================
+           PDF
+           ========================= */
+
+        if (
+          fileType === "application/pdf" ||
+          fileName.toLowerCase().endsWith(".pdf")
+        ) {
 
           requestMessages[lastUserIndex] = {
             role: "user",
+
             content: [
               {
                 type: "text",
                 text:
-                  `${requestMessages[lastUserIndex].content || ""}
+                  `${userText}
 
-Attached image: ${fileName}
+Please read the attached PDF and answer using its actual content.
+If the user asks for a summary, summarize the PDF.
+If the user asks a question, answer from the PDF.
+Do not guess.`
+              },
+
+              {
+                type: "file",
+
+                file: {
+                  filename: fileName,
+                  file_data: file.data
+                }
+              }
+            ]
+          };
+
+        }
+
+        /* =========================
+           IMAGE
+           ========================= */
+
+        else if (fileType.startsWith("image/")) {
+
+          requestMessages[lastUserIndex] = {
+            role: "user",
+
+            content: [
+              {
+                type: "text",
+                text:
+                  `${userText}
 
 Analyze the attached image and answer the user's request.`
               },
+
               {
                 type: "image_url",
+
                 image_url: {
                   url: file.data
                 }
@@ -128,11 +196,13 @@ Analyze the attached image and answer the user's request.`
             ]
           };
 
-        } else {
+        }
 
-          /*
-            Text files
-          */
+        /* =========================
+           TEXT / OTHER FILE
+           ========================= */
+
+        else {
 
           const text =
             extractTextFromDataUrl(file.data);
@@ -141,34 +211,43 @@ Analyze the attached image and answer the user's request.`
 
             requestMessages[lastUserIndex] = {
               role: "user",
-              content:
-                `${requestMessages[lastUserIndex].content || ""}
 
-Attached file: ${fileName}
+              content:
+                `${userText}
+
+Attached file:
+${fileName}
 
 ACTUAL FILE CONTENT:
 ${text}
 
-Use the actual file content above when answering.`
+Use the actual file content when answering.`
             };
 
           } else {
 
             requestMessages[lastUserIndex] = {
               role: "user",
+
               content:
-                `${requestMessages[lastUserIndex].content || ""}
+                `${userText}
 
-Attached file: ${fileName}
+Attached file:
+${fileName}
 
-The current server could not extract readable text
-from this file. Do not invent or guess its contents.`
+The server could not extract readable text from this file.
+Do not invent its contents.`
             };
 
           }
+
         }
       }
     }
+
+    /* =========================
+       OPENROUTER REQUEST
+       ========================= */
 
     const response = await fetch(
       "https://openrouter.ai/api/v1/chat/completions",
@@ -176,18 +255,26 @@ from this file. Do not invent or guess its contents.`
         method: "POST",
 
         headers: {
-          "Authorization": `Bearer ${apiKey}`,
-          "Content-Type": "application/json",
+          "Authorization":
+            `Bearer ${apiKey}`,
+
+          "Content-Type":
+            "application/json",
+
           "HTTP-Referer":
             "https://smater-chat-ai.vercel.app",
+
           "X-Title":
             "SMATER CHAT AI"
         },
 
         body: JSON.stringify({
-          model: "openrouter/free",
 
-          messages: requestMessages,
+          model:
+            "openrouter/free",
+
+          messages:
+            requestMessages,
 
           temperature:
             mode === "thinking"
@@ -203,6 +290,7 @@ from this file. Do not invent or guess its contents.`
       await response.json();
 
     if (!response.ok) {
+
       console.error(
         "OpenRouter error:",
         response.status,
@@ -210,7 +298,9 @@ from this file. Do not invent or guess its contents.`
       );
 
       return res.status(502).json({
-        error: "AI service request failed."
+        error:
+          data?.error?.message ||
+          "AI service request failed."
       });
     }
 
@@ -221,19 +311,22 @@ from this file. Do not invent or guess its contents.`
       typeof answer !== "string" ||
       !answer.trim()
     ) {
+
       return res.status(502).json({
-        error: "AI returned an empty response."
+        error:
+          "AI returned an empty response."
       });
     }
 
     return res.status(200).json({
-      text: answer.trim()
+      text:
+        answer.trim()
     });
 
   } catch (error) {
 
     console.error(
-      "Chat API error:",
+      "SMATER CHAT AI error:",
       error?.message || error
     );
 
@@ -245,16 +338,24 @@ from this file. Do not invent or guess its contents.`
 }
 
 
-/* ---------------- HELPERS ---------------- */
+/* =========================
+   HELPERS
+   ========================= */
 
 function findLastUserMessage(messages) {
 
-  for (let i = messages.length - 1; i >= 0; i--) {
+  for (
+    let i = messages.length - 1;
+    i >= 0;
+    i--
+  ) {
 
-    if (messages[i]?.role === "user") {
+    if (
+      messages[i] &&
+      messages[i].role === "user"
+    ) {
       return i;
     }
-
   }
 
   return -1;
@@ -263,7 +364,9 @@ function findLastUserMessage(messages) {
 
 function extractTextFromDataUrl(dataUrl) {
 
-  if (typeof dataUrl !== "string") {
+  if (
+    typeof dataUrl !== "string"
+  ) {
     return "";
   }
 
@@ -284,8 +387,7 @@ function extractTextFromDataUrl(dataUrl) {
     metadata.includes("base64") &&
     (
       metadata.includes("text/") ||
-      metadata.includes("application/json") ||
-      metadata.includes("text/csv")
+      metadata.includes("application/json")
     );
 
   if (!isTextFile) {
@@ -302,7 +404,7 @@ function extractTextFromDataUrl(dataUrl) {
   } catch (error) {
 
     console.error(
-      "File decode error:",
+      "Text file decode error:",
       error?.message || error
     );
 
