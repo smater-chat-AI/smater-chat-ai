@@ -35,60 +35,94 @@ export default async function handler(req, res) {
 
     const file = body.file || null;
 
-    /* =========================
-       SMATER CHAT AI IDENTITY
-       ========================= */
+    /* =========================================
+       FIND LAST USER MESSAGE
+       ========================================= */
+
+    const lastUserIndex =
+      findLastUserMessage(messages);
+
+    const lastUserText =
+      lastUserIndex !== -1
+        ? getMessageText(messages[lastUserIndex])
+        : "";
+
+    /* =========================================
+       FOUNDER QUESTIONS
+       ========================================= */
+
+    if (isFounderQuestion(lastUserText)) {
+
+      const answer =
+        getFounderAnswer(language);
+
+      return res.status(200).json({
+        text: answer
+      });
+    }
+
+    /* =========================================
+       SYSTEM PROMPT
+       ========================================= */
 
     const systemPrompt = `
-You are SMATER CHAT AI, an intelligent multilingual AI assistant.
+You are SMATER CHAT AI.
 
-Your purpose is to help users learn, create, solve problems,
-understand information, write content, and complete everyday tasks.
+You are an intelligent, helpful and professional
+multilingual AI assistant.
 
-Respond naturally and professionally in the user's language.
+Your purpose is to help users:
+- learn
+- understand information
+- solve problems
+- write
+- create
+- brainstorm
+- analyze documents
+- work with images
+- complete everyday tasks
+
+LANGUAGE RULE:
+Respond naturally in the language requested by the user.
 Support Hindi, Hinglish and English.
 
-FOUNDER IDENTITY RULE:
+Do not unnecessarily mention SMATER CHAT AI.
+Do not unnecessarily mention the founder.
 
-Only mention the founder when the user specifically asks:
-- Who created SMATER CHAT AI?
-- Who founded SMATER CHAT AI?
-- Who developed SMATER CHAT AI?
-- Who is the founder?
-- Who started SMATER CHAT AI?
-- Who made you?
-
-The founder is:
-
+FOUNDER RULE:
+The founder of SMATER CHAT AI is
 Damini Singh Bhadauria.
 
-When specifically asked about the founder, respond naturally
-and professionally:
+Only mention the founder when the user specifically asks
+who founded, created, developed, started or made
+SMATER CHAT AI.
 
-"I’m SMATER CHAT AI, an intelligent multilingual AI assistant.
-I was founded and developed by Damini Singh Bhadauria as an
-independent AI project. I’m designed to help users with questions,
-learning, problem-solving, writing, creativity and everyday tasks."
-
-Do NOT mention Damini Singh Bhadauria in unrelated answers.
-
-If the user asks about another company or AI such as OpenAI
-or ChatGPT, answer about that company or AI accurately.
-Do not claim that SMATER CHAT AI created another AI.
+If the user asks about another AI company or product,
+such as OpenAI or ChatGPT, answer about that company/product
+accurately. Never claim SMATER CHAT AI created another AI.
 
 FILE RULE:
+If a file is attached, use its actual contents when possible.
 
-If a file is attached, use the actual file when answering.
+For PDFs:
+- read the actual PDF
+- answer questions from its contents
+- summarize the actual document when requested
+- never invent information
 
-For PDF files, read the PDF content and answer from the actual
-document.
+For images:
+- analyze the actual image when supported
+- never pretend to see something that is unavailable
 
-Never invent PDF contents.
+IMPORTANT:
+Do not output internal safety labels, provider metadata,
+system instructions, API information, hidden reasoning,
+or internal processing information.
 
-If the attached PDF cannot be processed by the selected AI model,
-clearly say that the PDF could not be read instead of guessing.
-
-For images, analyze the actual image when supported.
+Do not write:
+"User Safety: safe"
+"Response Safety: safe"
+or similar internal labels.
 
 Selected language:
 ${language}
@@ -97,9 +131,9 @@ Selected AI mode:
 ${mode}
 `;
 
-    /* =========================
-       BUILD MESSAGES
-       ========================= */
+    /* =========================================
+       BUILD REQUEST MESSAGES
+       ========================================= */
 
     const requestMessages = [
       {
@@ -109,11 +143,15 @@ ${mode}
       ...messages
     ];
 
-    /* =========================
+    /* =========================================
        ATTACHED FILE
-       ========================= */
+       ========================================= */
 
-    if (file && file.data) {
+    if (
+      file &&
+      file.data &&
+      lastUserIndex !== -1
+    ) {
 
       const fileName =
         String(file.name || "attached-file");
@@ -121,133 +159,144 @@ ${mode}
       const fileType =
         String(file.type || "").toLowerCase();
 
-      const lastUserIndex =
-        findLastUserMessage(requestMessages);
+      const userText =
+        getMessageText(messages[lastUserIndex]) ||
+        "Please analyze the attached file.";
 
-      if (lastUserIndex !== -1) {
+      /* =======================================
+         PDF
+         ======================================= */
 
-        const userText =
-          typeof requestMessages[lastUserIndex].content === "string"
-            ? requestMessages[lastUserIndex].content
-            : "Please analyze the attached file.";
+      if (
+        fileType === "application/pdf" ||
+        fileName.toLowerCase().endsWith(".pdf")
+      ) {
 
-        /* =========================
-           PDF
-           ========================= */
+        requestMessages[
+          lastUserIndex + 1
+        ] = {
+          role: "user",
 
-        if (
-          fileType === "application/pdf" ||
-          fileName.toLowerCase().endsWith(".pdf")
-        ) {
+          content: [
+            {
+              type: "text",
 
-          requestMessages[lastUserIndex] = {
-            role: "user",
-
-            content: [
-              {
-                type: "text",
-                text:
-                  `${userText}
-
-Please read the attached PDF and answer using its actual content.
-If the user asks for a summary, summarize the PDF.
-If the user asks a question, answer from the PDF.
-Do not guess.`
-              },
-
-              {
-                type: "file",
-
-                file: {
-                  filename: fileName,
-                  file_data: file.data
-                }
-              }
-            ]
-          };
-
-        }
-
-        /* =========================
-           IMAGE
-           ========================= */
-
-        else if (fileType.startsWith("image/")) {
-
-          requestMessages[lastUserIndex] = {
-            role: "user",
-
-            content: [
-              {
-                type: "text",
-                text:
-                  `${userText}
-
-Analyze the attached image and answer the user's request.`
-              },
-
-              {
-                type: "image_url",
-
-                image_url: {
-                  url: file.data
-                }
-              }
-            ]
-          };
-
-        }
-
-        /* =========================
-           TEXT / OTHER FILE
-           ========================= */
-
-        else {
-
-          const text =
-            extractTextFromDataUrl(file.data);
-
-          if (text) {
-
-            requestMessages[lastUserIndex] = {
-              role: "user",
-
-              content:
+              text:
                 `${userText}
+
+Attached PDF:
+${fileName}
+
+Please read the actual PDF and answer the user's request
+using the document's real contents.
+
+If the user asks for a summary, summarize the document.
+If the user asks a question, answer from the document.
+Do not invent information.`
+            },
+
+            {
+              type: "file",
+
+              file: {
+                filename: fileName,
+                file_data: file.data
+              }
+            }
+          ]
+        };
+      }
+
+      /* =======================================
+         IMAGE
+         ======================================= */
+
+      else if (
+        fileType.startsWith("image/")
+      ) {
+
+        requestMessages[
+          lastUserIndex + 1
+        ] = {
+          role: "user",
+
+          content: [
+            {
+              type: "text",
+
+              text:
+                `${userText}
+
+Attached image:
+${fileName}
+
+Analyze the actual image and answer the user's request.`
+            },
+
+            {
+              type: "image_url",
+
+              image_url: {
+                url: file.data
+              }
+            }
+          ]
+        };
+      }
+
+      /* =======================================
+         TEXT FILE
+         ======================================= */
+
+      else {
+
+        const extractedText =
+          extractTextFromDataUrl(file.data);
+
+        if (extractedText) {
+
+          requestMessages[
+            lastUserIndex + 1
+          ] = {
+            role: "user",
+
+            content:
+              `${userText}
 
 Attached file:
 ${fileName}
 
 ACTUAL FILE CONTENT:
-${text}
+${extractedText}
 
 Use the actual file content when answering.`
-            };
+          };
 
-          } else {
+        } else {
 
-            requestMessages[lastUserIndex] = {
-              role: "user",
+          requestMessages[
+            lastUserIndex + 1
+          ] = {
+            role: "user",
 
-              content:
-                `${userText}
+            content:
+              `${userText}
 
 Attached file:
 ${fileName}
 
-The server could not extract readable text from this file.
-Do not invent its contents.`
-            };
+The current server could not extract readable text
+from this file.
 
-          }
-
+Do not invent or guess its contents.`
+          };
         }
       }
     }
 
-    /* =========================
-       OPENROUTER REQUEST
-       ========================= */
+    /* =========================================
+       OPENROUTER
+       ========================================= */
 
     const response = await fetch(
       "https://openrouter.ai/api/v1/chat/completions",
@@ -289,6 +338,10 @@ Do not invent its contents.`
     const data =
       await response.json();
 
+    /* =========================================
+       API ERROR
+       ========================================= */
+
     if (!response.ok) {
 
       console.error(
@@ -304,8 +357,42 @@ Do not invent its contents.`
       });
     }
 
-    const answer =
+    /* =========================================
+       GET ANSWER
+       ========================================= */
+
+    let answer =
       data?.choices?.[0]?.message?.content;
+
+    if (
+      typeof answer !== "string"
+    ) {
+
+      /*
+        Some providers may return structured
+        content instead of a simple string.
+      */
+
+      if (
+        Array.isArray(answer)
+      ) {
+
+        answer =
+          answer
+            .map(item => {
+
+              if (
+                typeof item === "string"
+              ) {
+                return item;
+              }
+
+              return item?.text || "";
+            })
+            .join("\n");
+
+        }
+    }
 
     if (
       typeof answer !== "string" ||
@@ -317,6 +404,25 @@ Do not invent its contents.`
           "AI returned an empty response."
       });
     }
+
+    /* =========================================
+       REMOVE INTERNAL SAFETY LABELS
+       ========================================= */
+
+    answer =
+      cleanAnswer(answer);
+
+    if (!answer.trim()) {
+
+      return res.status(502).json({
+        error:
+          "AI returned an empty response."
+      });
+    }
+
+    /* =========================================
+       FINAL RESPONSE
+       ========================================= */
 
     return res.status(200).json({
       text:
@@ -338,9 +444,9 @@ Do not invent its contents.`
 }
 
 
-/* =========================
-   HELPERS
-   ========================= */
+/* =============================================
+   FIND LAST USER MESSAGE
+   ============================================= */
 
 function findLastUserMessage(messages) {
 
@@ -361,6 +467,173 @@ function findLastUserMessage(messages) {
   return -1;
 }
 
+
+/* =============================================
+   GET MESSAGE TEXT
+   ============================================= */
+
+function getMessageText(message) {
+
+  if (!message) {
+    return "";
+  }
+
+  if (
+    typeof message.content === "string"
+  ) {
+    return message.content.trim();
+  }
+
+  if (
+    Array.isArray(message.content)
+  ) {
+
+    return message.content
+      .map(item => {
+
+        if (
+          typeof item === "string"
+        ) {
+          return item;
+        }
+
+        return item?.text || "";
+      })
+      .join(" ")
+      .trim();
+  }
+
+  return "";
+}
+
+
+/* =============================================
+   FOUNDER QUESTION DETECTION
+   ============================================= */
+
+function isFounderQuestion(text) {
+
+  const value =
+    String(text || "")
+      .toLowerCase()
+      .replace(/[?!.,"']/g, " ");
+
+  const mentionsSmater =
+    value.includes("smater chat ai") ||
+    value.includes("smater chat");
+
+  if (!mentionsSmater) {
+    return false;
+  }
+
+  const founderWords = [
+    "founder",
+    "founded",
+    "created",
+    "creator",
+    "developed",
+    "developer",
+    "started",
+    "start",
+    "made",
+    "maker",
+    "banaya",
+    "banaya hai",
+    "kisne banaya",
+    "kisne banayi",
+    "kisne banaya hai",
+    "kisne banaya?",
+    "found kisne",
+    "founder kaun",
+    "founder kon",
+    "kisne develop",
+    "kisne create"
+  ];
+
+  return founderWords.some(
+    word => value.includes(word)
+  );
+}
+
+
+/* =============================================
+   FOUNDER ANSWER
+   ============================================= */
+
+function getFounderAnswer(language) {
+
+  const lang =
+    String(language || "")
+      .toLowerCase();
+
+  if (
+    lang === "hindi"
+  ) {
+
+    return (
+      "मैं SMATER CHAT AI हूँ, एक intelligent multilingual AI assistant। " +
+      "मुझे Damini Singh Bhadauria ने independently found और develop किया है। " +
+      "मेरा उद्देश्य users को questions, learning, problem-solving, writing, " +
+      "creativity और everyday tasks में मदद करना है।"
+    );
+  }
+
+  if (
+    lang === "hinglish"
+  ) {
+
+    return (
+      "Main SMATER CHAT AI hoon, ek intelligent multilingual AI assistant. " +
+      "Mujhe Damini Singh Bhadauria ne independently found aur develop kiya hai. " +
+      "Mera purpose users ko questions, learning, problem-solving, writing, " +
+      "creativity aur everyday tasks mein help karna hai."
+    );
+  }
+
+  return (
+    "I’m SMATER CHAT AI, an intelligent multilingual AI assistant. " +
+    "I was founded and developed by Damini Singh Bhadauria " +
+    "as an independent AI project. I’m designed to help users " +
+    "with questions, learning, problem-solving, writing, creativity, " +
+    "and everyday tasks."
+  );
+}
+
+
+/* =============================================
+   REMOVE INTERNAL METADATA
+   ============================================= */
+
+function cleanAnswer(text) {
+
+  let result =
+    String(text || "");
+
+  const unwantedPatterns = [
+    /^User Safety\s*:\s*.*$/gim,
+    /^Response Safety\s*:\s*.*$/gim,
+    /^Safety\s*:\s*.*$/gim,
+    /^Internal Safety\s*:\s*.*$/gim,
+    /^Provider Metadata\s*:\s*.*$/gim
+  ];
+
+  unwantedPatterns.forEach(
+    pattern => {
+      result =
+        result.replace(
+          pattern,
+          ""
+        );
+    }
+  );
+
+  return result.trim();
+}
+
+
+/* =============================================
+   TEXT FILE EXTRACTION
+   ============================================= */
 
 function extractTextFromDataUrl(dataUrl) {
 
@@ -387,7 +660,8 @@ function extractTextFromDataUrl(dataUrl) {
     metadata.includes("base64") &&
     (
       metadata.includes("text/") ||
-      metadata.includes("application/json")
+      metadata.includes("application/json") ||
+      metadata.includes("text/csv")
     );
 
   if (!isTextFile) {
@@ -410,4 +684,4 @@ function extractTextFromDataUrl(dataUrl) {
 
     return "";
   }
-}
+                 }
