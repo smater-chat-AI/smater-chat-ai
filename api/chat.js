@@ -1,20 +1,9 @@
 export default async function handler(req, res) {
-
-  if (req.method === "OPTIONS") {
-    res.setHeader("Access-Control-Allow-Origin", "*");
-    res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-    return res.status(200).end();
-  }
-
   if (req.method !== "POST") {
-    return res.status(405).json({
-      error: "Method not allowed"
-    });
+    return res.status(405).json({ error: "Method not allowed" });
   }
 
   try {
-
     const apiKey = process.env.OPENROUTER_API_KEY;
 
     if (!apiKey) {
@@ -45,17 +34,44 @@ export default async function handler(req, res) {
     const file = body.file || null;
 
     const systemPrompt = `
-You are SMATER CHAT AI, a helpful general-purpose multilingual AI assistant.
+You are SMATER CHAT AI, an intelligent multilingual AI assistant.
 
-Project tagline:
-"Think smarter. Ask anything. Get more done."
+Your purpose is to help users learn, create, solve problems,
+understand information, write content, and complete everyday tasks.
 
-Respond naturally in the user's language.
+Respond naturally and professionally in the user's language.
 Support Hindi, Hinglish and English.
 
-Be accurate, useful and honest.
-Do not claim to have read or analyzed a file unless its actual contents
-are present in the request.
+IMPORTANT FOUNDER IDENTITY RULE:
+Only mention the founder when the user specifically asks about
+who created, founded, developed, owns, or started SMATER CHAT AI.
+
+The founder is:
+Damini Singh Bhadauria.
+
+When specifically asked who created or founded SMATER CHAT AI,
+give a natural professional introduction such as:
+
+"I’m SMATER CHAT AI, an intelligent multilingual AI assistant.
+I was founded and developed by Damini Singh Bhadauria as an
+independent AI project. I’m designed to help users with questions,
+learning, problem-solving, writing, creativity and everyday tasks."
+
+Do NOT mention Damini Singh Bhadauria in unrelated normal answers.
+
+If the user asks about another AI company or product, such as
+OpenAI or ChatGPT, answer about that company/product factually.
+Do not incorrectly claim that SMATER CHAT AI created it.
+
+FILE RULE:
+Never claim to have read a file unless its actual readable content
+is available in this request.
+
+If readable file content is supplied, use that content to answer
+the user's question.
+
+If a PDF or other file cannot be read, clearly say that its content
+could not be extracted instead of inventing information.
 
 Selected language: ${language}
 Selected mode: ${mode}
@@ -70,28 +86,26 @@ Selected mode: ${mode}
     ];
 
     /*
-      File handling
+      Handle attached files.
     */
 
     if (file && file.data) {
-
       const fileType =
         String(file.type || "").toLowerCase();
 
       const fileName =
         String(file.name || "attached file");
 
-      /*
-        Images:
-        Send the image as multimodal input.
-      */
+      const lastUserIndex =
+        findLastUserMessage(requestMessages);
 
-      if (fileType.startsWith("image/")) {
+      if (lastUserIndex !== -1) {
 
-        const lastUserIndex =
-          findLastUserMessage(requestMessages);
+        /*
+          Images
+        */
 
-        if (lastUserIndex !== -1) {
+        if (fileType.startsWith("image/")) {
 
           requestMessages[lastUserIndex] = {
             role: "user",
@@ -101,8 +115,9 @@ Selected mode: ${mode}
                 text:
                   `${requestMessages[lastUserIndex].content || ""}
 
-The user attached an image named "${fileName}".
-Analyze the image and answer the user's request about it.`
+Attached image: ${fileName}
+
+Analyze the attached image and answer the user's request.`
               },
               {
                 type: "image_url",
@@ -113,24 +128,16 @@ Analyze the image and answer the user's request about it.`
             ]
           };
 
-        }
+        } else {
 
-      } else {
+          /*
+            Text files
+          */
 
-        /*
-          Text-based files:
-          Decode data URL and put actual text into the prompt.
-        */
+          const text =
+            extractTextFromDataUrl(file.data);
 
-        const extractedText =
-          extractTextFromDataUrl(file.data);
-
-        if (extractedText) {
-
-          const lastUserIndex =
-            findLastUserMessage(requestMessages);
-
-          if (lastUserIndex !== -1) {
+          if (text) {
 
             requestMessages[lastUserIndex] = {
               role: "user",
@@ -139,107 +146,83 @@ Analyze the image and answer the user's request about it.`
 
 Attached file: ${fileName}
 
-FILE CONTENT:
-${extractedText}
+ACTUAL FILE CONTENT:
+${text}
 
 Use the actual file content above when answering.`
             };
 
-          }
-
-        } else {
-
-          /*
-            Do not pretend that an unsupported binary
-            file was successfully read.
-          */
-
-          const lastUserIndex =
-            findLastUserMessage(requestMessages);
-
-          if (lastUserIndex !== -1) {
+          } else {
 
             requestMessages[lastUserIndex] = {
               role: "user",
               content:
                 `${requestMessages[lastUserIndex].content || ""}
 
-The user attached "${fileName}", but its contents
-could not be extracted by the current file reader.
-Do not invent its contents.`
+Attached file: ${fileName}
+
+The current server could not extract readable text
+from this file. Do not invent or guess its contents.`
             };
 
           }
-
         }
-
       }
-
     }
 
-    const response =
-      await fetch(
-        "https://openrouter.ai/api/v1/chat/completions",
-        {
-          method: "POST",
+    const response = await fetch(
+      "https://openrouter.ai/api/v1/chat/completions",
+      {
+        method: "POST",
 
-          headers: {
-            "Authorization":
-              `Bearer ${apiKey}`,
+        headers: {
+          "Authorization": `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+          "HTTP-Referer":
+            "https://smater-chat-ai.vercel.app",
+          "X-Title":
+            "SMATER CHAT AI"
+        },
 
-            "Content-Type":
-              "application/json",
+        body: JSON.stringify({
+          model: "openrouter/free",
 
-            "HTTP-Referer":
-              "https://smater-chat-ai.vercel.app",
+          messages: requestMessages,
 
-            "X-Title":
-              "SMATER CHAT AI"
-          },
-
-          body: JSON.stringify({
-
-            model:
-              "openrouter/free",
-
-            messages:
-              requestMessages,
-
-            temperature:
-              mode === "thinking"
-                ? 0.2
-                : mode === "creative"
-                  ? 0.8
-                  : 0.5
-
-          })
-        }
-      );
+          temperature:
+            mode === "thinking"
+              ? 0.2
+              : mode === "creative"
+                ? 0.8
+                : 0.5
+        })
+      }
+    );
 
     const data =
       await response.json();
 
     if (!response.ok) {
-
       console.error(
         "OpenRouter error:",
-        response.status
+        response.status,
+        data
       );
 
       return res.status(502).json({
-        error:
-          "AI service request failed."
+        error: "AI service request failed."
       });
     }
 
     const answer =
       data?.choices?.[0]?.message?.content;
 
-    if (typeof answer !== "string" || !answer.trim()) {
-
+    if (
+      typeof answer !== "string" ||
+      !answer.trim()
+    ) {
       return res.status(502).json({
-        error:
-          "AI returned an empty response."
+        error: "AI returned an empty response."
       });
     }
 
@@ -284,12 +267,6 @@ function extractTextFromDataUrl(dataUrl) {
     return "";
   }
 
-  /*
-    Expected format:
-
-    data:text/plain;base64,SGVsbG8=
-  */
-
   const comma =
     dataUrl.indexOf(",");
 
@@ -303,14 +280,15 @@ function extractTextFromDataUrl(dataUrl) {
   const encoded =
     dataUrl.slice(comma + 1);
 
-  if (
-    !metadata.includes("base64") ||
-    !(
+  const isTextFile =
+    metadata.includes("base64") &&
+    (
       metadata.includes("text/") ||
       metadata.includes("application/json") ||
       metadata.includes("text/csv")
-    )
-  ) {
+    );
+
+  if (!isTextFile) {
     return "";
   }
 
