@@ -4529,6 +4529,48 @@ window.onload = function() {
 
 };
  </script>
+ <script>
+/* SMATER CHAT AI — PDF download helper */
+
+document.addEventListener("click", function (event) {
+
+  const button = event.target.closest("button");
+
+  if (!button) return;
+
+  const text =
+    (button.textContent || "").trim();
+
+  if (!text.startsWith("Download ")) return;
+
+  const bubble =
+    button.closest(".bubble");
+
+  if (!bubble) return;
+
+  const originalText =
+    text.replace(/^Download\s+/, "");
+
+  /* Give the browser a normal file download
+     when the existing button has a data URL. */
+
+  const links =
+    bubble.querySelectorAll("a");
+
+  for (const oldLink of links) {
+
+    if (oldLink.href) {
+
+      event.preventDefault();
+
+      oldLink.click();
+
+      return;
+    }
+  }
+
+});
+ </script>
  
 </body>
 </html>
