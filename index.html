@@ -4529,6 +4529,61 @@ window.onload = function() {
 
 };
  </script>
+ <script>
+/* SMATER CHAT AI — DATA FILE DOWNLOAD FIX */
+
+(function () {
+
+  const originalAnchorClick =
+    HTMLAnchorElement.prototype.click;
+
+  HTMLAnchorElement.prototype.click =
+    async function () {
+
+      const href = this.href || "";
+      const filename = this.download || "";
+
+      if (
+        filename &&
+        href.startsWith("data:")
+      ) {
+
+        try {
+
+          const response =
+            await fetch(href);
+
+          const blob =
+            await response.blob();
+
+          const blobUrl =
+            URL.createObjectURL(blob);
+
+          this.href = blobUrl;
+
+          originalAnchorClick.call(this);
+
+          setTimeout(() => {
+            URL.revokeObjectURL(blobUrl);
+          }, 5000);
+
+          return;
+
+        } catch (error) {
+
+          console.error(
+            "Download fix error:",
+            error
+          );
+
+        }
+      }
+
+      originalAnchorClick.call(this);
+    };
+
+})();
+ </script>
  
 </body>
 </html>
