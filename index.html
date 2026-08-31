@@ -4391,6 +4391,45 @@ finalUIRefresh();
 })();
 
 </script>
+<script>
+async function connectFileAPI(prompt, type = "txt") {
+  try {
+    const response = await fetch("/api/file", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        prompt: prompt,
+        type: type
+      })
+    });
 
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || "File service failed.");
+    }
+
+    if (data.file) {
+      const link = document.createElement("a");
+      link.href = data.file;
+      link.download = data.filename || "smater-chat-ai-file";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      return true;
+    }
+
+    throw new Error("No file was returned.");
+
+  } catch (error) {
+    console.error("File connection error:", error);
+    alert("File could not be created right now.");
+    return false;
+  }
+}
+</script>
+ 
 </body>
 </html>
