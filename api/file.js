@@ -1,5 +1,12 @@
 export default async function handler(req, res) {
 
+  if (req.method === "OPTIONS") {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+    return res.status(200).end();
+  }
+
   if (req.method !== "POST") {
     return res.status(405).json({
       error: "Method not allowed"
@@ -25,17 +32,35 @@ export default async function handler(req, res) {
 
     if (!prompt) {
       return res.status(400).json({
-        error: "File content is required."
+        error: "Please provide file content."
       });
     }
 
-    if (!["pdf", "txt", "html"].includes(type)) {
+    if (!["txt", "html"].includes(type)) {
       return res.status(400).json({
-        error: "Unsupported file type."
+        error:
+          "This endpoint currently supports TXT and HTML files."
       });
     }
 
-    const safeText =
+    if (type === "txt") {
+
+      const content =
+        "SMATER CHAT AI\n\n" + prompt;
+
+      const file =
+        "data:text/plain;charset=utf-8," +
+        encodeURIComponent(content);
+
+      return res.status(200).json({
+        file,
+        filename:
+          "smater-chat-ai-document.txt",
+        type: "text/plain"
+      });
+    }
+
+    const escaped =
       prompt
         .replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")
@@ -43,33 +68,12 @@ export default async function handler(req, res) {
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#039;");
 
-    const title =
-      "SMATER CHAT AI Document";
-
-    if (type === "txt") {
-
-      const content =
-        `SMATER CHAT AI\n\n${prompt}`;
-
-      const file =
-        "data:text/plain;charset=utf-8," +
-        encodeURIComponent(content);
-
-      return res.status(200).json({
-        file: file,
-        filename:
-          "smater-chat-ai-document.txt"
-      });
-    }
-
-    if (type === "html") {
-
-      const html = `
-<!DOCTYPE html>
+    const html = `
+<!doctype html>
 <html>
 <head>
 <meta charset="UTF-8">
-<title>${title}</title>
+<title>SMATER CHAT AI</title>
 <style>
 body{
   font-family:Arial,sans-serif;
@@ -81,72 +85,26 @@ body{
 h1{
   margin-bottom:25px;
 }
-</style>
-</head>
-<body>
-<h1>${title}</h1>
-<p>${safeText.replace(/\n/g,"<br>")}</p>
-</body>
-</html>`;
-
-      const file =
-        "data:text/html;charset=utf-8," +
-        encodeURIComponent(html);
-
-      return res.status(200).json({
-        file: file,
-        filename:
-          "smater-chat-ai-document.html"
-      });
-    }
-
-    /*
-      PDF:
-      Return a print-ready HTML document.
-      The browser can print/save it as PDF
-      without requiring a paid API.
-    */
-
-    const pdfHtml = `
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<title>${title}</title>
-<style>
-@page{
-  size:A4;
-  margin:20mm;
-}
-body{
-  font-family:Arial,sans-serif;
-  line-height:1.6;
-  color:#111;
-}
-h1{
-  font-size:24px;
-  margin-bottom:25px;
-}
 .content{
   white-space:pre-wrap;
 }
 </style>
 </head>
 <body>
-<h1>${title}</h1>
-<div class="content">${safeText}</div>
+<h1>SMATER CHAT AI</h1>
+<div class="content">${escaped}</div>
 </body>
 </html>`;
 
     const file =
       "data:text/html;charset=utf-8," +
-      encodeURIComponent(pdfHtml);
+      encodeURIComponent(html);
 
     return res.status(200).json({
-      file: file,
+      file,
       filename:
         "smater-chat-ai-document.html",
-      pdfReady: true
+      type: "text/html"
     });
 
   } catch (error) {
@@ -158,7 +116,7 @@ h1{
 
     return res.status(500).json({
       error:
-        "Something went wrong while creating the file."
+        "File service could not process the request."
     });
   }
 }
