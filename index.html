@@ -2,3689 +2,1277 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-<meta name="theme-color" content="#07101f">
-<meta name="description" content="SMATER CHAT AI - Think smarter. Ask anything. Get more done.">
+<meta name="viewport"
+content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#080d18">
 <title>SMATER CHAT AI</title>
 
 <style>
 *{box-sizing:border-box}
+
 :root{
- --bg:#050b16;
- --panel:#0d1729;
- --panel2:#111e33;
- --text:#f4f7ff;
- --muted:#8d9bb3;
- --accent:#4285f4;
- --user:#1c355b;
- --border:#263752;
- --danger:#ff6675;
- --success:#21d89a;
+--bg:#080d18;
+--panel:#101827;
+--panel2:#172236;
+--text:#f5f7fb;
+--muted:#93a0b5;
+--line:#293852;
+--accent:#6878ff;
+--user:#203c68;
 }
-html,body{
- margin:0;width:100%;height:100%;
- background:var(--bg);color:var(--text);
- font-family:Arial,sans-serif;
- overflow:hidden;
+
+body{
+margin:0;
+background:var(--bg);
+color:var(--text);
+font-family:system-ui,
+-apple-system,BlinkMacSystemFont,
+"Segoe UI",sans-serif;
 }
-button,input,textarea{font:inherit}
+
+button,input,textarea,select{
+font:inherit;
+color:inherit;
+}
+
 button{cursor:pointer}
+
 .app{
- width:100%;height:100%;
- display:flex;flex-direction:column;
+height:100vh;
+height:100dvh;
+display:flex;
+overflow:hidden;
 }
-.topbar{
- height:72px;flex-shrink:0;
- display:flex;align-items:center;
- gap:12px;padding:10px 14px;
- background:var(--panel);
- border-bottom:1px solid var(--border);
+
+.sidebar{
+width:270px;
+background:var(--panel);
+border-right:1px solid var(--line);
+padding:15px;
+display:flex;
+flex-direction:column;
+gap:8px;
 }
-.menuBtn,.iconBtn{
- width:48px;height:48px;border:1px solid var(--border);
- border-radius:15px;background:var(--panel2);
- color:var(--text);font-size:24px;
- display:flex;align-items:center;justify-content:center;
+
+.brand{
+padding:8px 5px 16px;
 }
-.brand{flex:1;min-width:0}
+
 .brand b{
- display:block;font-size:20px;
- letter-spacing:.3px;
-}
-.status{
- font-size:13px;color:var(--muted);
- margin-top:3px;
-}
-.status i{
- display:inline-block;width:7px;height:7px;
- border-radius:50%;background:var(--success);
- margin-right:5px;
-}
-.chat{
- flex:1;overflow-y:auto;
- padding:20px 14px 125px;
- scroll-behavior:smooth;
-}
-.empty{
- max-width:620px;margin:12vh auto 0;
- text-align:center;padding:20px;
-}
-.empty h1{font-size:30px;margin:0 0 10px}
-.empty p{font-size:17px;color:var(--muted);line-height:1.6}
-.msg{
- display:flex;gap:10px;
- margin:18px 0;
-}
-.msg.user{justify-content:flex-end}
-.avatar{
- width:42px;height:42px;flex:0 0 42px;
- border-radius:14px;
- background:var(--panel2);
- border:1px solid var(--border);
- display:flex;align-items:center;
- justify-content:center;
- font-weight:bold;
-}
-.msg.user .avatar{
- order:2;background:var(--user);
-}
-.bubbleWrap{max-width:82%}
-.name{
- font-size:12px;color:var(--muted);
- margin:0 0 6px 2px;
-}
-.msg.user .name{text-align:right}
-.bubble{
- padding:15px 17px;
- border-radius:18px;
- background:var(--panel);
- border:1px solid rgba(255,255,255,.04);
- font-size:17px;
- line-height:1.65;
- white-space:pre-wrap;
- overflow-wrap:anywhere;
-}
-.msg.user .bubble{
- background:var(--user);
-}
-.actions{
- display:flex;gap:7px;
- margin-top:7px;
-}
-.smallBtn{
- border:1px solid var(--border);
- background:transparent;color:var(--muted);
- border-radius:9px;padding:6px 10px;
- font-size:12px;
-}
-.smallBtn:active{transform:scale(.96)}
-.composer{
- position:fixed;left:0;right:0;bottom:0;
- padding:10px 14px 14px;
- background:linear-gradient(transparent,var(--bg) 18%);
-}
-.composerBox{
- max-width:900px;margin:auto;
- min-height:64px;
- display:flex;align-items:center;gap:8px;
- padding:8px;
- background:var(--panel);
- border:1px solid var(--border);
- border-radius:22px;
- box-shadow:0 8px 35px rgba(0,0,0,.35);
-}
-.plus{
- width:48px;height:48px;flex-shrink:0;
- border:0;border-radius:15px;
- background:var(--panel2);color:var(--text);
- font-size:29px;
-}
-#message{
- flex:1;min-width:0;
- border:0;outline:0;
- resize:none;
- background:transparent;color:var(--text);
- font-size:17px;
- line-height:1.4;
- padding:10px 5px;
- max-height:130px;
-}
-#message::placeholder{color:var(--muted)}
-.mic{
- width:46px;height:46px;flex-shrink:0;
- border:0;border-radius:15px;
- background:transparent;color:#62d8ff;
- font-size:25px;
-}
-.mic.active{
- background:#273d62;
- color:#fff;
-}
-.send{
- width:52px;height:52px;flex-shrink:0;
- border:0;border-radius:16px;
- background:var(--accent);color:white;
- font-size:25px;
-}
-.send:disabled{opacity:.45}
-.footer{
- text-align:center;color:var(--muted);
- font-size:10px;padding:7px 0 0;
-}
-.hidden{display:none!important}
-.typing{
- display:inline-flex;gap:5px;
- padding:5px 0;
-}
-.typing span{
- width:7px;height:7px;border-radius:50%;
- background:var(--muted);
- animation:blink 1s infinite;
-}
-.typing span:nth-child(2){animation-delay:.15s}
-.typing span:nth-child(3){animation-delay:.3s}
-@keyframes blink{
- 0%,100%{opacity:.25}
- 50%{opacity:1}
-}
-@media(min-width:700px){
- .topbar{padding-left:24px;padding-right:24px}
- .chat{padding-left:7%;padding-right:7%}
- .bubble{font-size:18px}
-}
-</style>
-</head>
-
-<body>
-<div class="app">
-
-<header class="topbar">
- <button class="menuBtn" id="menuBtn" aria-label="Menu">☰</button>
-
- <div class="brand">
-  <b>SMATER CHAT AI</b>
-  <div class="status">
-   <i></i><span id="statusText">AI ready</span>
-  </div>
- </div>
-
- <button class="iconBtn" id="newChatBtn" aria-label="New chat">＋</button>
-</header>
-
-<main class="chat" id="chat">
- <div class="empty" id="emptyState">
-  <h1>How can I help?</h1>
-  <p>
-   Ask anything in Hindi, English, Hinglish
-   or another language.
-  </p>
- </div>
-</main>
-
-<div class="composer">
- <div class="composerBox">
-
-  <button class="plus" id="plusBtn" aria-label="Attachments">+</button>
-
-  <textarea
-   id="message"
-   rows="1"
-   placeholder="Message SMATER CHAT AI..."
-   autocomplete="off"
-  ></textarea>
-
-  <button class="mic" id="micBtn" aria-label="Voice input">🎙️</button>
-
-  <button class="send" id="sendBtn" aria-label="Send">➤</button>
-
- </div>
-
- <div class="footer">
-  SMATER CHAT AI can make mistakes. Check important information.
- </div>
-</div>
-
-<!-- PART 2 will continue inside this same file -->
-  <!-- PART 2/8 -->
-
-<div class="attachMenu hidden" id="attachMenu">
-
- <button id="cameraBtn">
-  📷 <span>Camera</span>
- </button>
-
- <button id="galleryBtn">
-  🖼️ <span>Gallery</span>
- </button>
-
- <button id="fileBtn">
-  📎 <span>File</span>
- </button>
-
-</div>
-
-<input
- type="file"
- id="galleryInput"
- accept="image/*"
- hidden
->
-
-<input
- type="file"
- id="cameraInput"
- accept="image/*"
- capture="environment"
- hidden
->
-
-<input
- type="file"
- id="fileInput"
- accept=".pdf,.txt,.doc,.docx,.csv,.xlsx,.ppt,.pptx,image/*"
- hidden
->
-
-<aside class="drawer hidden" id="drawer">
-
- <div class="drawerHead">
-  <b>SMATER CHAT AI</b>
-  <button id="closeDrawer">×</button>
- </div>
-
- <button class="drawerItem" id="drawerNew">
-  ✨ <span>New Chat</span>
- </button>
-
- <button class="drawerItem" id="historyBtn">
-  🕘 <span>History</span>
- </button>
-
- <button class="drawerItem" id="accountBtn">
-  👤 <span>Account</span>
- </button>
-
- <button class="drawerItem" id="settingsBtn">
-  ⚙️ <span>Settings</span>
- </button>
-
- <button class="drawerItem" id="storageBtn">
-  💾 <span>Storage & Data</span>
- </button>
-
- <button class="drawerItem" id="privacyBtn">
-  🔐 <span>Privacy & Security</span>
- </button>
-
- <button class="drawerItem" id="shareBtn">
-  🔗 <span>Share / Export</span>
- </button>
-
- <div class="drawerBottom">
-  <small>SMATER CHAT AI</small>
-  <small>Think smarter. Ask anything.</small>
- </div>
-
-</aside>
-
-<div class="overlay hidden" id="overlay"></div>
-
-<div class="modal hidden" id="modal">
-
- <div class="modalHead">
-  <b id="modalTitle">SMATER CHAT AI</b>
-  <button id="modalClose">×</button>
- </div>
-
- <div id="modalBody"></div>
-
-</div>
-
-<style>
-.attachMenu{
- position:fixed;
- left:18px;
- bottom:88px;
- width:250px;
- padding:8px;
- background:var(--panel);
- border:1px solid var(--border);
- border-radius:18px;
- box-shadow:0 15px 40px rgba(0,0,0,.45);
- z-index:50;
-}
-.attachMenu button{
- width:100%;
- padding:14px;
- border:0;
- border-radius:12px;
- background:transparent;
- color:var(--text);
- text-align:left;
- font-size:16px;
-}
-.attachMenu button:active{
- background:var(--panel2);
-}
-.drawer{
- position:fixed;
- top:0;
- left:0;
- bottom:0;
- width:min(330px,88vw);
- background:var(--panel);
- border-right:1px solid var(--border);
- z-index:100;
- padding:18px 14px;
- display:flex;
- flex-direction:column;
- box-shadow:10px 0 35px rgba(0,0,0,.4);
-}
-.drawerHead{
- display:flex;
- align-items:center;
- justify-content:space-between;
- padding:8px 6px 20px;
- font-size:19px;
-}
-.drawerHead button,
-.modalHead button{
- width:40px;
- height:40px;
- border:0;
- border-radius:12px;
- background:var(--panel2);
- color:var(--text);
- font-size:25px;
-}
-.drawerItem{
- display:flex;
- align-items:center;
- gap:14px;
- width:100%;
- padding:16px 14px;
- margin:4px 0;
- border:0;
- border-radius:14px;
- background:transparent;
- color:var(--text);
- text-align:left;
- font-size:16px;
-}
-.drawerItem:hover,
-.drawerItem:active{
- background:var(--panel2);
-}
-.drawerBottom{
- margin-top:auto;
- padding:20px 8px;
- display:flex;
- flex-direction:column;
- gap:5px;
- color:var(--muted);
-}
-.overlay{
- position:fixed;
- inset:0;
- background:rgba(0,0,0,.6);
- z-index:90;
-}
-.modal{
- position:fixed;
- left:50%;
- top:50%;
- transform:translate(-50%,-50%);
- width:min(92vw,520px);
- max-height:82vh;
- overflow:auto;
- background:var(--panel);
- border:1px solid var(--border);
- border-radius:22px;
- z-index:120;
- box-shadow:0 20px 60px rgba(0,0,0,.55);
-}
-.modalHead{
- display:flex;
- justify-content:space-between;
- align-items:center;
- padding:16px;
- border-bottom:1px solid var(--border);
- font-size:18px;
-}
-#modalBody{
- padding:18px;
- line-height:1.6;
-}
-</style>
-<!-- PART 3/8 -->
-
-<script>
-(function(){
-
-"use strict";
-
-/* ==============================
-   SMATER CHAT AI — CORE
-============================== */
-
-const $ = id => document.getElementById(id);
-
-const STORAGE_KEY = "SMATER_CHAT_AI_DATA_V1";
-const SETTINGS_KEY = "SMATER_CHAT_AI_SETTINGS_V1";
-
-let appData = {
- chats: [],
- currentChat: null
-};
-
-let settings = {
- theme: "dark",
- fontSize: 17,
- enterToSend: true
-};
-
-let isSending = false;
-let selectedFile = null;
-let selectedImage = null;
-
-
-/* ==============================
-   STORAGE
-============================== */
-
-function saveData(){
-
- try{
-   localStorage.setItem(
-     STORAGE_KEY,
-     JSON.stringify(appData)
-   );
-
- }catch(error){
-   console.log("Storage error:",error);
- }
-
-}
-
-function loadData(){
-
- try{
-
-   const saved =
-     localStorage.getItem(STORAGE_KEY);
-
-   if(saved){
-     const data = JSON.parse(saved);
-
-     if(data && typeof data === "object"){
-       appData = data;
-     }
-   }
-
- }catch(error){
-
-   console.log("Load error:",error);
-
- }
-
- if(!Array.isArray(appData.chats)){
-   appData.chats = [];
- }
-
- if(!appData.currentChat){
-
-   appData.currentChat = {
-     id: createID(),
-     title: "New Chat",
-     messages: [],
-     createdAt: Date.now(),
-     updatedAt: Date.now()
-   };
-
- }
-
-}
-
-function saveSettings(){
-
- try{
-
-   localStorage.setItem(
-     SETTINGS_KEY,
-     JSON.stringify(settings)
-   );
-
- }catch(error){
-
-   console.log("Settings error:",error);
-
- }
-
-}
-
-function loadSettings(){
-
- try{
-
-   const saved =
-     localStorage.getItem(SETTINGS_KEY);
-
-   if(saved){
-
-     const data = JSON.parse(saved);
-
-     if(data && typeof data === "object"){
-       settings = {
-         ...settings,
-         ...data
-       };
-     }
-
-   }
-
- }catch(error){
-
-   console.log("Settings load error:",error);
-
- }
-
-}
-
-
-/* ==============================
-   ID
-============================== */
-
-function createID(){
-
- return Date.now().toString(36) +
-        Math.random().toString(36).slice(2);
-
-}
-
-
-/* ==============================
-   HTML SAFETY
-============================== */
-
-function escapeHTML(text){
-
- return String(text)
-   .replace(/&/g,"&amp;")
-   .replace(/</g,"&lt;")
-   .replace(/>/g,"&gt;")
-   .replace(/"/g,"&quot;")
-   .replace(/'/g,"&#039;");
-
-}
-
-
-/* ==============================
-   CHAT TITLE
-============================== */
-
-function updateChatTitle(text){
-
- if(
-   !appData.currentChat ||
-   appData.currentChat.title !== "New Chat"
- ){
-   return;
- }
-
- let title =
-   String(text)
-   .replace(/\s+/g," ")
-   .trim();
-
- if(!title){
-   return;
- }
-
- if(title.length > 38){
-   title = title.slice(0,38) + "...";
- }
-
- appData.currentChat.title = title;
-
-}
-
-
-/* ==============================
-   ADD MESSAGE
-============================== */
-
-function addMessage(role,text){
-
- if(!appData.currentChat){
-   createNewChat(false);
- }
-
- const message = {
-
-   id:createID(),
-
-   role:role,
-
-   content:String(text),
-
-   time:Date.now()
-
- };
-
- appData.currentChat.messages.push(message);
-
- appData.currentChat.updatedAt =
-   Date.now();
-
- if(role === "user"){
-   updateChatTitle(text);
- }
-
- saveData();
-
- renderMessages();
-
- return message;
-
-}
-
-
-/* ==============================
-   RENDER MESSAGES
-============================== */
-
-function renderMessages(){
-
- const chat = $("chat");
-
- if(!chat){
-   return;
- }
-
- const messages =
-   appData.currentChat?.messages || [];
-
- chat.innerHTML = "";
-
- if(messages.length === 0){
-
-   chat.innerHTML = `
-     <div class="empty" id="emptyState">
-       <h1>How can I help?</h1>
-       <p>
-         Ask anything in Hindi, English,
-         Hinglish or another language.
-       </p>
-     </div>
-   `;
-
-   return;
-
- }
-
- messages.forEach(message => {
-
-   const row =
-     document.createElement("div");
-
-   row.className =
-     "msg " +
-     (message.role === "user"
-       ? "user"
-       : "");
-
-   const avatar =
-     document.createElement("div");
-
-   avatar.className = "avatar";
-
-   avatar.textContent =
-     message.role === "user"
-       ? "YOU"
-       : "S";
-
-   const wrap =
-     document.createElement("div");
-
-   wrap.className = "bubbleWrap";
-
-   const name =
-     document.createElement("div");
-
-   name.className = "name";
-
-   name.textContent =
-     message.role === "user"
-       ? "You"
-       : "SMATER CHAT AI";
-
-   const bubble =
-     document.createElement("div");
-
-   bubble.className = "bubble";
-
-   bubble.textContent =
-     message.content;
-
-   wrap.appendChild(name);
-   wrap.appendChild(bubble);
-
-   if(message.role === "assistant"){
-
-     const actions =
-       document.createElement("div");
-
-     actions.className = "actions";
-
-     const copy =
-       document.createElement("button");
-
-     copy.className = "smallBtn";
-     copy.textContent = "Copy";
-
-     copy.onclick = () => {
-
-       copyText(message.content);
-
-       copy.textContent = "Copied ✓";
-
-       setTimeout(() => {
-         copy.textContent = "Copy";
-       },1500);
-
-     };
-
-     actions.appendChild(copy);
-
-     const speak =
-       document.createElement("button");
-
-     speak.className = "smallBtn";
-     speak.textContent = "🔊 Read";
-
-     speak.onclick = () => {
-
-       if("speechSynthesis" in window){
-
-         speechSynthesis.cancel();
-
-         const voice =
-           new SpeechSynthesisUtterance(
-             message.content
-           );
-
-         speechSynthesis.speak(voice);
-
-       }
-
-     };
-
-     actions.appendChild(speak);
-
-     wrap.appendChild(actions);
-
-   }
-
-   row.appendChild(avatar);
-   row.appendChild(wrap);
-
-   chat.appendChild(row);
-
- });
-
- scrollChat();
-
-}
-
-
-/* ==============================
-   COPY
-============================== */
-
-async function copyText(text){
-
- try{
-
-   await navigator.clipboard.writeText(text);
-
- }catch(error){
-
-   const area =
-     document.createElement("textarea");
-
-   area.value = text;
-
-   document.body.appendChild(area);
-
-   area.select();
-
-   document.execCommand("copy");
-
-   area.remove();
-
- }
-
-}
-
-
-/* ==============================
-   SCROLL
-============================== */
-
-function scrollChat(){
-
- const chat = $("chat");
-
- if(!chat) return;
-
- setTimeout(() => {
-
-   chat.scrollTop =
-     chat.scrollHeight;
-
- },30);
-
-}
-
-
-/* ==============================
-   TYPING
-============================== */
-
-function showTyping(){
-
- const chat = $("chat");
-
- if(!chat) return;
-
- const row =
-   document.createElement("div");
-
- row.className =
-   "msg";
-
- row.id =
-   "typingMessage";
-
- row.innerHTML = `
-   <div class="avatar">S</div>
-
-   <div class="bubbleWrap">
-
-     <div class="name">
-       SMATER CHAT AI
-     </div>
-
-     <div class="bubble">
-
-       <span class="typing">
-         <span></span>
-         <span></span>
-         <span></span>
-       </span>
-
-     </div>
-
-   </div>
- `;
-
- chat.appendChild(row);
-
- scrollChat();
-
-}
-
-
-function hideTyping(){
-
- const typing =
-   $("typingMessage");
-
- if(typing){
-   typing.remove();
- }
-
-}
-
-
-/* ==============================
-   STATUS
-============================== */
-
-function setStatus(text){
-
- const status =
-   $("statusText");
-
- if(status){
-     status.textContent = text;
- }
-
-}
-
-
-/* ==============================
-   INPUT
-============================== */
-
-function resizeInput(){
-
- const input =
-   $("message");
-
- if(!input){
-   return;
- }
-
- input.style.height =
-   "auto";
-
- input.style.height =
-   Math.min(
-     input.scrollHeight,
-     130
-   ) + "px";
-
-}
-
-
-/* ==============================
-   SEND TO AI
-============================== */
-
-async function sendMessage(){
-
- if(isSending){
-   return;
- }
-
- const input =
-   $("message");
-
- if(!input){
-   return;
- }
-
- const text =
-   input.value.trim();
-
- if(!text && !selectedFile){
-   return;
- }
-
- isSending = true;
-
- $("sendBtn").disabled = true;
-
- setStatus("Thinking…");
-
- let finalText = text;
-
- if(selectedFile){
-
-   finalText +=
-     "\n\n[Attached file: " +
-     selectedFile.name +
-     "]";
-
- }
-
- addMessage(
-   "user",
-   finalText
- );
-
- input.value = "";
-
- resizeInput();
-
- showTyping();
-
- try{
-
-   const history =
-     appData.currentChat.messages
-       .slice(0,-1)
-       .map(message => ({
-         role:
-           message.role,
-         content:
-           message.content
-       }));
-
-   history.push({
-     role:"user",
-     content:finalText
-   });
-
-
-   const body = {
-     messages:history
-   };
-
-
-   if(selectedImage){
-
-     body.image =
-       selectedImage;
-
-   }
-
-
-   const response =
-     await fetch(
-       "/api/chat",
-       {
-         method:"POST",
-
-         headers:{
-           "Content-Type":
-             "application/json"
-         },
-
-         body:
-           JSON.stringify(body)
-       }
-     );
-
-
-   let result = {};
-
-   try{
-
-     result =
-       await response.json();
-
-   }catch(error){
-
-     result = {};
-
-   }
-
-
-   if(!response.ok){
-
-     throw new Error(
-       result.error ||
-       "AI request failed."
-     );
-
-   }
-
-
-   if(
-     !result.text ||
-     !String(result.text).trim()
-   ){
-
-     throw new Error(
-       "AI returned an empty response."
-     );
-
-   }
-
-
-   hideTyping();
-
-   addMessage(
-     "assistant",
-     result.text
-   );
-
-
- }catch(error){
-
-   hideTyping();
-
-   addMessage(
-     "assistant",
-     "Sorry, I couldn't complete that request. " +
-     error.message
-   );
-
- }finally{
-
-   selectedFile = null;
-   selectedImage = null;
-
-   $("sendBtn").disabled =
-     false;
-
-   setStatus("AI ready");
-
- }
-
-}
-
-
-/* ==============================
-   NEW CHAT
-============================== */
-
-function createNewChat(saveOld=true){
-
- if(
-   saveOld &&
-   appData.currentChat &&
-   appData.currentChat.messages.length
- ){
-
-   const old =
-     JSON.parse(
-       JSON.stringify(
-         appData.currentChat
-       )
-     );
-
-   appData.chats =
-     appData.chats.filter(
-       chat =>
-         chat.id !== old.id
-     );
-
-   appData.chats.unshift(old);
-
-   if(appData.chats.length > 50){
-     appData.chats =
-       appData.chats.slice(0,50);
-   }
-
- }
-
- appData.currentChat = {
-
-   id:createID(),
-
-   title:"New Chat",
-
-   messages:[],
-
-   createdAt:Date.now(),
-
-   updatedAt:Date.now()
-
- };
-
- saveData();
-
- renderMessages();
-
- selectedFile = null;
- selectedImage = null;
-
- setStatus("AI ready");
-
-}
-
-
-/* ==============================
-   EVENTS
-============================== */
-
-$("sendBtn").addEventListener(
- "click",
- sendMessage
-);
-
-$("newChatBtn").addEventListener(
- "click",
- () => createNewChat(true)
-);
-
-$("message").addEventListener(
- "input",
- resizeInput
-);
-
-$("message").addEventListener(
- "keydown",
- function(event){
-
-   if(
-     event.key === "Enter" &&
-     !event.shiftKey &&
-     settings.enterToSend
-   ){
-
-     event.preventDefault();
-
-     sendMessage();
-
-   }
-
- }
-);
-
-
-/* ==============================
-   START
-============================== */
-
-loadData();
-
-loadSettings();
-
-renderMessages();
-
-resizeInput();
-
-})();
-</script>
-
-<!-- PART 4 will continue here -->
-  <script>
-/* ==============================
-   PART 4 — ATTACHMENTS + MENU
-============================== */
-
-const attachMenu =
-  document.getElementById("attachMenu");
-
-const drawer =
-  document.getElementById("drawer");
-
-const overlay =
-  document.getElementById("overlay");
-
-const modal =
-  document.getElementById("modal");
-
-
-/* ==============================
-   ATTACHMENT MENU
-============================== */
-
-document
-  .getElementById("plusBtn")
-  .addEventListener("click", function(){
-
-    attachMenu.classList.toggle("hidden");
-
-  });
-
-
-function closeAttachMenu(){
-
-  attachMenu.classList.add("hidden");
-
-}
-
-
-/* ==============================
-   FILE HANDLING
-============================== */
-
-function handleFile(file){
-
-  if(!file){
-    return;
-  }
-
-  selectedFile = file;
-
-  const reader =
-    new FileReader();
-
-  if(file.type.startsWith("image/")){
-
-    reader.onload = function(){
-
-      selectedImage =
-        reader.result;
-
-    };
-
-    reader.readAsDataURL(file);
-
-  }
-
-  setStatus(
-    "File attached: " + file.name
-  );
-
-  closeAttachMenu();
-
-}
-
-
-/* ==============================
-   GALLERY
-============================== */
-
-document
-  .getElementById("galleryBtn")
-  .addEventListener("click", function(){
-
-    document
-      .getElementById("galleryInput")
-      .click();
-
-  });
-
-
-document
-  .getElementById("galleryInput")
-  .addEventListener("change", function(){
-
-    handleFile(this.files[0]);
-
-    this.value = "";
-
-  });
-
-
-/* ==============================
-   CAMERA
-============================== */
-
-document
-  .getElementById("cameraBtn")
-  .addEventListener("click", function(){
-
-    document
-      .getElementById("cameraInput")
-      .click();
-
-  });
-
-
-document
-  .getElementById("cameraInput")
-  .addEventListener("change", function(){
-
-    handleFile(this.files[0]);
-
-    this.value = "";
-
-  });
-
-
-/* ==============================
-   NORMAL FILE
-============================== */
-
-document
-  .getElementById("fileBtn")
-  .addEventListener("click", function(){
-
-    document
-      .getElementById("fileInput")
-      .click();
-
-  });
-
-
-document
-  .getElementById("fileInput")
-  .addEventListener("change", function(){
-
-    handleFile(this.files[0]);
-
-    this.value = "";
-
-  });
-
-
-/* ==============================
-   DRAWER
-============================== */
-
-function openDrawer(){
-
-  drawer.classList.remove("hidden");
-
-  overlay.classList.remove("hidden");
-
-  closeAttachMenu();
-
-}
-
-
-function closeDrawer(){
-
-  drawer.classList.add("hidden");
-
-  overlay.classList.add("hidden");
-
-}
-
-
-document
-  .getElementById("menuBtn")
-  .addEventListener(
-    "click",
-    openDrawer
-  );
-
-
-document
-  .getElementById("closeDrawer")
-  .addEventListener(
-    "click",
-    closeDrawer
-  );
-
-
-overlay.addEventListener(
-  "click",
-  function(){
-
-    closeDrawer();
-
-  }
-);
-
-
-/* ==============================
-   DRAWER NEW CHAT
-============================== */
-
-document
-  .getElementById("drawerNew")
-  .addEventListener(
-    "click",
-    function(){
-
-      createNewChat(true);
-
-      closeDrawer();
-
-    }
-  );
-
-
-/* ==============================
-   MODAL HELPERS
-============================== */
-
-function showModal(title,content){
-
-  document
-    .getElementById("modalTitle")
-    .textContent = title;
-
-  document
-    .getElementById("modalBody")
-    .innerHTML = content;
-
-  modal.classList.remove("hidden");
-
-}
-
-
-function closeModal(){
-
-  modal.classList.add("hidden");
-
-}
-
-
-document
-  .getElementById("modalClose")
-  .addEventListener(
-    "click",
-    closeModal
-  );
-
-
-modal.addEventListener(
-  "click",
-  function(event){
-
-    if(event.target === modal){
-
-      closeModal();
-
-    }
-
-  }
-);
-
-
-/* ==============================
-   CLOSE ATTACHMENT ON OUTSIDE
-============================== */
-
-document.addEventListener(
-  "click",
-  function(event){
-
-    const plus =
-      document.getElementById("plusBtn");
-
-    if(
-      !attachMenu.contains(event.target) &&
-      event.target !== plus
-    ){
-
-      closeAttachMenu();
-
-    }
-
-  }
-);
-
-</script>
-
-<!-- PART 5 will continue here -->
-  <!-- PART 5/8 — HISTORY -->
-
-<script>
-/* ==============================
-   HISTORY
-============================== */
-
-document
-  .getElementById("historyBtn")
-  .addEventListener("click", showHistory);
-
-
-/* ==============================
-   SHOW HISTORY
-============================== */
-
-function showHistory(){
-
-  closeDrawer();
-
-  const chats =
-    Array.isArray(appData.chats)
-      ? appData.chats
-      : [];
-
-  let html = "";
-
-  if(chats.length === 0){
-
-    html = `
-      <div class="emptyHistory">
-        <div class="historyIcon">🕘</div>
-        <h3>No previous chats</h3>
-        <p>Your saved conversations will appear here.</p>
-      </div>
-    `;
-
-  }else{
-
-    chats.forEach(function(chat,index){
-
-      const title =
-        escapeHTML(
-          chat.title || "New Chat"
-        );
-
-      const count =
-        Array.isArray(chat.messages)
-          ? chat.messages.length
-          : 0;
-
-      html += `
-        <div class="historyCard">
-
-          <button
-            class="historyOpen"
-            data-history-index="${index}"
-          >
-
-            <div class="historyTitle">
-              ${title}
-            </div>
-
-            <div class="historyInfo">
-              ${count} message${count === 1 ? "" : "s"}
-            </div>
-
-          </button>
-
-          <button
-            class="historyDelete"
-            data-history-delete="${index}"
-            aria-label="Delete chat"
-          >
-            🗑️
-          </button>
-
-        </div>
-      `;
-
-    });
-
-  }
-
-
-  showModal(
-    "Chat History",
-    `
-      <div class="historyList">
-        ${html}
-      </div>
-
-      <button
-        class="historyNew"
-        id="historyNewChat"
-      >
-        ＋ Start New Chat
-      </button>
-    `
-  );
-
-
-  document
-    .querySelectorAll("[data-history-index]")
-    .forEach(function(button){
-
-      button.addEventListener(
-        "click",
-        function(){
-
-          const index =
-            Number(
-              this.dataset.historyIndex
-            );
-
-          openHistoryChat(index);
-
-        }
-      );
-
-    });
-
-
-  document
-    .querySelectorAll("[data-history-delete]")
-    .forEach(function(button){
-
-      button.addEventListener(
-        "click",
-        function(event){
-
-          event.stopPropagation();
-
-          const index =
-            Number(
-              this.dataset.historyDelete
-            );
-
-          deleteHistoryChat(index);
-
-        }
-      );
-
-    });
-
-
-  const newButton =
-    document.getElementById(
-      "historyNewChat"
-    );
-
-  if(newButton){
-
-    newButton.addEventListener(
-      "click",
-      function(){
-
-        closeModal();
-
-        createNewChat(true);
-
-      }
-    );
-
-  }
-
-}
-
-
-/* ==============================
-   OPEN OLD CHAT
-============================== */
-
-function openHistoryChat(index){
-
-  const chats =
-    Array.isArray(appData.chats)
-      ? appData.chats
-      : [];
-
-  if(
-    index < 0 ||
-    index >= chats.length
-  ){
-    return;
-  }
-
-
-  /*
-   * Save the currently active chat
-   * before switching.
-   */
-
-  if(
-    appData.currentChat &&
-    appData.currentChat.messages.length
-  ){
-
-    const current =
-      JSON.parse(
-        JSON.stringify(
-          appData.currentChat
-        )
-      );
-
-    const existingIndex =
-      appData.chats.findIndex(
-        chat =>
-          chat.id === current.id
-      );
-
-    if(existingIndex >= 0){
-
-      appData.chats[
-        existingIndex
-      ] = current;
-
-    }else{
-
-      appData.chats.unshift(
-        current
-      );
-
-    }
-
-  }
-
-
-  /*
-   * Restore selected conversation.
-   */
-
-  appData.currentChat =
-    JSON.parse(
-      JSON.stringify(
-        chats[index]
-      )
-    );
-
-
-  /*
-   * Remove restored chat from
-   * history list so it becomes
-   * the active conversation.
-   */
-
-  appData.chats =
-    appData.chats.filter(
-      chat =>
-        chat.id !==
-        appData.currentChat.id
-    );
-
-
-  saveData();
-
-  renderMessages();
-
-  closeModal();
-
-  setStatus("AI ready");
-
-}
-
-
-/* ==============================
-   DELETE HISTORY
-============================== */
-
-function deleteHistoryChat(index){
-
-  if(!confirm(
-    "Delete this conversation from history?"
-  )){
-    return;
-  }
-
-
-  appData.chats.splice(
-    index,
-    1
-  );
-
-
-  saveData();
-
-  showHistory();
-
-}
-
-
-/* ==============================
-   HISTORY STYLE
-============================== */
-
-const historyStyle =
-document.createElement("style");
-
-historyStyle.textContent = `
-
-.historyList{
-  display:flex;
-  flex-direction:column;
-  gap:9px;
-  margin-bottom:14px;
-}
-
-.historyCard{
-  display:flex;
-  align-items:stretch;
-  gap:5px;
-  background:var(--panel2);
-  border:1px solid var(--border);
-  border-radius:15px;
-  overflow:hidden;
-}
-
-.historyOpen{
-  flex:1;
-  min-width:0;
-  border:0;
-  background:transparent;
-  color:var(--text);
-  text-align:left;
-  padding:14px;
-}
-
-.historyOpen:active{
-  background:rgba(255,255,255,.05);
+font-size:18px;
+}
+
+.brand small{
+display:block;
+color:var(--muted);
+font-size:11px;
+margin-top:5px;
+line-height:1.4;
+}
+
+.sideBtn{
+width:100%;
+padding:11px;
+border-radius:12px;
+border:1px solid var(--line);
+background:var(--panel2);
+text-align:left;
+}
+
+.newChat{
+background:var(--accent);
+border:0;
+text-align:center;
+font-weight:700;
 }
 
 .historyTitle{
-  font-size:16px;
-  font-weight:600;
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
+color:var(--muted);
+font-size:11px;
+margin:10px 3px 3px;
 }
 
-.historyInfo{
-  color:var(--muted);
-  font-size:12px;
-  margin-top:5px;
+.history{
+flex:1;
+overflow:auto;
 }
 
-.historyDelete{
-  width:48px;
-  border:0;
-  background:transparent;
-  color:var(--muted);
-  font-size:16px;
+.historyItem{
+padding:10px;
+border-radius:10px;
+font-size:13px;
+white-space:nowrap;
+overflow:hidden;
+text-overflow:ellipsis;
 }
 
-.historyDelete:active{
-  color:var(--danger);
-  background:rgba(255,80,100,.08);
+.historyItem:hover{
+background:var(--panel2);
+}
+ .topbar{
+height:62px;
+border-bottom:1px solid var(--line);
+display:flex;
+align-items:center;
+gap:12px;
+padding:0 16px;
 }
 
-.historyNew{
-  width:100%;
-  padding:14px;
-  border:0;
-  border-radius:13px;
-  background:var(--accent);
-  color:white;
-  font-size:15px;
-  font-weight:600;
+.menuBtn{
+display:none;
+border:0;
+background:transparent;
+font-size:22px;
 }
 
-.emptyHistory{
-  text-align:center;
-  padding:30px 10px;
+.title{
+font-weight:800;
 }
 
-.historyIcon{
-  font-size:38px;
-  margin-bottom:8px;
+.status{
+color:var(--muted);
+font-size:11px;
+margin-top:3px;
 }
 
-.emptyHistory h3{
-  margin:8px 0;
-  font-size:18px;
+.main{
+flex:1;
+min-width:0;
+display:flex;
+flex-direction:column;
+position:relative;
 }
 
-.emptyHistory p{
-  margin:0;
-  color:var(--muted);
-  font-size:14px;
-  line-height:1.5;
+.chat{
+flex:1;
+overflow:auto;
 }
 
-`;
+.chatInner{
+max-width:920px;
+margin:auto;
+padding:30px 16px 155px;
+}
 
-document.head.appendChild(
-  historyStyle
+.welcome{
+text-align:center;
+padding:45px 8px;
+}
+
+.logo{
+width:55px;
+height:55px;
+margin:auto;
+border-radius:17px;
+background:var(--accent);
+display:grid;
+place-items:center;
+font-size:23px;
+font-weight:900;
+}
+
+.welcome h1{
+font-size:29px;
+margin:18px 0 8px;
+}
+
+.welcome p{
+color:var(--muted);
+max-width:650px;
+margin:auto;
+line-height:1.5;
+}
+
+.cards{
+max-width:660px;
+margin:28px auto;
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:10px;
+}
+
+.card{
+border:1px solid var(--line);
+background:var(--panel);
+border-radius:15px;
+padding:15px;
+text-align:left;
+}
+
+.card b{
+display:block;
+margin-bottom:5px;
+}
+
+.card small{
+color:var(--muted);
+line-height:1.4;
+}
+
+.message{
+display:flex;
+gap:10px;
+margin:18px 0;
+}
+
+.message.user{
+justify-content:flex-end;
+}
+
+.avatar{
+width:35px;
+height:35px;
+flex:0 0 35px;
+border-radius:11px;
+background:var(--panel2);
+display:grid;
+place-items:center;
+font-size:11px;
+font-weight:800;
+}
+
+.user .avatar{
+order:2;
+background:var(--user);
+}
+
+.messageWrap{
+max-width:84%;
+}
+
+.bubble{
+background:var(--panel);
+border:1px solid var(--line);
+border-radius:15px;
+padding:12px 14px;
+line-height:1.6;
+white-space:pre-wrap;
+word-break:break-word;
+font-size:16px;
+}
+
+.user .bubble{
+background:var(--user);
+border-color:#2c4d7d;
+}
+
+.messageActions{
+margin-top:5px;
+}
+
+.actionBtn{
+border:0;
+background:transparent;
+color:var(--muted);
+font-size:11px;
+padding:3px 6px;
+}
+ .composerArea{
+position:absolute;
+left:0;
+right:0;
+bottom:0;
+padding:10px 12px 12px;
+background:linear-gradient(
+to top,var(--bg) 70%,transparent
 );
-
-</script>
-
-<!-- PART 6 will continue here -->
-  <!-- PART 6/8 — ACCOUNT + PRIVACY -->
-
-<script>
-
-/* ==============================
-   ACCOUNT
-============================== */
-
-document
-  .getElementById("accountBtn")
-  .addEventListener(
-    "click",
-    showAccount
-  );
-
-
-function getAccount(){
-
-  try{
-
-    return JSON.parse(
-      localStorage.getItem(
-        "SMATER_CHAT_AI_ACCOUNT_V1"
-      ) || "null"
-    );
-
-  }catch(error){
-
-    return null;
-
-  }
-
 }
 
-
-function saveAccount(account){
-
-  localStorage.setItem(
-    "SMATER_CHAT_AI_ACCOUNT_V1",
-    JSON.stringify(account)
-  );
-
+.filePreview{
+max-width:920px;
+margin:0 auto 6px;
+padding:8px 10px;
+border:1px solid var(--line);
+border-radius:11px;
+background:var(--panel);
+display:none;
+justify-content:space-between;
+font-size:12px;
 }
 
-
-/* ==============================
-   ACCOUNT SCREEN
-============================== */
-
-function showAccount(){
-
-  closeDrawer();
-
-  const account =
-    getAccount();
-
-  if(account){
-
-    showModal(
-      "Your Account",
-      `
-        <div class="accountBox">
-
-          <div class="accountAvatar">
-            ${escapeHTML(
-              (account.name || "U")
-                .charAt(0)
-                .toUpperCase()
-            )}
-          </div>
-
-          <h3>
-            ${escapeHTML(
-              account.name || "User"
-            )}
-          </h3>
-
-          <p>
-            ${escapeHTML(
-              account.email || ""
-            )}
-          </p>
-
-          <div class="accountNote">
-            This prototype keeps your account
-            information on this device.
-          </div>
-
-          <button
-            class="accountButton"
-            id="logoutBtn"
-          >
-            Log out
-          </button>
-
-        </div>
-      `
-    );
-
-
-    document
-      .getElementById("logoutBtn")
-      .onclick = function(){
-
-        localStorage.removeItem(
-          "SMATER_CHAT_AI_ACCOUNT_V1"
-        );
-
-        closeModal();
-
-        setTimeout(
-          showAccount,
-          150
-        );
-
-      };
-
-    return;
-
-  }
-
-
-  showModal(
-    "Account",
-    `
-      <div class="authTabs">
-
-        <button
-          class="authTab active"
-          id="loginTab"
-        >
-          Login
-        </button>
-
-        <button
-          class="authTab"
-          id="signupTab"
-        >
-          Sign Up
-        </button>
-
-      </div>
-
-      <div id="authContent"></div>
-    `
-  );
-
-
-  showLogin();
-
-
-  document
-    .getElementById("loginTab")
-    .onclick = function(){
-
-      activateAuthTab("login");
-
-      showLogin();
-
-    };
-
-
-  document
-    .getElementById("signupTab")
-    .onclick = function(){
-
-      activateAuthTab("signup");
-
-      showSignup();
-
-    };
-
+.filePreview.show{
+display:flex;
 }
 
-
-/* ==============================
-   AUTH TAB
-============================== */
-
-function activateAuthTab(type){
-
-  document
-    .querySelectorAll(".authTab")
-    .forEach(
-      button =>
-        button.classList.remove("active")
-    );
-
-  const selected =
-    document.getElementById(
-      type === "login"
-        ? "loginTab"
-        : "signupTab"
-    );
-
-  if(selected){
-    selected.classList.add("active");
-  }
-
+.composer{
+max-width:920px;
+margin:auto;
+padding:7px;
+display:flex;
+align-items:flex-end;
+gap:5px;
+background:var(--panel);
+border:1px solid var(--line);
+border-radius:17px;
+position:relative;
 }
 
-
-/* ==============================
-   LOGIN
-============================== */
-
-function showLogin(){
-
-  const area =
-    document.getElementById(
-      "authContent"
-    );
-
-  if(!area)return;
-
-  area.innerHTML = `
-
-    <div class="field">
-
-      <label>Email</label>
-
-      <input
-        id="loginEmail"
-        type="email"
-        placeholder="Enter your email"
-        autocomplete="email"
-      >
-
-    </div>
-
-    <div class="field">
-
-      <label>Password</label>
-
-      <input
-        id="loginPassword"
-        type="password"
-        placeholder="Enter your password"
-        autocomplete="current-password"
-      >
-
-    </div>
-
-    <button
-      class="accountButton"
-      id="loginSubmit"
-    >
-      Login
-    </button>
-
-    <p class="authHint">
-      This is a local prototype account.
-    </p>
-
-  `;
-
-
-  document
-    .getElementById("loginSubmit")
-    .onclick = function(){
-
-      const email =
-        document
-          .getElementById("loginEmail")
-          .value
-          .trim();
-
-      const password =
-        document
-          .getElementById("loginPassword")
-          .value;
-
-
-      let saved =
-        getAccount();
-
-
-      if(
-        !saved ||
-        saved.email !== email ||
-        saved.password !== password
-      ){
-
-        alert(
-          "Account details are incorrect."
-        );
-
-        return;
-
-      }
-
-
-      closeModal();
-
-      setStatus(
-        "Welcome back"
-      );
-
-    };
-
+#input{
+flex:1;
+min-width:0;
+min-height:44px;
+max-height:150px;
+resize:none;
+border:0;
+outline:0;
+background:transparent;
+padding:11px 5px;
+font-size:16px;
 }
 
-
-/* ==============================
-   SIGN UP
-============================== */
-
-function showSignup(){
-
-  const area =
-    document.getElementById(
-      "authContent"
-    );
-
-  if(!area)return;
-
-  area.innerHTML = `
-
-    <div class="field">
-
-      <label>Name</label>
-
-      <input
-        id="signupName"
-        type="text"
-        placeholder="Your name"
-        autocomplete="name"
-      >
-
-    </div>
-
-    <div class="field">
-
-      <label>Email</label>
-
-      <input
-        id="signupEmail"
-        type="email"
-        placeholder="Your email"
-        autocomplete="email"
-      >
-
-    </div>
-
-    <div class="field">
-
-      <label>Password</label>
-
-      <input
-        id="signupPassword"
-        type="password"
-        placeholder="Create a password"
-        autocomplete="new-password"
-      >
-
-    </div>
-
-    <button
-      class="accountButton"
-      id="signupSubmit"
-    >
-      Create Account
-    </button>
-
-    <p class="authHint">
-      For this prototype, account data is stored
-      locally on this device.
-    </p>
-
-  `;
-
-
-  document
-    .getElementById("signupSubmit")
-    .onclick = function(){
-
-      const name =
-        document
-          .getElementById("signupName")
-          .value
-          .trim();
-
-      const email =
-        document
-          .getElementById("signupEmail")
-          .value
-          .trim();
-
-      const password =
-        document
-          .getElementById("signupPassword")
-          .value;
-
-
-      if(
-        !name ||
-        !email ||
-        password.length < 6
-      ){
-
-        alert(
-          "Enter your name, a valid email and a password of at least 6 characters."
-        );
-
-        return;
-
-      }
-
-
-      saveAccount({
-        name:name,
-        email:email,
-        password:password
-      });
-
-
-      closeModal();
-
-      setStatus(
-        "Account created"
-      );
-
-    };
-
+.iconBtn,
+.sendBtn{
+width:42px;
+height:42px;
+min-width:42px;
+border:0;
+border-radius:12px;
+background:transparent;
+display:grid;
+place-items:center;
 }
 
-
-/* ==============================
-   PRIVACY
-============================== */
-
-document
-  .getElementById("privacyBtn")
-  .addEventListener(
-    "click",
-    showPrivacy
-  );
-
-
-function showPrivacy(){
-
-  closeDrawer();
-
-  showModal(
-    "Privacy & Security",
-    `
-      <div class="privacyBox">
-
-        <div class="privacyItem">
-          <b>🔐 API key protection</b>
-          <p>
-            The AI API key is kept on the server
-            and is not placed in this HTML.
-          </p>
-        </div>
-
-        <div class="privacyItem">
-          <b>🛡️ Private instructions</b>
-          <p>
-            Hidden system instructions and internal
-            implementation details are not shown
-            to users.
-          </p>
-        </div>
-
-        <div class="privacyItem">
-          <b>💾 Local chat storage</b>
-          <p>
-            This prototype stores chat history
-            locally in your browser/device.
-          </p>
-        </div>
-
-        <div class="privacyItem">
-          <b>🚫 No fake privacy claims</b>
-          <p>
-            The app will not claim that information
-            is protected by a service it does not use.
-          </p>
-        </div>
-
-        <div class="privacyItem">
-          <b>⚠️ Important</b>
-          <p>
-            Do not enter passwords, banking details,
-            OTPs or other highly sensitive information
-            into an AI chat.
-          </p>
-        </div>
-
-      </div>
-    `
-  );
-
+.iconBtn:hover{
+background:var(--panel2);
 }
 
-
-/* ==============================
-   ACCOUNT + PRIVACY STYLE
-============================== */
-
-const accountStyle =
-document.createElement("style");
-
-accountStyle.textContent = `
-
-.authTabs{
-  display:flex;
-  gap:6px;
-  padding:5px;
-  background:var(--panel2);
-  border-radius:13px;
-  margin-bottom:18px;
+.sendBtn{
+background:var(--accent);
+font-size:22px;
+font-weight:800;
 }
 
-.authTab{
-  flex:1;
-  border:0;
-  padding:11px;
-  border-radius:10px;
-  background:transparent;
-  color:var(--muted);
+.sendBtn:disabled{
+opacity:.45;
+cursor:not-allowed;
 }
 
-.authTab.active{
-  background:var(--accent);
-  color:white;
+.iconBtn svg,
+.tool svg{
+width:20px;
+height:20px;
+fill:none;
+stroke:currentColor;
+stroke-width:1.8;
+stroke-linecap:round;
+stroke-linejoin:round;
+}
+
+.tools{
+position:absolute;
+left:4px;
+bottom:58px;
+width:285px;
+background:var(--panel);
+border:1px solid var(--line);
+border-radius:16px;
+padding:7px;
+display:none;
+grid-template-columns:1fr 1fr;
+gap:5px;
+box-shadow:0 20px 55px #0008;
+}
+
+.tools.show{
+display:grid;
+}
+
+.tool{
+border:0;
+background:transparent;
+border-radius:11px;
+padding:11px 8px;
+text-align:left;
+}
+
+.tool:hover{
+background:var(--panel2);
+}
+
+.tool b{
+font-size:13px;
+}
+
+.tool small{
+display:block;
+color:var(--muted);
+font-size:10px;
+margin-top:3px;
+}
+ .modal{
+position:fixed;
+inset:0;
+background:#0009;
+display:none;
+place-items:center;
+padding:18px;
+z-index:100;
+}
+
+.modal.show{
+display:grid;
+}
+
+.modalBox{
+width:min(480px,100%);
+max-height:88vh;
+overflow:auto;
+background:var(--panel);
+border:1px solid var(--line);
+border-radius:18px;
+padding:18px;
+}
+
+.modalHead{
+display:flex;
+justify-content:space-between;
+align-items:center;
+margin-bottom:12px;
+}
+
+.closeBtn{
+border:0;
+background:transparent;
+font-size:23px;
+}
+
+.option{
+background:var(--panel2);
+border-radius:12px;
+padding:13px;
+margin:8px 0;
+}
+
+.option small{
+display:block;
+color:var(--muted);
+margin-top:4px;
+}
+
+.primary{
+width:100%;
+border:0;
+border-radius:10px;
+background:var(--accent);
+padding:11px;
+font-weight:700;
 }
 
 .field{
-  margin:14px 0;
+margin:10px 0;
 }
 
 .field label{
-  display:block;
-  color:var(--muted);
-  font-size:13px;
-  margin-bottom:6px;
+display:block;
+color:var(--muted);
+font-size:12px;
+margin-bottom:5px;
 }
 
-.field input{
-  width:100%;
-  padding:13px;
-  border-radius:12px;
-  border:1px solid var(--border);
-  background:var(--panel2);
-  color:var(--text);
-  outline:0;
+.field input,
+.field select{
+width:100%;
+padding:10px;
+background:var(--panel);
+border:1px solid var(--line);
+border-radius:9px;
+outline:0;
 }
 
-.accountBox{
-  text-align:center;
-  padding:10px;
+@media(max-width:760px){
+
+.sidebar{
+position:fixed;
+z-index:90;
+left:0;
+top:0;
+bottom:0;
+transform:translateX(-105%);
+transition:.2s;
 }
 
-.accountAvatar{
-  width:70px;
-  height:70px;
-  margin:auto;
-  border-radius:22px;
-  background:var(--accent);
-  color:white;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-size:30px;
-  font-weight:bold;
+.sidebar.open{
+transform:translateX(0);
 }
 
-.accountBox h3{
-  margin:13px 0 3px;
-  font-size:20px;
+.menuBtn{
+display:block;
 }
 
-.accountBox p{
-  color:var(--muted);
-  margin:0 0 15px;
+.cards{
+grid-template-columns:1fr;
 }
 
-.accountNote{
-  padding:12px;
-  border-radius:12px;
-  background:var(--panel2);
-  color:var(--muted);
-  font-size:13px;
-  margin:15px 0;
+.welcome h1{
+font-size:24px;
 }
 
-.accountButton{
-  width:100%;
-  padding:13px;
-  border:0;
-  border-radius:13px;
-  background:var(--accent);
-  color:white;
-  font-size:15px;
-  font-weight:600;
+.messageWrap{
+max-width:87%;
 }
 
-.authHint{
-  color:var(--muted);
-  font-size:12px;
-  text-align:center;
-  margin-top:12px;
+.bubble{
+font-size:16px;
 }
-
-.privacyBox{
-  display:flex;
-  flex-direction:column;
-  gap:10px;
 }
+ </style>
+</head>
 
-.privacyItem{
-  padding:13px;
-  border-radius:14px;
-  background:var(--panel2);
-  border:1px solid var(--border);
-}
+<body>
 
-.privacyItem b{
-  font-size:15px;
-}
+<div class="app">
 
-.privacyItem p{
-  color:var(--muted);
-  font-size:13px;
-  line-height:1.5;
-  margin:6px 0 0;
-}
+<aside class="sidebar" id="sidebar">
 
-`;
+<div class="brand">
+<b>SMATER CHAT AI</b>
+<small>
+Think smarter. Ask anything. Get more done.
+</small>
+</div>
 
-document.head.appendChild(
-  accountStyle
-);
+<button class="sideBtn newChat" id="newChat">
+＋ New Chat
+</button>
 
-</script>
+<div class="historyTitle">
+RECENT CHATS
+</div>
 
-<!-- PART 7 will continue here -->
-  <!-- PART 7/8 — SETTINGS + STORAGE + SHARE -->
+<div class="history" id="history"></div>
 
+<button class="sideBtn" id="accountBtn">
+◎ Account
+</button>
+
+<button class="sideBtn" id="settingsBtn">
+⚙ Settings
+</button>
+
+<button class="sideBtn" id="storageBtn">
+▣ Storage & Data
+</button>
+
+<button class="sideBtn" id="privacyBtn">
+◇ Privacy & Security
+</button>
+
+<button class="sideBtn" id="shareBtn">
+↗ Share / Export
+</button>
+
+<button class="sideBtn" id="clearBtn">
+⌫ Clear History
+</button>
+
+</aside>
+
+<main class="main">
+
+<header class="topbar">
+
+<button class="menuBtn" id="menuBtn">
+☰
+</button>
+
+<div>
+<div class="title">
+SMATER CHAT AI
+</div>
+
+<div class="status" id="status">
+● AI ready
+</div>
+
+</div>
+
+</header>
+
+<section class="chat" id="chat">
+
+<div class="chatInner" id="chatInner">
+
+<div class="welcome" id="welcome">
+
+<div class="logo">S</div>
+
+<h1>
+How can I help you?
+</h1>
+
+<p>
+Ask anything in Hindi, English,
+Hinglish or another language.
+</p>
+
+<div class="cards">
+
+<button class="card"
+data-prompt="Explain artificial intelligence in simple words.">
+
+<b>Learn</b>
+
+<small>
+Understand any topic clearly.
+</small>
+
+</button>
+
+<button class="card"
+data-prompt="Help me solve this problem step by step.">
+
+<b>Solve</b>
+
+<small>
+Work through a problem carefully.
+</small>
+
+</button>
+
+<button class="card"
+data-prompt="Give me useful ideas for my project.">
+
+<b>Ideas</b>
+
+<small>
+Brainstorm practical options.
+</small>
+
+</button>
+
+<button class="card"
+data-prompt="Write a professional message for me.">
+
+<b>Write</b>
+
+<small>
+Create clear, polished content.
+</small>
+
+</button>
+
+</div>
+
+</div>
+
+</div>
+
+</section>
+<div class="composerArea">
+
+<div class="filePreview" id="filePreview">
+<span id="fileName"></span>
+<button class="closeBtn" id="removeFile">×</button>
+</div>
+
+<div class="composer">
+
+<button class="iconBtn" id="plusBtn">
+<svg viewBox="0 0 24 24">
+<path d="M12 5v14M5 12h14"/>
+</svg>
+</button>
+
+<textarea
+id="input"
+rows="1"
+placeholder="Message SMATER CHAT AI..."
+></textarea>
+
+<button class="iconBtn" id="micBtn">
+<svg viewBox="0 0 24 24">
+<rect x="9" y="3" width="6" height="12" rx="3"/>
+<path d="M5 11a7 7 0 0 0 14 0"/>
+<path d="M12 18v3M9 21h6"/>
+</svg>
+</button>
+
+<button class="sendBtn" id="sendBtn">
+↑
+</button>
+
+<div class="tools" id="tools">
+
+<button class="tool" id="cameraBtn">
+<svg viewBox="0 0 24 24">
+<path d="M4 7h3l2-2h6l2 2h3v12H4z"/>
+<circle cx="12" cy="13" r="3"/>
+</svg>
+<b> Camera</b>
+<small>Take a photo</small>
+</button>
+
+<button class="tool" id="galleryBtn">
+<svg viewBox="0 0 24 24">
+<rect x="3" y="3" width="18" height="18" rx="2"/>
+<circle cx="8" cy="8" r="1"/>
+<path d="m3 16 5-5 4 4 3-3 6 6"/>
+</svg>
+<b> Gallery</b>
+<small>Choose an image</small>
+</button>
+
+<button class="tool" id="fileBtn">
+<svg viewBox="0 0 24 24">
+<path d="M6 3h8l4 4v14H6z"/>
+<path d="M14 3v5h5"/>
+</svg>
+<b> File</b>
+<small>Attach a file</small>
+</button>
+
+<button class="tool" id="pdfBtn">
+<svg viewBox="0 0 24 24">
+<path d="M6 3h8l4 4v14H6z"/>
+<path d="M14 3v5h5"/>
+<path d="M8 15h8M8 18h6"/>
+</svg>
+<b> PDF</b>
+<small>Attach PDF</small>
+</button>
+
+<button class="tool" id="modeBtn">
+<svg viewBox="0 0 24 24">
+<circle cx="12" cy="12" r="9"/>
+<path d="M8 12h8M12 8v8"/>
+</svg>
+<b> @ Modes</b>
+<small>Assistant modes</small>
+</button>
+
+<button class="tool" id="languageBtn">
+<svg viewBox="0 0 24 24">
+<circle cx="12" cy="12" r="9"/>
+<path d="M3 12h18"/>
+<path d="M12 3c3 3 3 15 0 18"/>
+<path d="M12 3c-3 3-3 15 0 18"/>
+</svg>
+<b> Language</b>
+<small>Select language</small>
+</button>
+
+</div>
+</div>
+
+<input
+id="cameraInput"
+type="file"
+accept="image/*"
+capture="environment"
+hidden>
+
+<input
+id="galleryInput"
+type="file"
+accept="image/*"
+hidden>
+
+<input
+id="fileInput"
+type="file"
+hidden>
+
+</div>
+<div class="modal" id="modal">
+
+<div class="modalBox" id="modalBox">
+
+<div class="modalHead">
+
+<b id="modalTitle">
+SMATER CHAT AI
+</b>
+
+<button
+class="closeBtn"
+id="closeModal">
+×
+</button>
+
+</div>
+
+<div id="modalContent"></div>
+
+</div>
+</div>
 <script>
+const $=id=>document.getElementById(id);
 
-/* ==============================
-   SETTINGS
-============================== */
+let messages=[];
+let file=null;
+let sending=false;
+let language="auto";
+let mode="normal";
+let recognition=null;
+let listening=false;
 
-document.getElementById("settingsBtn")
-.addEventListener("click",showSettings);
+const KEY="smater_chat_history";
 
-
-function showSettings(){
-
-  closeDrawer();
-
-  showModal(
-    "Settings",
-    `
-    <div class="settingsList">
-
-      <div class="settingRow">
-        <div>
-          <b>Appearance</b>
-          <small>Change the app theme</small>
-        </div>
-
-        <select id="themeSelect">
-          <option value="dark">Dark</option>
-          <option value="light">Light</option>
-          <option value="system">System</option>
-        </select>
-      </div>
-
-      <div class="settingRow">
-        <div>
-          <b>Text size</b>
-          <small>Make chat text easier to read</small>
-        </div>
-
-        <select id="fontSelect">
-          <option value="15">Small</option>
-          <option value="17">Medium</option>
-          <option value="19">Large</option>
-          <option value="21">Extra large</option>
-        </select>
-      </div>
-
-      <div class="settingRow">
-        <div>
-          <b>Enter to send</b>
-          <small>Press Enter to send a message</small>
-        </div>
-
-        <input
-          type="checkbox"
-          id="enterToggle"
-          class="toggle"
-        >
-      </div>
-
-    </div>
-    `
-  );
-
-  const theme =
-    document.getElementById("themeSelect");
-
-  const font =
-    document.getElementById("fontSelect");
-
-  const enter =
-    document.getElementById("enterToggle");
-
-  theme.value = settings.theme;
-  font.value = String(settings.fontSize);
-  enter.checked = settings.enterToSend;
-
-
-  theme.onchange = function(){
-
-    settings.theme = this.value;
-
-    applyTheme();
-
-    saveSettings();
-
-  };
-
-
-  font.onchange = function(){
-
-    settings.fontSize =
-      Number(this.value);
-
-    applyFontSize();
-
-    saveSettings();
-
-  };
-
-
-  enter.onchange = function(){
-
-    settings.enterToSend =
-      this.checked;
-
-    saveSettings();
-
-  };
-
+function save(){
+ localStorage.setItem(KEY,JSON.stringify(messages));
 }
 
-
-/* ==============================
-   THEME
-============================== */
-
-function applyTheme(){
-
-  let theme =
-    settings.theme;
-
-  if(theme === "system"){
-
-    theme =
-      window.matchMedia(
-        "(prefers-color-scheme: dark)"
-      ).matches
-        ? "dark"
-        : "light";
-
-  }
-
-  if(theme === "light"){
-
-    document.documentElement.style
-      .setProperty("--bg","#f5f7fb");
-
-    document.documentElement.style
-      .setProperty("--panel","#ffffff");
-
-    document.documentElement.style
-      .setProperty("--panel2","#edf1f7");
-
-    document.documentElement.style
-      .setProperty("--text","#172033");
-
-    document.documentElement.style
-      .setProperty("--muted","#68758a");
-
-    document.documentElement.style
-      .setProperty("--border","#d8dfeb");
-
-    document.documentElement.style
-      .setProperty("--user","#dce9ff");
-
-  }else{
-
-    document.documentElement.style
-      .setProperty("--bg","#050b16");
-
-    document.documentElement.style
-      .setProperty("--panel","#0d1729");
-
-    document.documentElement.style
-      .setProperty("--panel2","#111e33");
-
-    document.documentElement.style
-      .setProperty("--text","#f4f7ff");
-
-    document.documentElement.style
-      .setProperty("--muted","#8d9bb3");
-
-    document.documentElement.style
-      .setProperty("--border","#263752");
-
-    document.documentElement.style
-      .setProperty("--user","#1c355b");
-
-  }
-
+function scroll(){
+ setTimeout(()=>{
+  $("chat").scrollTop=$("chat").scrollHeight;
+ },30);
 }
 
+function addMessage(role,text,saveIt=true){
 
-function applyFontSize(){
+ if($("welcome"))$("welcome").remove();
 
-  const bubble =
-    document.querySelectorAll(".bubble");
+ const row=document.createElement("div");
+ row.className="message "+role;
 
-  bubble.forEach(function(item){
+ const avatar=document.createElement("div");
+ avatar.className="avatar";
+ avatar.textContent=role==="user"?"YOU":"S";
 
-    item.style.fontSize =
-      settings.fontSize + "px";
+ const wrap=document.createElement("div");
+ wrap.className="messageWrap";
 
+ const bubble=document.createElement("div");
+ bubble.className="bubble";
+ bubble.textContent=text;
+
+ wrap.appendChild(bubble);
+
+ if(role==="assistant"){
+
+  const actions=document.createElement("div");
+  actions.className="messageActions";
+
+  const copy=document.createElement("button");
+  copy.className="actionBtn";
+  copy.textContent="Copy";
+
+  copy.onclick=()=>{
+   navigator.clipboard.writeText(text);
+   copy.textContent="Copied";
+   setTimeout(()=>copy.textContent="Copy",1200);
+  };
+
+  actions.appendChild(copy);
+  wrap.appendChild(actions);
+ }
+
+ row.appendChild(avatar);
+ row.appendChild(wrap);
+
+ $("chatInner").appendChild(row);
+
+ if(saveIt){
+  messages.push({role,content:text});
+  save();
+  updateHistory();
+ }
+
+ scroll();
+}
+
+function updateHistory(){
+
+ const h=$("history");
+ h.innerHTML="";
+
+ const first=messages.find(x=>x.role==="user");
+
+ if(!first){
+  h.innerHTML=
+  '<div style="color:var(--muted);padding:10px;font-size:12px">No chats yet</div>';
+  return;
+ }
+
+ const item=document.createElement("div");
+ item.className="historyItem";
+ item.textContent=first.content.slice(0,55);
+
+ h.appendChild(item);
+}
+
+function loadHistory(){
+
+ try{
+  messages=JSON.parse(localStorage.getItem(KEY))||[];
+ }catch(e){
+  messages=[];
+ }
+
+ if(messages.length){
+
+  $("welcome").remove();
+
+  messages.forEach(x=>{
+   addMessage(x.role,x.content,false);
   });
+ }
 
+ updateHistory();
 }
 
+function updateSend(){
 
-/* ==============================
-   STORAGE
-============================== */
+ $("sendBtn").disabled=
+ sending ||
+ (!$("input").value.trim() && !file);
+}
 
-document.getElementById("storageBtn")
-.addEventListener(
-  "click",
-  showStorage
-);
+async function readFile(f){
 
+ return new Promise((resolve,reject)=>{
 
-function showStorage(){
+  const r=new FileReader();
 
-  closeDrawer();
+  r.onload=()=>resolve(r.result);
+  r.onerror=reject;
 
-  const chats =
-    Array.isArray(appData.chats)
-      ? appData.chats.length
-      : 0;
+  r.readAsDataURL(f);
+ });
+}
 
-  const currentMessages =
-    appData.currentChat &&
-    Array.isArray(
-      appData.currentChat.messages
-    )
-      ? appData.currentChat.messages.length
-      : 0;
+function setFile(f){
 
+ if(!f)return;
 
-  showModal(
-    "Storage & Data",
-    `
-      <div class="dataBox">
+ file=f;
 
-        <div class="dataStat">
-          <b>${chats}</b>
-          <span>Saved chats</span>
-        </div>
+ $("fileName").textContent=f.name;
+ $("filePreview").classList.add("show");
+ $("tools").classList.remove("show");
 
-        <div class="dataStat">
-          <b>${currentMessages}</b>
-          <span>Current messages</span>
-        </div>
+ updateSend();
+}
 
-        <button
-          class="dataButton"
-          id="exportDataBtn"
-        >
-          📦 Export My Data
-        </button>
+function removeFile(){
 
-        <button
-          class="dataButton dangerBtn"
-          id="clearHistoryBtn"
-        >
-          🗑️ Clear Chat History
-        </button>
+ file=null;
 
-        <button
-          class="dataButton dangerBtn"
-          id="clearAllBtn"
-        >
-          ⚠️ Clear All Local Data
-        </button>
+ $("fileName").textContent="";
+ $("filePreview").classList.remove("show");
 
-      </div>
-    `
+ $("cameraInput").value="";
+ $("galleryInput").value="";
+ $("fileInput").value="";
+
+ updateSend();
+}
+ async function sendMessage(){
+
+ if(sending)return;
+
+ const text=$("input").value.trim();
+
+ if(!text&&!file)return;
+
+ sending=true;
+ updateSend();
+
+ $("status").textContent="● Thinking…";
+
+ let attachment=null;
+
+ if(file){
+  attachment={
+   name:file.name,
+   type:file.type,
+   data:await readFile(file)
+  };
+ }
+
+ addMessage(
+  "user",
+  text+(attachment?
+  "\n\n[Attached: "+attachment.name+"]":"")
+ );
+
+ $("input").value="";
+ $("input").style.height="44px";
+
+ const loading=document.createElement("div");
+
+ loading.className="message assistant";
+
+ loading.innerHTML=
+ '<div class="avatar">S</div>'+
+ '<div class="messageWrap">'+
+ '<div class="bubble">Thinking…</div>'+
+ '</div>';
+
+ $("chatInner").appendChild(loading);
+
+ scroll();
+
+ try{
+
+  const response=await fetch(
+   "/api/chat",
+   {
+    method:"POST",
+    headers:{
+     "Content-Type":"application/json"
+    },
+    body:JSON.stringify({
+     messages,
+     language,
+     mode,
+     file:attachment
+    })
+   }
   );
 
+  const data=await response.json();
 
-  document.getElementById(
-    "exportDataBtn"
-  ).onclick = exportData;
+  if(!response.ok){
+   throw new Error(
+    data.error||"Request failed"
+   );
+  }
 
+  loading.remove();
 
-  document.getElementById(
-    "clearHistoryBtn"
-  ).onclick = function(){
-
-    if(!confirm(
-      "Delete all saved chat history?"
-    )){
-      return;
-    }
-
-    appData.chats = [];
-
-    saveData();
-
-    showStorage();
-
-  };
-
-
-  document.getElementById(
-    "clearAllBtn"
-  ).onclick = function(){
-
-    if(!confirm(
-      "Clear all SMATER CHAT AI data from this device?"
-    )){
-      return;
-    }
-
-    localStorage.removeItem(
-      STORAGE_KEY
-    );
-
-    localStorage.removeItem(
-      SETTINGS_KEY
-    );
-
-    localStorage.removeItem(
-      "SMATER_CHAT_AI_ACCOUNT_V1"
-    );
-
-    location.reload();
-
-  };
-
-}
-
-
-/* ==============================
-   EXPORT DATA
-============================== */
-
-function exportData(){
-
-  const data = {
-    app:"SMATER CHAT AI",
-    exportedAt:
-      new Date().toISOString(),
-    currentChat:
-      appData.currentChat,
-    savedChats:
-      appData.chats
-  };
-
-
-  const blob =
-    new Blob(
-      [
-        JSON.stringify(
-          data,
-          null,
-          2
-        )
-      ],
-      {
-        type:"application/json"
-      }
-    );
-
-
-  const url =
-    URL.createObjectURL(blob);
-
-  const link =
-    document.createElement("a");
-
-  link.href = url;
-
-  link.download =
-    "smater-chat-ai-data.json";
-
-  link.click();
-
-  URL.revokeObjectURL(url);
-
-}
-
-
-/* ==============================
-   SHARE / EXPORT
-============================== */
-
-document.getElementById("shareBtn")
-.addEventListener(
-  "click",
-  showShare
-);
-
-
-function showShare(){
-
-  closeDrawer();
-
-  showModal(
-    "Share / Export",
-    `
-      <div class="shareBox">
-
-        <button
-          class="dataButton"
-          id="shareChatBtn"
-        >
-          🔗 Share Current Chat
-        </button>
-
-        <button
-          class="dataButton"
-          id="copyChatBtn"
-        >
-          📋 Copy Current Chat
-        </button>
-
-        <button
-          class="dataButton"
-          id="downloadChatBtn"
-        >
-          📄 Save Chat as Text
-        </button>
-
-      </div>
-    `
+  addMessage(
+   "assistant",
+   data.text||"No answer received."
   );
 
+ }catch(error){
 
-  document.getElementById(
-    "shareChatBtn"
-  ).onclick = shareCurrentChat;
+  console.error(error);
 
+  loading.remove();
 
-  document.getElementById(
-    "copyChatBtn"
-  ).onclick = copyCurrentChat;
+  addMessage(
+   "assistant",
+   "Sorry, I couldn't complete that request. Please try again."
+  );
 
+ }finally{
 
-  document.getElementById(
-    "downloadChatBtn"
-  ).onclick = downloadCurrentChat;
+  sending=false;
 
+  removeFile();
+
+  $("status").textContent="● AI ready";
+
+  updateSend();
+ }
 }
 
+$("sendBtn").onclick=sendMessage;
 
-/* ==============================
-   CHAT TEXT
-============================== */
+$("input").oninput=()=>{
 
-function getCurrentChatText(){
+ $("input").style.height="44px";
 
-  const messages =
-    appData.currentChat?.messages || [];
+ $("input").style.height=
+ Math.min(
+  $("input").scrollHeight,
+  150
+ )+"px";
 
-  return messages.map(function(m){
+ updateSend();
+};
 
-    return (
-      (m.role === "user"
-        ? "You"
-        : "SMATER CHAT AI") +
-      ":\n" +
-      m.content
-    );
+$("input").onkeydown=e=>{
 
-  }).join("\n\n");
+ if(e.key==="Enter"&&!e.shiftKey){
 
-}
+  e.preventDefault();
 
+  sendMessage();
+ }
+};
+ $("plusBtn").onclick=e=>{
+ e.stopPropagation();
+ $("tools").classList.toggle("show");
+};
 
-/* ==============================
-   SHARE
-============================== */
+document.onclick=e=>{
+ if(
+  !$("tools").contains(e.target)&&
+  e.target!==$("plusBtn")
+ ){
+  $("tools").classList.remove("show");
+ }
+};
 
-async function shareCurrentChat(){
+$("cameraBtn").onclick=()=>{
+ $("cameraInput").click();
+};
 
-  const text =
-    getCurrentChatText();
+$("galleryBtn").onclick=()=>{
+ $("galleryInput").click();
+};
 
-  if(!text){
+$("fileBtn").onclick=()=>{
+ $("fileInput").accept="*/*";
+ $("fileInput").click();
+};
 
-    alert("There is no chat to share.");
+$("pdfBtn").onclick=()=>{
+ $("fileInput").accept="application/pdf,.pdf";
+ $("fileInput").click();
+};
 
-    return;
+$("cameraInput").onchange=e=>{
+ setFile(e.target.files[0]);
+};
 
-  }
+$("galleryInput").onchange=e=>{
+ setFile(e.target.files[0]);
+};
 
+$("fileInput").onchange=e=>{
+ setFile(e.target.files[0]);
+};
 
-  if(navigator.share){
+$("removeFile").onclick=removeFile;
 
-    try{
 
-      await navigator.share({
-        title:"SMATER CHAT AI",
-        text:text
-      });
+/* NEW CHAT */
 
-    }catch(error){}
+$("newChat").onclick=()=>{
 
-  }else{
+ messages=[];
+ save();
 
-    await copyText(text);
+ $("chatInner").innerHTML=
+ '<div class="welcome" id="welcome">'+
+ '<div class="logo">S</div>'+
+ '<h1>How can I help you?</h1>'+
+ '<p>Ask anything in Hindi, English, Hinglish or another language.</p>'+
+ '</div>';
 
-    alert(
-      "Chat copied. You can paste it anywhere."
-    );
+ updateHistory();
 
-  }
+ $("sidebar").classList.remove("open");
 
-}
+ $("input").focus();
+};
 
 
-/* ==============================
-   COPY CHAT
-============================== */
+/* MOBILE MENU */
 
-async function copyCurrentChat(){
+$("menuBtn").onclick=()=>{
+ $("sidebar").classList.toggle("open");
+};
 
-  const text =
-    getCurrentChatText();
 
-  if(!text){
+/* SUGGESTIONS */
 
-    alert("There is no chat to copy.");
+document.querySelectorAll("[data-prompt]").forEach(btn=>{
 
-    return;
+ btn.onclick=()=>{
 
-  }
+  $("input").value=btn.dataset.prompt;
 
-  await copyText(text);
+  $("input").dispatchEvent(
+   new Event("input")
+  );
 
-  alert("Chat copied successfully.");
+  $("input").focus();
+ };
+});
 
-}
 
+/* REMOVE FILE */
 
-/* ==============================
-   DOWNLOAD CHAT
-============================== */
+$("filePreview").onclick=e=>{
+ if(e.target.id==="removeFile"){
+  removeFile();
+ }
+};
+ $("micBtn").onclick=()=>{
 
-function downloadCurrentChat(){
+ if(!recognition){
+  setupVoice();
+ }
 
-  const text =
-    getCurrentChatText();
+ if(!recognition)return;
 
-  if(!text){
-
-    alert("There is no chat to save.");
-
-    return;
-
-  }
-
-
-  const blob =
-    new Blob(
-      [text],
-      {type:"text/plain;charset=utf-8"}
-    );
-
-  const url =
-    URL.createObjectURL(blob);
-
-  const link =
-    document.createElement("a");
-
-  link.href = url;
-
-  link.download =
-    "smater-chat-ai-chat.txt";
-
-  link.click();
-
-  URL.revokeObjectURL(url);
-
-}
-
-
-/* ==============================
-   SETTINGS STYLE
-============================== */
-
-const settingsStyle =
-document.createElement("style");
-
-settingsStyle.textContent = `
-
-.settingsList{
-  display:flex;
-  flex-direction:column;
-  gap:8px;
-}
+ if(listening){
+  recognition.stop();
+ }else{
+  try{
+   recognition.start();
+  }catch(e){}
+ }
+};
 
-.settingRow{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:15px;
-  padding:14px;
-  border-radius:14px;
-  background:var(--panel2);
-  border:1px solid var(--border);
-}
-
-.settingRow b{
-  display:block;
-  font-size:15px;
-}
-
-.settingRow small{
-  display:block;
-  color:var(--muted);
-  margin-top:4px;
-  font-size:12px;
-}
-
-.settingRow select{
-  background:var(--bg);
-  color:var(--text);
-  border:1px solid var(--border);
-  border-radius:9px;
-  padding:8px;
-}
-
-.toggle{
-  width:21px;
-  height:21px;
-  accent-color:var(--accent);
-}
-
-.dataBox,
-.shareBox{
-  display:flex;
-  flex-direction:column;
-  gap:10px;
-}
-
-.dataStat{
-  display:flex;
-  justify-content:space-between;
-  padding:13px;
-  background:var(--panel2);
-  border-radius:13px;
-}
-
-.dataStat b{
-  font-size:18px;
-}
-
-.dataStat span{
-  color:var(--muted);
-  font-size:13px;
-}
-
-.dataButton{
-  width:100%;
-  padding:13px;
-  border:0;
-  border-radius:13px;
-  background:var(--accent);
-  color:white;
-  font-size:14px;
-  font-weight:600;
-}
-
-.dangerBtn{
-  background:#6b2631;
-}
-
-`;
-
-document.head.appendChild(
-  settingsStyle
-);
-
-
-/* ==============================
-   INITIAL SETTINGS
-============================== */
-
-applyTheme();
-applyFontSize();
-
-</script>
-
-<!-- PART 8 will continue here -->
-  <!-- PART 8/8 — MIC + FINAL -->
-
-<script>
-
-/* ==============================
-   MICROPHONE / VOICE INPUT
-============================== */
-
-let recognition = null;
-let listening = false;
-
-const micBtn =
-  document.getElementById("micBtn");
 
 function setupVoice(){
 
-  const SpeechRecognition =
-    window.SpeechRecognition ||
-    window.webkitSpeechRecognition;
+ const Speech=
+ window.SpeechRecognition||
+ window.webkitSpeechRecognition;
 
-  if(!SpeechRecognition){
+ if(!Speech){
+  $("status").textContent=
+  "● Voice not supported";
+  return;
+ }
 
-    micBtn.title =
-      "Voice input is not supported in this browser";
+ recognition=new Speech();
 
-    return;
+ recognition.continuous=false;
+ recognition.interimResults=false;
 
-  }
+ recognition.lang=
+ language==="en"?
+ "en-IN":"hi-IN";
 
-  recognition =
-    new SpeechRecognition();
 
-  recognition.continuous = false;
+ recognition.onstart=()=>{
 
-  recognition.interimResults = true;
+  listening=true;
 
-  recognition.lang = "hi-IN";
+  $("status").textContent=
+  "● Listening…";
+ };
 
 
-  recognition.onstart = function(){
+ recognition.onresult=e=>{
 
-    listening = true;
+  const text=
+  e.results[0][0].transcript;
 
-    micBtn.classList.add("active");
+  $("input").value+=
+  ($("input").value?" ":"")+
+  text;
 
-    micBtn.textContent = "⏹️";
-
-    setStatus("Listening…");
-
-  };
-
-
-  recognition.onresult =
-    function(event){
-
-      let finalText = "";
-      let interimText = "";
-
-      for(
-        let i = event.resultIndex;
-        i < event.results.length;
-        i++
-      ){
-
-        const text =
-          event.results[i][0].transcript;
-
-        if(event.results[i].isFinal){
-
-          finalText += text;
-
-        }else{
-
-          interimText += text;
-
-        }
-
-      }
-
-
-      const input =
-        document.getElementById("message");
-
-
-      if(finalText){
-
-        input.value =
-          (
-            input.value
-              ? input.value + " "
-              : ""
-          ) + finalText;
-
-        resizeInput();
-
-      }
-
-      setStatus(
-        interimText
-          ? "Listening: " + interimText
-          : "Listening…"
-      );
-
-    };
-
-
-  recognition.onerror =
-    function(event){
-
-      console.log(
-        "Voice error:",
-        event.error
-      );
-
-      if(
-        event.error ===
-        "not-allowed"
-      ){
-
-        alert(
-          "Microphone permission is blocked. " +
-          "Allow microphone access in your browser."
-        );
-
-      }else if(
-        event.error !== "aborted"
-      ){
-
-        setStatus(
-          "Voice input unavailable"
-        );
-
-      }
-
-    };
-
-
-  recognition.onend =
-    function(){
-
-      listening = false;
-
-      micBtn.classList.remove(
-        "active"
-      );
-
-      micBtn.textContent = "🎙️";
-
-      setStatus("AI ready");
-
-    };
-
-}
-
-
-micBtn.addEventListener(
-  "click",
-  function(){
-
-    if(!recognition){
-
-      setupVoice();
-
-    }
-
-    if(!recognition){
-
-      alert(
-        "Voice input is not supported in this browser."
-      );
-
-      return;
-
-    }
-
-
-    if(listening){
-
-      recognition.stop();
-
-      return;
-
-    }
-
-
-    /*
-     * Hindi first.
-     * Browser can automatically handle
-     * many languages, and the user can
-     * speak naturally.
-     */
-
-    recognition.lang = "hi-IN";
-
-    try{
-
-      recognition.start();
-
-    }catch(error){
-
-      console.log(error);
-
-    }
-
-  }
-);
-
-
-/* ==============================
-   KEYBOARD / LANGUAGE FRIENDLY
-============================== */
-
-document
-  .getElementById("message")
-  .setAttribute(
-    "enterkeyhint",
-    "send"
+  $("input").dispatchEvent(
+   new Event("input")
   );
+ };
 
 
-/* ==============================
-   SYSTEM THEME CHANGE
-============================== */
+ recognition.onerror=()=>{
 
-if(window.matchMedia){
+  listening=false;
 
-  const media =
-    window.matchMedia(
-      "(prefers-color-scheme: dark)"
-    );
+  $("status").textContent=
+  "● AI ready";
+ };
 
-  if(media.addEventListener){
 
-    media.addEventListener(
-      "change",
-      function(){
+ recognition.onend=()=>{
 
-        if(
-          settings.theme === "system"
-        ){
+  listening=false;
 
-          applyTheme();
-
-        }
-
-      }
-    );
-
-  }
-
+  $("status").textContent=
+  "● AI ready";
+ };
 }
 
 
-/* ==============================
-   CLOSE MODAL WITH ESC
-============================== */
+/* LOAD SAVED CHAT */
 
-document.addEventListener(
-  "keydown",
-  function(event){
+loadHistory();
 
-    if(event.key === "Escape"){
-
-      closeModal();
-
-      closeDrawer();
-
-      closeAttachMenu();
-
-    }
-
-  }
-);
-
-
-/* ==============================
-   PREVENT ACCIDENTAL FORM ACTION
-============================== */
-
-document.addEventListener(
-  "submit",
-  function(event){
-
-    event.preventDefault();
-
-  }
-);
-
-
-/* ==============================
-   SECURITY — NEVER DISPLAY
-   INTERNAL API DATA
-============================== */
-
-function safeAIText(text){
-
-  if(typeof text !== "string"){
-    return "";
-  }
-
-  /*
-   * The UI only displays the actual
-   * assistant answer returned by /api/chat.
-   * Provider metadata or hidden
-   * implementation information is
-   * never intentionally rendered.
-   */
-
-  return text.trim();
-
-}
-
-
-/* ==============================
-   ONLINE / OFFLINE STATUS
-============================== */
-
-window.addEventListener(
-  "offline",
-  function(){
-
-    setStatus(
-      "You are offline"
-    );
-
-  }
-);
-
-
-window.addEventListener(
-  "online",
-  function(){
-
-    setStatus(
-      "AI ready"
-    );
-
-  }
-);
-
-
-/* ==============================
-   FINAL STARTUP
-============================== */
-
-setupVoice();
-
-loadData();
-
-loadSettings();
-
-applyTheme();
-
-applyFontSize();
-
-renderMessages();
-
-setStatus("AI ready");
-
-
-/* ==============================
-   FINAL MESSAGE
-============================== */
-
-/*
- SMATER CHAT AI
-
- Think smarter.
- Ask anything.
- Get more done.
-
- Features included in this
- frontend build:
-
- ✓ AI chat
- ✓ Hindi / English / Hinglish
- ✓ Multilingual input
- ✓ Send button
- ✓ Enter to send
- ✓ Copy response
- ✓ Read response
- ✓ Microphone
- ✓ Camera
- ✓ Gallery
- ✓ File attachment
- ✓ Chat history
- ✓ New chat
- ✓ Account prototype
- ✓ Login / Sign Up
- ✓ Settings
- ✓ Dark / Light / System theme
- ✓ Font size
- ✓ Storage controls
- ✓ Export data
- ✓ Share chat
- ✓ Privacy information
- ✓ Local storage
- ✓ Responsive mobile UI
-*/
+updateSend();
 
 </script>
 
-</div>
 </body>
 </html>
