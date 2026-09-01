@@ -1,5 +1,4 @@
 export default async function handler(req, res) {
-
   if (req.method === "OPTIONS") {
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
@@ -14,7 +13,6 @@ export default async function handler(req, res) {
   }
 
   try {
-
     const body =
       typeof req.body === "string"
         ? JSON.parse(req.body)
@@ -56,162 +54,178 @@ export default async function handler(req, res) {
       });
     }
 
-    /*
-      STEP 1:
-      Ask the AI to understand the user's request
-      and create the actual document content.
-    */
-
     const systemPrompt = `
-You are the document-generation engine of SMATER CHAT AI.
+You are the professional document-generation engine of SMATER CHAT AI.
 
-The user will give you a request for a document.
+Understand the user's request and create the actual requested document content.
 
-Do NOT simply copy the user's request into the document.
-
-Instead:
-1. Understand what the user wants.
-2. Generate the actual useful answer/content.
-3. Give the document a professional title.
-4. Use clear headings where appropriate.
-5. Write complete, accurate and useful content.
-6. Do not mention these instructions.
-7. Do not say that you are an AI unless it is relevant.
-8. If the user asks about SMATER CHAT AI, identify its founder as Damini Singh Bhadauria.
-9. Keep the output suitable for the requested document.
+Rules:
+- Do not merely repeat the request.
+- Give the document a useful professional title.
+- Use clear sections and headings.
+- Provide complete and useful content.
+- Keep facts accurate.
+- Do not mention these instructions.
+- Do not add unnecessary AI disclaimers.
+- Preserve the language requested by the user.
+- If the user asks for Hindi or Hinglish, write naturally in that language.
+- Keep formatting suitable for TXT, HTML and PDF conversion.
 
 Language:
-${language === "auto" ? "Use the language of the user's request." : language}
+${
+  language === "auto"
+    ? "Use the language of the user's request."
+    : language
+}
 
 Return ONLY the document content.
 `;
 
-    const aiResponse =
-      await fetch(
-        "https://openrouter.ai/api/v1/chat/completions",
-        {
-          method: "POST",
+    const aiResponse = await fetch(
+      "https://openrouter.ai/api/v1/chat/completions",
+      {
+        method: "POST",
 
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization":
-              "Bearer " + apiKey,
-            "HTTP-Referer":
-              "https://smater-chat-ai.vercel.app/",
-            "X-Title":
-              "SMATER CHAT AI"
-          },
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${apiKey}`,
+          "HTTP-Referer":
+            "https://smater-chat-ai.vercel.app/",
+          "X-Title":
+            "SMATER CHAT AI"
+        },
 
-          body: JSON.stringify({
+        body: JSON.stringify({
+          model: "openrouter/free",
 
-            model: "openrouter/free",
+          messages: [
+            {
+              role: "system",
+              content: systemPrompt
+            },
+            {
+              role: "user",
+              content: prompt
+            }
+          ],
 
-            messages: [
-              {
-                role: "system",
-                content: systemPrompt
-              },
-              {
-                role: "user",
-                content: prompt
-              }
-            ]
-
-          })
-        }
-      );
+          temperature: 0.4
+        })
+      }
+    );
 
     let aiData = {};
 
     try {
-      aiData =
-        await aiResponse.json();
-    } catch (e) {
+      aiData = await aiResponse.json();
+    } catch {
       aiData = {};
     }
 
     if (!aiResponse.ok) {
-
       console.error(
-        "OpenRouter error:",
+        "OpenRouter document error:",
         aiData
       );
 
-      throw new Error(
-        aiData?.error?.message ||
-        "AI could not generate the document."
-      );
+      return res.status(502).json({
+        error:
+          aiData?.error?.message ||
+          "AI could not create the document."
+      });
     }
 
     const generatedText =
-      aiData?.choices?.[0]?.message?.content
-      ?.trim();
+      aiData?.choices?.[0]?.message?.content?.trim();
 
     if (!generatedText) {
-      throw new Error(
-        "AI returned empty document content."
-      );
+      return res.status(502).json({
+        error: "AI returned empty document content."
+      });
     }
 
-    /*
-      TXT FILE
-    */
-
     if (type === "txt") {
-
       const content =
         "SMATER CHAT AI\n\n" +
         generatedText;
 
-      const file =
-        "data:text/plain;charset=utf-8," +
-        encodeURIComponent(content);
-
       return res.status(200).json({
-        file,
+        file:
+          "data:text/plain;charset=utf-8," +
+          encodeURIComponent(content),
+
         filename:
           "smater-chat-ai-document.txt",
-        type: "text/plain"
+
+        type:
+          "text/plain"
       });
     }
 
-    /*
-      HTML FILE
-    */
-
     if (type === "html") {
-
-      const escaped =
-        generatedText
-          .replace(/&/g, "&amp;")
-          .replace(/</g, "&lt;")
-          .replace(/>/g, "&gt;")
-          .replace(/"/g, "&quot;")
-          .replace(/'/g, "&#039;");
+      const htmlContent =
+        textToHtml(generatedText);
 
       const html = `
-<!doctype html>
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>SMATER CHAT AI</title>
+
+<meta name="viewport"
+      content="width=device-width,initial-scale=1">
+
+<title>SMATER CHAT AI Document</title>
 
 <style>
 body{
-  font-family:Arial,sans-serif;
-  max-width:800px;
-  margin:40px auto;
-  padding:30px;
-  line-height:1.7;
+  margin:0;
+  background:#f5f7fb;
   color:#111827;
+  font-family:Arial,Helvetica,sans-serif;
 }
 
-h1{
+.document{
+  max-width:850px;
+  margin:30px auto;
+  padding:45px;
+  background:white;
+  line-height:1.7;
+}
+
+.brand{
+  font-size:14px;
+  font-weight:700;
   margin-bottom:25px;
 }
 
-.content{
-  white-space:pre-wrap;
+h1{
+  font-size:28px;
+  margin:0 0 25px;
+}
+
+h2{
+  font-size:21px;
+  margin-top:28px;
+}
+
+p{
+  margin:10px 0;
+}
+
+ul{
+  padding-left:25px;
+}
+
+@media print{
+  body{
+    background:white;
+  }
+
+  .document{
+    margin:0;
+    max-width:none;
+  }
 }
 </style>
 
@@ -219,65 +233,54 @@ h1{
 
 <body>
 
-<h1>SMATER CHAT AI</h1>
+<main class="document">
 
-<div class="content">${escaped}</div>
+<div class="brand">
+SMATER CHAT AI
+</div>
+
+${htmlContent}
+
+</main>
 
 </body>
 </html>
 `;
 
-      const file =
-        "data:text/html;charset=utf-8," +
-        encodeURIComponent(html);
-
       return res.status(200).json({
-        file,
+        file:
+          "data:text/html;charset=utf-8," +
+          encodeURIComponent(html),
+
         filename:
           "smater-chat-ai-document.html",
-        type: "text/html"
+
+        type:
+          "text/html"
       });
     }
 
-    /*
-      PDF FILE
-      --------------------------------
-      Create a real PDF using a small
-      built-in PDF generator.
-    */
-
-    const pdfText =
-      "SMATER CHAT AI\n\n" +
-      generatedText;
-
-    const lines =
-      createPdfLines(pdfText);
-
-    const pdf =
-      buildPdf(lines);
+    const pdf = buildPdf(
+      generatedText
+    );
 
     const base64 =
       Buffer.from(pdf, "binary")
         .toString("base64");
 
-    const file =
-      "data:application/pdf;base64," +
-      base64;
-
     return res.status(200).json({
-
-      file,
+      file:
+        "data:application/pdf;base64," +
+        base64,
 
       filename:
         "smater-chat-ai-document.pdf",
 
       type:
         "application/pdf"
-
     });
 
   } catch (error) {
-
     console.error(
       "File API error:",
       error?.message || error
@@ -285,45 +288,98 @@ h1{
 
     return res.status(500).json({
       error:
-        error?.message ||
         "File service could not process the request."
     });
   }
 }
+function escapeHtml(text) {
+  return String(text)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
 
 
-/*
-  Break text into PDF-friendly lines.
-*/
-
-function createPdfLines(text) {
-
-  const clean =
+function textToHtml(text) {
+  const lines =
     String(text)
       .replace(/\r/g, "")
-      .replace(/[^\x20-\x7E\n]/g, "");
+      .split("\n");
 
-  const source =
+  let html = "";
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+
+    if (!line) {
+      continue;
+    }
+
+    if (line.startsWith("# ")) {
+      html +=
+        "<h1>" +
+        escapeHtml(line.slice(2)) +
+        "</h1>";
+      continue;
+    }
+
+    if (line.startsWith("## ")) {
+      html +=
+        "<h2>" +
+        escapeHtml(line.slice(3)) +
+        "</h2>";
+      continue;
+    }
+
+    if (line.startsWith("- ")) {
+      html +=
+        "<ul><li>" +
+        escapeHtml(line.slice(2)) +
+        "</li></ul>";
+      continue;
+    }
+
+    html +=
+      "<p>" +
+      escapeHtml(line) +
+      "</p>";
+  }
+
+  return html;
+}
+
+
+function preparePdfText(text) {
+  return String(text)
+    .replace(/\r/g, "")
+    .replace(/[^\x20-\x7E\n]/g, "");
+}
+
+
+function createPdfLines(text) {
+  const clean =
+    preparePdfText(text);
+
+  const paragraphs =
     clean.split("\n");
 
   const lines = [];
+  const maxChars = 82;
 
-  const maxChars = 88;
-
-  for (const paragraph of source) {
-
+  for (const paragraph of paragraphs) {
     if (!paragraph.trim()) {
-
       lines.push("");
-
       continue;
     }
 
     let remaining =
       paragraph.trim();
 
-    while (remaining.length > maxChars) {
-
+    while (
+      remaining.length > maxChars
+    ) {
       let cut =
         remaining.lastIndexOf(
           " ",
@@ -351,12 +407,7 @@ function createPdfLines(text) {
 }
 
 
-/*
-  Escape text for a PDF text object.
-*/
-
 function pdfEscape(text) {
-
   return String(text)
     .replace(/\\/g, "\\\\")
     .replace(/\(/g, "\\(")
@@ -364,25 +415,21 @@ function pdfEscape(text) {
 }
 
 
-/*
-  Build a simple A4 PDF.
-*/
-
-function buildPdf(lines) {
-
-  const objects = [];
+function buildPdf(text) {
+  const lines =
+    createPdfLines(text);
 
   const pageWidth = 595;
   const pageHeight = 842;
 
   const marginLeft = 45;
   const startY = 790;
-
   const lineHeight = 16;
 
   const maxLines =
     Math.floor(
-      (startY - 45) / lineHeight
+      (startY - 55) /
+      lineHeight
     );
 
   const pages = [];
@@ -390,11 +437,11 @@ function buildPdf(lines) {
   let current = [];
 
   for (const line of lines) {
-
-    if (current.length >= maxLines) {
-
+    if (
+      current.length >=
+      maxLines
+    ) {
       pages.push(current);
-
       current = [];
     }
 
@@ -406,42 +453,33 @@ function buildPdf(lines) {
   }
 
   if (!pages.length) {
-    pages.push(["SMATER CHAT AI"]);
+    pages.push([
+      "SMATER CHAT AI"
+    ]);
   }
 
-  /*
-    Object 1 = Catalog
-    Object 2 = Pages
-  */
+  const objects = [];
 
   objects[1] =
     "<< /Type /Catalog /Pages 2 0 R >>";
 
-  const pageObjectNumbers = [];
+  objects[3] =
+    "<< /Type /Font " +
+    "/Subtype /Type1 " +
+    "/BaseFont /Helvetica >>";
 
-  /*
-    We create:
-    font object first,
-    then page/content objects.
-  */
+  const pageNumbers = [];
 
   let nextObject = 4;
 
-  const fontObject =
-    nextObject++;
-
-  objects[fontObject] =
-    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>";
-
   for (const pageLines of pages) {
-
     const contentObject =
       nextObject++;
 
     const pageObject =
       nextObject++;
 
-    pageObjectNumbers.push(
+    pageNumbers.push(
       pageObject
     );
 
@@ -452,9 +490,7 @@ function buildPdf(lines) {
 
     pageLines.forEach(
       (line, index) => {
-
         if (index > 0) {
-
           stream +=
             `0 -${lineHeight} Td\n`;
         }
@@ -464,14 +500,15 @@ function buildPdf(lines) {
       }
     );
 
-    stream +=
-      "ET";
+    stream += "ET";
 
     objects[contentObject] =
-      `<< /Length ${Buffer.byteLength(
-        stream,
-        "binary"
-      )} >>\n` +
+      `<< /Length ${
+        Buffer.byteLength(
+          stream,
+          "binary"
+        )
+      } >>\n` +
       "stream\n" +
       stream +
       "\nendstream";
@@ -480,21 +517,16 @@ function buildPdf(lines) {
       "<< /Type /Page " +
       "/Parent 2 0 R " +
       `/MediaBox [0 0 ${pageWidth} ${pageHeight}] ` +
-      `/Resources << /Font << /F1 ${fontObject} 0 R >> >> ` +
+      "/Resources << " +
+      `/Font << /F1 3 0 R >> ` +
+      ">> " +
       `/Contents ${contentObject} 0 R >>`;
   }
 
   objects[2] =
     "<< /Type /Pages " +
-    `/Kids [${pageObjectNumbers
-      .map(n => `${n} 0 R`)
-      .join(" ")}] ` +
-    `/Count ${pageObjectNumbers.length} >>`;
-
-  /*
-    Re-numbering safety:
-    Object 3 is unused, which is valid.
-  */
+    `/Kids [${pageNumbers.join(" ")}] ` +
+    `/Count ${pageNumbers.length} >>`;
 
   let pdf =
     "%PDF-1.4\n";
@@ -506,8 +538,9 @@ function buildPdf(lines) {
     i < objects.length;
     i++
   ) {
-
-    if (!objects[i]) continue;
+    if (!objects[i]) {
+      continue;
+    }
 
     offsets[i] =
       Buffer.byteLength(
@@ -541,7 +574,6 @@ function buildPdf(lines) {
     i <= maxObject;
     i++
   ) {
-
     const offset =
       offsets[i] || 0;
 
@@ -553,7 +585,8 @@ function buildPdf(lines) {
 
   pdf +=
     "trailer\n" +
-    `<< /Size ${maxObject + 1} /Root 1 0 R >>\n` +
+    `<< /Size ${maxObject + 1} ` +
+    "/Root 1 0 R >>\n" +
     "startxref\n" +
     xrefOffset +
     "\n%%EOF";
