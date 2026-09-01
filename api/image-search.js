@@ -1,13 +1,4 @@
 export default async function handler(req, res) {
-
-  if (req.method === "OPTIONS") {
-    res.setHeader("Access-Control-Allow-Origin", "*");
-    res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-
-    return res.status(200).end();
-  }
-
   if (req.method !== "POST") {
     return res.status(405).json({
       error: "Method not allowed"
@@ -15,109 +6,121 @@ export default async function handler(req, res) {
   }
 
   try {
+    const { query } = req.body || {};
 
-    const body =
-      typeof req.body === "string"
-        ? JSON.parse(req.body)
-        : (req.body || {});
-
-    const query =
-      typeof body.query === "string"
-        ? body.query.trim()
-        : "";
-
-    if (!query) {
+    if (!query || !query.trim()) {
       return res.status(400).json({
-        error: "Please enter an image search."
+        error: "Image search query is required."
       });
     }
 
-    const url =
+    const searchUrl =
       "https://commons.wikimedia.org/w/api.php" +
       "?action=query" +
       "&generator=search" +
-      "&gsrsearch=" +
-      encodeURIComponent(query) +
       "&gsrnamespace=6" +
-      "&gsrlimit=12" +
+      "&gsrsearch=" +
+      encodeURIComponent(query.trim()) +
+      "&gsrlimit=30" +
       "&prop=imageinfo" +
-      "&iiprop=url|extmetadata" +
-      "&iiurlwidth=700" +
-      "&format=json" +
-      "&origin=*";
+      "&iiprop=url|mime|size|extmetadata" +
+      "&iiurlwidth=900" +
+      "&format=json";
 
-    const response =
-      await fetch(url);
+    const response = await fetch(searchUrl);
 
     if (!response.ok) {
-      throw new Error(
-        "Image search service unavailable."
-      );
+      throw new Error("Image search service failed.");
     }
 
-    const data =
-      await response.json();
+    const data = await response.json();
 
-    const pages =
-      data?.query?.pages || {};
+    const pages = data?.query?.pages || {};
 
-    const results =
-      Object.values(pages).map(page => {
+    const results = Object.values(pages)
+      .map((page) => {
+        const info = page?.imageinfo?.[0];
 
-        const meta =
-          page.imageinfo?.[0] || {};
+        if (!info) return null;
+
+        const mime =
+          String(info.mime || "").toLowerCase();
+
+        // Only real image files
+        const allowed = [
+          "image/jpeg",
+          "image/jpg",
+          "image/png",
+          "image/webp",
+          "image/gif"
+        ];
+
+        if (!allowed.includes(mime)) {
+          return null;
+        }
 
         const metadata =
-          meta.extmetadata || {};
+          info.extmetadata || {};
+
+        const clean = (value) =>
+          String(value || "")
+            .replace(/<[^>]*>/g, "")
+            .replace(/&nbsp;/gi, " ")
+            .trim();
 
         return {
-          title:
-            page.title
-              ?.replace(/^File:/, "") ||
-            "Image",
-
           image:
-            meta.thumburl ||
-            meta.url ||
-            "",
+            info.thumburl || info.url,
 
           original:
-            meta.url ||
-            "",
+            info.url,
 
-          description:
-            metadata.ImageDescription?.value ||
-            "",
-
-          author:
-            metadata.Artist?.value ||
-            "Unknown",
+          title:
+            clean(metadata.ObjectName?.value) ||
+            page.title?.replace(/^File:/, "") ||
+            "Image",
 
           license:
-            metadata.LicenseShortName?.value ||
-            "See source",
+            clean(
+              metadata.LicenseShortName?.value
+            ) || "See source",
+
+          author:
+            clean(metadata.Artist?.value),
 
           source:
             "https://commons.wikimedia.org/wiki/" +
-            encodeURIComponent(page.title || "")
+            encodeURIComponent(page.title)
         };
+      })
+      .filter(Boolean);
 
-      }).filter(item => item.image);
+    // Remove duplicate images
+    const unique = [];
+    const seen = new Set();
+
+    for (const item of results) {
+      if (seen.has(item.image)) continue;
+
+      seen.add(item.image);
+      unique.push(item);
+    }
 
     return res.status(200).json({
-      results
+      success: true,
+      results: unique.slice(0, 20)
     });
 
   } catch (error) {
-
     console.error(
       "Image search error:",
-      error?.message || error
+      error
     );
 
     return res.status(500).json({
+      success: false,
       error:
-        "Image search could not be completed."
+        "Unable to search images right now."
     });
   }
 }
