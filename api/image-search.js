@@ -14,48 +14,59 @@ export default async function handler(req, res) {
       });
     }
 
+    const params = new URLSearchParams({
+      action: "query",
+      generator: "search",
+      gsrnamespace: "6",
+      gsrsearch: query.trim(),
+      gsrlimit: "30",
+      prop: "imageinfo",
+      iiprop: "url|mime|size|extmetadata",
+      iiurlwidth: "900",
+      format: "json",
+      origin: "*"
+    });
+
     const searchUrl =
-      "https://commons.wikimedia.org/w/api.php" +
-      "?action=query" +
-      "&generator=search" +
-      "&gsrnamespace=6" +
-      "&gsrsearch=" +
-      encodeURIComponent(query.trim()) +
-      "&gsrlimit=30" +
-      "&prop=imageinfo" +
-      "&iiprop=url|mime|size|extmetadata" +
-      "&iiurlwidth=900" +
-      "&format=json";
+      "https://commons.wikimedia.org/w/api.php?" +
+      params.toString();
 
     const response = await fetch(searchUrl);
 
     if (!response.ok) {
-      throw new Error("Image search service failed.");
+      console.error(
+        "Wikimedia status:",
+        response.status
+      );
+
+      return res.status(502).json({
+        error: "Image search service failed."
+      });
     }
 
     const data = await response.json();
 
-    const pages = data?.query?.pages || {};
+    const pages =
+      data?.query?.pages || {};
+
+    const allowedTypes = new Set([
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+      "image/gif"
+    ]);
 
     const results = Object.values(pages)
       .map((page) => {
-        const info = page?.imageinfo?.[0];
+        const info =
+          page?.imageinfo?.[0];
 
         if (!info) return null;
 
         const mime =
           String(info.mime || "").toLowerCase();
 
-        // Only real image files
-        const allowed = [
-          "image/jpeg",
-          "image/jpg",
-          "image/png",
-          "image/webp",
-          "image/gif"
-        ];
-
-        if (!allowed.includes(mime)) {
+        if (!allowedTypes.has(mime)) {
           return null;
         }
 
@@ -76,17 +87,23 @@ export default async function handler(req, res) {
             info.url,
 
           title:
-            clean(metadata.ObjectName?.value) ||
-            page.title?.replace(/^File:/, "") ||
+            clean(
+              metadata.ObjectName?.value
+            ) ||
+            page.title
+              ?.replace(/^File:/, "") ||
             "Image",
 
           license:
             clean(
               metadata.LicenseShortName?.value
-            ) || "See source",
+            ) ||
+            "See source",
 
           author:
-            clean(metadata.Artist?.value),
+            clean(
+              metadata.Artist?.value
+            ),
 
           source:
             "https://commons.wikimedia.org/wiki/" +
@@ -95,7 +112,6 @@ export default async function handler(req, res) {
       })
       .filter(Boolean);
 
-    // Remove duplicate images
     const unique = [];
     const seen = new Set();
 
@@ -108,6 +124,7 @@ export default async function handler(req, res) {
 
     return res.status(200).json({
       success: true,
+      query: query.trim(),
       results: unique.slice(0, 20)
     });
 
@@ -118,7 +135,6 @@ export default async function handler(req, res) {
     );
 
     return res.status(500).json({
-      success: false,
       error:
         "Unable to search images right now."
     });
