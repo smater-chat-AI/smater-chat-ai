@@ -1,0 +1,10 @@
+{
+  "name": "smater-chat-ai",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "pdfkit": "^0.17.2",
+    "@fontsource/noto-sans-devanagari": "^5.2.7"
+  }
+}
