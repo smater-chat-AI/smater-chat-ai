@@ -661,13 +661,13 @@ function buildPdf(text, colourful) {
         "ET\n";
     }
 
-    stream +=
-      "0.45 0.45 0.45 rg\n" +
-      "BT\n" +
-      "/F5 9 Tf\n" +
-      `${left} 30 Td\n` +
-      "(Prepared by: SMATER CHAT AI) Tj\n` +
-      "ET\n";
+   stream +=
+  "0.45 0.45 0.45 rg\n" +
+  "BT\n" +
+  "/F5 9 Tf\n" +
+  `${left} 30 Td\n` +
+  "(Prepared by: SMATER CHAT AI) Tj\n" +
+  "ET\n";
 
     stream +=
       "BT\n" +
