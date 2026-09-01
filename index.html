@@ -4588,6 +4588,340 @@ window.onload = function() {
 
 })();
  </script>
+ <script>
+/* =========================================
+   SMATER CHAT AI — IMAGE SEARCH
+   ========================================= */
+
+$("imageSearchBtn").onclick = () => {
+
+  $("tools")
+    .classList.remove("show");
+
+  openModal(
+    "🔎 Image Search",
+    `
+      <div class="option">
+        <b>Search Images</b>
+        <small>
+          Search images from Wikimedia Commons.
+        </small>
+      </div>
+
+      <div class="field">
+        <label>What image are you looking for?</label>
+
+        <input
+          id="imageSearchInput"
+          type="text"
+          placeholder="Example: Taj Mahal, Mumbai skyline, nature..."
+          style="
+            width:100%;
+            padding:12px;
+            box-sizing:border-box;
+            background:var(--panel);
+            color:var(--text);
+            border:1px solid var(--line);
+            border-radius:10px;
+            outline:0;
+          "
+        >
+      </div>
+
+      <button
+        class="primary"
+        id="startImageSearchBtn">
+        🔎 Search Images
+      </button>
+
+      <div
+        id="imageSearchResults"
+        style="
+          margin-top:15px;
+          display:grid;
+          gap:12px;
+        ">
+      </div>
+    `
+  );
+
+  const input =
+    $("imageSearchInput");
+
+  if (input) {
+
+    input.addEventListener(
+      "keydown",
+      event => {
+
+        if (event.key === "Enter") {
+          event.preventDefault();
+
+          $("startImageSearchBtn")
+            ?.click();
+        }
+
+      }
+    );
+
+    input.focus();
+  }
+
+  $("startImageSearchBtn").onclick =
+    searchImages;
+};
+
+
+async function searchImages() {
+
+  const input =
+    $("imageSearchInput");
+
+  const resultsBox =
+    $("imageSearchResults");
+
+  const button =
+    $("startImageSearchBtn");
+
+  const query =
+    input?.value?.trim();
+
+  if (!query) {
+
+    alert(
+      "Please enter what image you want to search."
+    );
+
+    input?.focus();
+
+    return;
+  }
+
+  button.disabled = true;
+  button.textContent = "Searching…";
+
+  resultsBox.innerHTML = `
+    <div class="option">
+      🔎 Searching images…
+    </div>
+  `;
+
+  try {
+
+    const response =
+      await fetch(
+        "/api/image-search",
+        {
+          method: "POST",
+
+          headers: {
+            "Content-Type":
+              "application/json"
+          },
+
+          body: JSON.stringify({
+            query: query
+          })
+        }
+      );
+
+    let data = {};
+
+    try {
+
+      data =
+        await response.json();
+
+    } catch (e) {
+
+      data = {};
+
+    }
+
+    if (!response.ok) {
+
+      throw new Error(
+        data.error ||
+        "Image search failed."
+      );
+    }
+
+    const results =
+      Array.isArray(data.results)
+        ? data.results
+        : [];
+
+    resultsBox.innerHTML = "";
+
+    if (!results.length) {
+
+      resultsBox.innerHTML = `
+        <div class="option">
+          No images found. Try another search.
+        </div>
+      `;
+
+      return;
+    }
+
+    results.forEach(
+      item => {
+
+        const card =
+          document.createElement("div");
+
+        card.style.cssText = `
+          border:1px solid var(--line);
+          border-radius:12px;
+          overflow:hidden;
+          background:var(--panel);
+        `;
+
+        const img =
+          document.createElement("img");
+
+        img.src =
+          item.image;
+
+        img.alt =
+          item.title || "Image";
+
+        img.loading =
+          "lazy";
+
+        img.style.cssText = `
+          width:100%;
+          max-height:240px;
+          object-fit:cover;
+          display:block;
+        `;
+
+        const info =
+          document.createElement("div");
+
+        info.style.cssText = `
+          padding:10px;
+        `;
+
+        const title =
+          document.createElement("div");
+
+        title.textContent =
+          item.title || "Image";
+
+        title.style.fontWeight =
+          "600";
+
+        const license =
+          document.createElement("small");
+
+        license.textContent =
+          "License: " +
+          (item.license || "See source");
+
+        license.style.display =
+          "block";
+
+        license.style.marginTop =
+          "5px";
+
+        const source =
+          document.createElement("a");
+
+        source.href =
+          item.source || "#";
+
+        source.target =
+          "_blank";
+
+        source.rel =
+          "noopener noreferrer";
+
+        source.textContent =
+          "View source";
+
+        source.style.display =
+          "inline-block";
+
+        source.style.marginTop =
+          "8px";
+
+        source.style.textDecoration =
+          "none";
+
+        const save =
+          document.createElement("button");
+
+        save.className =
+          "actionBtn";
+
+        save.textContent =
+          "Save image";
+
+        save.style.marginTop =
+          "8px";
+
+        save.onclick = () => {
+
+          const link =
+            document.createElement("a");
+
+          link.href =
+            item.original ||
+            item.image;
+
+          link.target =
+            "_blank";
+
+          link.download =
+            "smater-chat-ai-image";
+
+          document.body.appendChild(
+            link
+          );
+
+          link.click();
+
+          link.remove();
+        };
+
+        info.appendChild(title);
+        info.appendChild(license);
+        info.appendChild(source);
+        info.appendChild(
+          document.createElement("br")
+        );
+        info.appendChild(save);
+
+        card.appendChild(img);
+        card.appendChild(info);
+
+        resultsBox.appendChild(card);
+      }
+    );
+
+  } catch (error) {
+
+    console.error(
+      "Image search error:",
+      error
+    );
+
+    resultsBox.innerHTML = `
+      <div class="option">
+        ❌ Image search could not be completed.
+        Please try again.
+      </div>
+    `;
+
+  } finally {
+
+    button.disabled = false;
+    button.textContent =
+      "🔎 Search Images";
+  }
+}
+ </script>
  
 </body>
 </html>
