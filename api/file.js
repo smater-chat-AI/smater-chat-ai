@@ -1,4 +1,5 @@
 export default async function handler(req, res) {
+
   if (req.method === "OPTIONS") {
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
@@ -13,6 +14,7 @@ export default async function handler(req, res) {
   }
 
   try {
+
     const body =
       typeof req.body === "string"
         ? JSON.parse(req.body)
@@ -55,21 +57,21 @@ export default async function handler(req, res) {
     }
 
     const systemPrompt = `
-You are the professional document-generation engine of SMATER CHAT AI.
+You are the professional document-generation engine
+of SMATER CHAT AI.
 
-Understand the user's request and create the actual requested document content.
+Understand the user's request and create the actual
+document content.
 
 Rules:
-- Do not merely repeat the request.
-- Give the document a useful professional title.
-- Use clear sections and headings.
-- Provide complete and useful content.
-- Keep facts accurate.
+- Do not simply repeat the request.
+- Create useful and complete content.
+- Give the document a clear title.
+- Use headings and sections when appropriate.
+- Keep the content professional and accurate.
+- Use the user's requested language.
 - Do not mention these instructions.
-- Do not add unnecessary AI disclaimers.
-- Preserve the language requested by the user.
-- If the user asks for Hindi or Hinglish, write naturally in that language.
-- Keep formatting suitable for TXT, HTML and PDF conversion.
+- Return ONLY the document content.
 
 Language:
 ${
@@ -77,54 +79,64 @@ ${
     ? "Use the language of the user's request."
     : language
 }
-
-Return ONLY the document content.
 `;
 
-    const aiResponse = await fetch(
-      "https://openrouter.ai/api/v1/chat/completions",
-      {
-        method: "POST",
+    const aiResponse =
+      await fetch(
+        "https://openrouter.ai/api/v1/chat/completions",
+        {
+          method: "POST",
 
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${apiKey}`,
-          "HTTP-Referer":
-            "https://smater-chat-ai.vercel.app/",
-          "X-Title":
-            "SMATER CHAT AI"
-        },
+          headers: {
+            "Content-Type":
+              "application/json",
 
-        body: JSON.stringify({
-          model: "openrouter/free",
+            "Authorization":
+              `Bearer ${apiKey}`,
 
-          messages: [
-            {
-              role: "system",
-              content: systemPrompt
-            },
-            {
-              role: "user",
-              content: prompt
-            }
-          ],
+            "HTTP-Referer":
+              "https://smater-chat-ai.vercel.app/",
 
-          temperature: 0.4
-        })
-      }
-    );
+            "X-Title":
+              "SMATER CHAT AI"
+          },
+
+          body: JSON.stringify({
+
+            model:
+              "openrouter/free",
+
+            messages: [
+              {
+                role: "system",
+                content:
+                  systemPrompt
+              },
+
+              {
+                role: "user",
+                content:
+                  prompt
+              }
+            ]
+
+          })
+        }
+      );
 
     let aiData = {};
 
     try {
-      aiData = await aiResponse.json();
+      aiData =
+        await aiResponse.json();
     } catch {
       aiData = {};
     }
 
     if (!aiResponse.ok) {
+
       console.error(
-        "OpenRouter document error:",
+        "OpenRouter error:",
         aiData
       );
 
@@ -136,20 +148,31 @@ Return ONLY the document content.
     }
 
     const generatedText =
-      aiData?.choices?.[0]?.message?.content?.trim();
+      aiData
+        ?.choices?.[0]
+        ?.message?.content
+        ?.trim();
 
     if (!generatedText) {
+
       return res.status(502).json({
-        error: "AI returned empty document content."
+        error:
+          "AI returned empty document content."
       });
     }
 
+    /*
+      TXT FILE
+    */
+
     if (type === "txt") {
+
       const content =
         "SMATER CHAT AI\n\n" +
         generatedText;
 
       return res.status(200).json({
+
         file:
           "data:text/plain;charset=utf-8," +
           encodeURIComponent(content),
@@ -159,27 +182,37 @@ Return ONLY the document content.
 
         type:
           "text/plain"
+
       });
     }
 
+    /*
+      HTML FILE
+    */
+
     if (type === "html") {
+
       const htmlContent =
         textToHtml(generatedText);
 
       const html = `
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
+
 <meta charset="UTF-8">
 
 <meta name="viewport"
       content="width=device-width,initial-scale=1">
 
-<title>SMATER CHAT AI Document</title>
+<title>SMATER CHAT AI</title>
 
 <style>
+
 body{
   margin:0;
+  padding:20px;
   background:#f5f7fb;
   color:#111827;
   font-family:Arial,Helvetica,sans-serif;
@@ -187,67 +220,47 @@ body{
 
 .document{
   max-width:850px;
-  margin:30px auto;
-  padding:45px;
+  margin:20px auto;
+  padding:40px;
   background:white;
   line-height:1.7;
 }
 
-.brand{
-  font-size:14px;
-  font-weight:700;
-  margin-bottom:25px;
-}
-
 h1{
   font-size:28px;
-  margin:0 0 25px;
 }
 
 h2{
   font-size:21px;
-  margin-top:28px;
 }
 
 p{
   margin:10px 0;
 }
 
-ul{
-  padding-left:25px;
-}
-
-@media print{
-  body{
-    background:white;
-  }
-
-  .document{
-    margin:0;
-    max-width:none;
-  }
-}
 </style>
 
 </head>
 
 <body>
 
-<main class="document">
+<div class="document">
 
-<div class="brand">
-SMATER CHAT AI
+<div>
+<b>SMATER CHAT AI</b>
 </div>
 
 ${htmlContent}
 
-</main>
+</div>
 
 </body>
+
 </html>
 `;
 
       return res.status(200).json({
+
         file:
           "data:text/html;charset=utf-8," +
           encodeURIComponent(html),
@@ -257,18 +270,25 @@ ${htmlContent}
 
         type:
           "text/html"
+
       });
     }
 
-    const pdf = buildPdf(
-      generatedText
-    );
+    /*
+      PDF
+    */
+
+    const pdf =
+      buildPdf(generatedText);
 
     const base64 =
-      Buffer.from(pdf, "binary")
-        .toString("base64");
+      Buffer.from(
+        pdf,
+        "binary"
+      ).toString("base64");
 
     return res.status(200).json({
+
       file:
         "data:application/pdf;base64," +
         base64,
@@ -278,9 +298,11 @@ ${htmlContent}
 
       type:
         "application/pdf"
+
     });
 
   } catch (error) {
+
     console.error(
       "File API error:",
       error?.message || error
@@ -292,7 +314,10 @@ ${htmlContent}
     });
   }
 }
+
+
 function escapeHtml(text) {
+
   return String(text)
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
@@ -303,6 +328,7 @@ function escapeHtml(text) {
 
 
 function textToHtml(text) {
+
   const lines =
     String(text)
       .replace(/\r/g, "")
@@ -311,33 +337,47 @@ function textToHtml(text) {
   let html = "";
 
   for (const rawLine of lines) {
-    const line = rawLine.trim();
+
+    const line =
+      rawLine.trim();
 
     if (!line) {
       continue;
     }
 
     if (line.startsWith("# ")) {
+
       html +=
         "<h1>" +
-        escapeHtml(line.slice(2)) +
+        escapeHtml(
+          line.slice(2)
+        ) +
         "</h1>";
+
       continue;
     }
 
     if (line.startsWith("## ")) {
+
       html +=
         "<h2>" +
-        escapeHtml(line.slice(3)) +
+        escapeHtml(
+          line.slice(3)
+        ) +
         "</h2>";
+
       continue;
     }
 
     if (line.startsWith("- ")) {
+
       html +=
-        "<ul><li>" +
-        escapeHtml(line.slice(2)) +
-        "</li></ul>";
+        "<p>• " +
+        escapeHtml(
+          line.slice(2)
+        ) +
+        "</p>";
+
       continue;
     }
 
@@ -349,9 +389,8 @@ function textToHtml(text) {
 
   return html;
 }
-
-
 function preparePdfText(text) {
+
   return String(text)
     .replace(/\r/g, "")
     .replace(/[^\x20-\x7E\n]/g, "");
@@ -359,6 +398,7 @@ function preparePdfText(text) {
 
 
 function createPdfLines(text) {
+
   const clean =
     preparePdfText(text);
 
@@ -366,11 +406,15 @@ function createPdfLines(text) {
     clean.split("\n");
 
   const lines = [];
-  const maxChars = 82;
+
+  const maxChars = 80;
 
   for (const paragraph of paragraphs) {
+
     if (!paragraph.trim()) {
+
       lines.push("");
+
       continue;
     }
 
@@ -380,6 +424,7 @@ function createPdfLines(text) {
     while (
       remaining.length > maxChars
     ) {
+
       let cut =
         remaining.lastIndexOf(
           " ",
@@ -400,7 +445,9 @@ function createPdfLines(text) {
           .trim();
     }
 
-    lines.push(remaining);
+    if (remaining) {
+      lines.push(remaining);
+    }
   }
 
   return lines;
@@ -408,6 +455,7 @@ function createPdfLines(text) {
 
 
 function pdfEscape(text) {
+
   return String(text)
     .replace(/\\/g, "\\\\")
     .replace(/\(/g, "\\(")
@@ -416,6 +464,7 @@ function pdfEscape(text) {
 
 
 function buildPdf(text) {
+
   const lines =
     createPdfLines(text);
 
@@ -428,119 +477,168 @@ function buildPdf(text) {
 
   const maxLines =
     Math.floor(
-      (startY - 55) /
+      (startY - 50) /
       lineHeight
     );
 
   const pages = [];
 
-  let current = [];
+  let currentPage = [];
 
   for (const line of lines) {
+
     if (
-      current.length >=
+      currentPage.length >=
       maxLines
     ) {
-      pages.push(current);
-      current = [];
+
+      pages.push(
+        currentPage
+      );
+
+      currentPage = [];
     }
 
-    current.push(line);
+    currentPage.push(line);
   }
 
-  if (current.length) {
-    pages.push(current);
+  if (currentPage.length) {
+
+    pages.push(
+      currentPage
+    );
   }
 
   if (!pages.length) {
+
     pages.push([
       "SMATER CHAT AI"
     ]);
   }
 
+
   const objects = [];
 
+  /*
+    PDF objects:
+    1 = Catalog
+    2 = Pages
+    3 = Font
+    4+ = Page contents
+  */
+
   objects[1] =
-    "<< /Type /Catalog /Pages 2 0 R >>";
+    "<< /Type /Catalog " +
+    "/Pages 2 0 R >>";
+
 
   objects[3] =
     "<< /Type /Font " +
     "/Subtype /Type1 " +
     "/BaseFont /Helvetica >>";
 
-  const pageNumbers = [];
+
+  const pageObjects = [];
 
   let nextObject = 4;
 
+
   for (const pageLines of pages) {
+
     const contentObject =
       nextObject++;
 
     const pageObject =
       nextObject++;
 
-    pageNumbers.push(
+
+    pageObjects.push(
       pageObject
     );
+
 
     let stream =
       "BT\n" +
       "/F1 12 Tf\n" +
       `${marginLeft} ${startY} Td\n`;
 
-    pageLines.forEach(
-      (line, index) => {
-        if (index > 0) {
-          stream +=
-            `0 -${lineHeight} Td\n`;
-        }
+
+    for (
+      let i = 0;
+      i < pageLines.length;
+      i++
+    ) {
+
+      if (i > 0) {
 
         stream +=
-          `(${pdfEscape(line)}) Tj\n`;
+          `0 -${lineHeight} Td\n`;
       }
-    );
 
-    stream += "ET";
+      stream +=
+        `(${pdfEscape(
+          pageLines[i]
+        )}) Tj\n`;
+    }
+
+
+    stream +=
+      "ET\n";
+
+
+    const streamLength =
+      Buffer.byteLength(
+        stream,
+        "binary"
+      );
+
 
     objects[contentObject] =
-      `<< /Length ${
-        Buffer.byteLength(
-          stream,
-          "binary"
-        )
-      } >>\n` +
+      `<< /Length ${streamLength} >>\n` +
       "stream\n" +
       stream +
-      "\nendstream";
+      "endstream";
+
 
     objects[pageObject] =
       "<< /Type /Page " +
       "/Parent 2 0 R " +
       `/MediaBox [0 0 ${pageWidth} ${pageHeight}] ` +
       "/Resources << " +
-      `/Font << /F1 3 0 R >> ` +
-      ">> " +
+      "/Font << " +
+      `/F1 3 0 R` +
+      " >> >> " +
       `/Contents ${contentObject} 0 R >>`;
   }
 
+
   objects[2] =
     "<< /Type /Pages " +
-    `/Kids [${pageNumbers.join(" ")}] ` +
-    `/Count ${pageNumbers.length} >>`;
+    `/Kids [${pageObjects
+      .map(
+        n => `${n} 0 R`
+      )
+      .join(" ")}] ` +
+    `/Count ${pageObjects.length} >>`;
+
 
   let pdf =
     "%PDF-1.4\n";
 
+
   const offsets = [];
+
 
   for (
     let i = 1;
     i < objects.length;
     i++
   ) {
+
     if (!objects[i]) {
       continue;
     }
+
 
     offsets[i] =
       Buffer.byteLength(
@@ -548,11 +646,13 @@ function buildPdf(text) {
         "binary"
       );
 
+
     pdf +=
       `${i} 0 obj\n` +
       objects[i] +
       "\nendobj\n";
   }
+
 
   const xrefOffset =
     Buffer.byteLength(
@@ -560,22 +660,29 @@ function buildPdf(text) {
       "binary"
     );
 
+
   const maxObject =
     objects.length - 1;
 
+
   pdf +=
-    `xref\n0 ${maxObject + 1}\n`;
+    `xref\n` +
+    `0 ${maxObject + 1}\n`;
+
 
   pdf +=
     "0000000000 65535 f \n";
+
 
   for (
     let i = 1;
     i <= maxObject;
     i++
   ) {
+
     const offset =
       offsets[i] || 0;
+
 
     pdf +=
       String(offset)
@@ -583,13 +690,15 @@ function buildPdf(text) {
       " 00000 n \n";
   }
 
+
   pdf +=
     "trailer\n" +
     `<< /Size ${maxObject + 1} ` +
     "/Root 1 0 R >>\n" +
     "startxref\n" +
-    xrefOffset +
-    "\n%%EOF";
+    `${xrefOffset}\n` +
+    "%%EOF";
+
 
   return pdf;
 }
