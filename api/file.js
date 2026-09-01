@@ -1,14 +1,26 @@
+// ============================================================
 // SMATER CHAT AI
-// File & PDF Generator API
-// Part 1 of 3
+// Professional File & PDF Generator
+// api/file.js — PART 1/3
+// ============================================================
+
+import PDFDocument from "pdfkit";
+import fs from "fs";
+import path from "path";
 
 export default async function handler(req, res) {
-  // Allow browser preflight requests
+  // ----------------------------------------------------------
+  // CORS / OPTIONS
+  // ----------------------------------------------------------
+
   if (req.method === "OPTIONS") {
     return res.status(200).json({ ok: true });
   }
 
-  // Only POST is allowed
+  // ----------------------------------------------------------
+  // METHOD CHECK
+  // ----------------------------------------------------------
+
   if (req.method !== "POST") {
     return res.status(405).json({
       success: false,
@@ -17,6 +29,10 @@ export default async function handler(req, res) {
   }
 
   try {
+    // --------------------------------------------------------
+    // REQUEST DATA
+    // --------------------------------------------------------
+
     const body = req.body || {};
 
     const prompt =
@@ -41,7 +57,15 @@ export default async function handler(req, res) {
       });
     }
 
-    const allowedTypes = ["pdf", "txt", "html"];
+    // --------------------------------------------------------
+    // ALLOWED FILE TYPES
+    // --------------------------------------------------------
+
+    const allowedTypes = [
+      "pdf",
+      "txt",
+      "html"
+    ];
 
     if (!allowedTypes.includes(type)) {
       return res.status(400).json({
@@ -50,7 +74,12 @@ export default async function handler(req, res) {
       });
     }
 
-    const apiKey = process.env.OPENROUTER_API_KEY;
+    // --------------------------------------------------------
+    // OPENROUTER KEY
+    // --------------------------------------------------------
+
+    const apiKey =
+      process.env.OPENROUTER_API_KEY;
 
     if (!apiKey) {
       return res.status(500).json({
@@ -59,57 +88,102 @@ export default async function handler(req, res) {
       });
     }
 
-    // Colour is OFF by default.
-    // It turns ON only when the user specifically asks for
-    // colourful / colorful / colour full formatting.
+    // --------------------------------------------------------
+    // COLOUR MODE
+    // --------------------------------------------------------
+    // Normal PDF = clean black/white.
+    // Colour is enabled ONLY when explicitly requested.
+
     const colourful =
       /\b(colou?rful|colou?r\s*full)\b/i.test(prompt);
 
+    // --------------------------------------------------------
+    // UNICODE FONT
+    // --------------------------------------------------------
+    // Supports Hindi/Devanagari and other Unicode text.
+    //
+    // The exact package path is resolved dynamically so that
+    // the project can use the installed Unicode font package.
+
+    let unicodeFont = null;
+
+    const possibleFonts = [
+      "node_modules/@fontsource/noto-sans-devanagari/files/noto-sans-devanagari-devanagari-400-normal.woff",
+      "node_modules/@fontsource/noto-sans-devanagari/files/noto-sans-devanagari-devanagari-700-normal.woff"
+    ];
+
+    for (const fontPath of possibleFonts) {
+      const absolutePath =
+        path.join(process.cwd(), fontPath);
+
+      if (fs.existsSync(absolutePath)) {
+        unicodeFont = absolutePath;
+        break;
+      }
+    }
+
+    // --------------------------------------------------------
+    // DOCUMENT GENERATION PROMPT
+    // --------------------------------------------------------
+
     const systemPrompt = `
-You are the professional document-generation engine of SMATER CHAT AI.
+You are the professional document-generation engine
+inside SMATER CHAT AI.
 
-Create a clean, useful, well-structured document from the user's request.
+Create a polished, accurate and well-structured document
+from the user's request.
 
-Important rules:
+GENERAL RULES:
 
-1. Follow the user's requested language.
-2. Hindi, English and Hinglish requests are allowed.
-3. Do not invent unnecessary information.
-4. Use clear titles and logical sections.
-5. Use proper Markdown formatting.
-6. Use headings with #, ## and ### where appropriate.
-7. Use bullets with "-".
-8. Use numbered lists with "1.", "2.", etc.
-9. When a table is useful, ALWAYS use proper Markdown table syntax.
+1. Understand Hindi, English and Hinglish.
+2. Follow the language requested by the user.
+3. Do not invent unnecessary facts.
+4. Keep information organized and readable.
+5. Use proper headings.
+6. Use bullets where useful.
+7. Use numbered lists where useful.
+8. Use tables when the information benefits from a table.
+9. Tables MUST use proper Markdown table syntax.
 
-Example table format:
+Example:
 
-| Column 1 | Column 2 | Column 3 |
-|---|---|---|
-| Value | Value | Value |
+| Name | Amount | Status |
+|---|---:|---|
+| Example | ₹1000 | Complete |
 
-10. Never create decorative separator lines such as:
+10. NEVER create decorative separators such as:
+
 ---
 ***
-* * * * *
 ___
+* * * * *
 
-11. Never add repeated footers.
-12. Never add "Prepared by: SMATER CHAT AI" yourself.
-   The application will add the official footer automatically.
-13. Do not put the document inside a code block.
-14. Do not add explanations outside the requested document.
-15. Do not add unnecessary emojis unless the user asks for them.
-16. Keep paragraphs readable and properly spaced.
-17. If the request is a report/project, use a professional report structure.
-18. If the request is a chat/conversation document, clearly distinguish User and SMATER CHAT AI.
-19. Avoid strange control characters or corrupted symbols.
-20. Do not use decorative Markdown that could create unwanted characters in a PDF.
+11. NEVER add:
+Prepared by: SMATER CHAT AI
 
-The founder of SMATER CHAT AI is Damini Singh Bhadauria.
-Only mention this when relevant to the user's request.
+The application will add that automatically.
 
-The document will be rendered by SMATER CHAT AI's own file engine.
+12. Do not put the document inside a code block.
+13. Do not add unnecessary explanations before or after
+the document.
+14. Do not add unnecessary emojis.
+15. Avoid corrupted or strange control characters.
+16. Use normal punctuation.
+17. Keep paragraphs reasonably short.
+18. If the user requests a report/project, make it professional.
+19. If the user requests notes, make them structured and easy
+to read.
+20. If the user requests a chat/conversation document, clearly
+separate User and SMATER CHAT AI.
+21. Preserve important details from the user's request.
+22. Do not repeat the title unnecessarily.
+23. Do not repeat sections.
+24. Do not add fake references or sources.
+25. Do not include Markdown code fences.
+
+SMATER CHAT AI was founded/built by Damini Singh Bhadauria.
+Mention this ONLY if it is relevant to the user's request.
+
 Return ONLY the document content.
 
 Requested language:
@@ -119,18 +193,27 @@ Colourful formatting requested:
 ${colourful ? "YES" : "NO"}
 `;
 
+    // --------------------------------------------------------
+    // OPENROUTER REQUEST
+    // --------------------------------------------------------
+
     const response = await fetch(
       "https://openrouter.ai/api/v1/chat/completions",
       {
         method: "POST",
+
         headers: {
           "Authorization": `Bearer ${apiKey}`,
           "Content-Type": "application/json",
-          "HTTP-Referer": "https://smater-chat-ai.vercel.app/",
-          "X-Title": "SMATER CHAT AI"
+          "HTTP-Referer":
+            "https://smater-chat-ai.vercel.app/",
+          "X-Title":
+            "SMATER CHAT AI"
         },
+
         body: JSON.stringify({
           model: "openrouter/free",
+
           messages: [
             {
               role: "system",
@@ -141,13 +224,19 @@ ${colourful ? "YES" : "NO"}
               content: prompt
             }
           ],
-          temperature: 0.35
+
+          temperature: 0.3
         })
       }
     );
 
+    // --------------------------------------------------------
+    // OPENROUTER ERROR
+    // --------------------------------------------------------
+
     if (!response.ok) {
-      const errorText = await response.text();
+      const errorText =
+        await response.text();
 
       console.error(
         "OpenRouter file generation error:",
@@ -157,11 +246,17 @@ ${colourful ? "YES" : "NO"}
 
       return res.status(502).json({
         success: false,
-        error: "The AI could not generate the document."
+        error:
+          "The AI could not generate the document."
       });
     }
 
-    const data = await response.json();
+    // --------------------------------------------------------
+    // READ AI RESPONSE
+    // --------------------------------------------------------
+
+    const data =
+      await response.json();
 
     const generatedText =
       data?.choices?.[0]?.message?.content;
@@ -172,40 +267,44 @@ ${colourful ? "YES" : "NO"}
     ) {
       return res.status(502).json({
         success: false,
-        error: "The AI returned an empty document."
+        error:
+          "The AI returned an empty document."
       });
     }
 
-    // Continue in Part 2...
-      // Clean AI output before sending it to the file builders.
-    // This removes repeated footers, decorative separators,
-    // code fences and other unwanted Markdown noise.
+    // --------------------------------------------------------
+    // CLEAN DOCUMENT
+    // --------------------------------------------------------
 
     function cleanDocumentText(text) {
       let value = String(text || "")
         .replace(/\r\n/g, "\n")
         .replace(/\r/g, "\n");
 
-      // Remove code fences
+      // Remove Markdown code fences
       value = value
         .replace(/^```(?:markdown|md|text|html)?\s*/i, "")
         .replace(/\s*```$/i, "");
 
-      const lines = value.split("\n");
+      const lines =
+        value.split("\n");
+
       const cleaned = [];
 
       for (let line of lines) {
-        const trimmed = line.trim();
+        const trimmed =
+          line.trim();
 
-        // Remove generated footer because the application
-        // adds the official footer itself.
+        // Remove duplicate application footer
         if (
-          /^prepared\s+by\s*:\s*smater\s+chat\s+ai\s*$/i.test(trimmed)
+          /^prepared\s+by\s*:\s*smater\s+chat\s+ai\s*$/i.test(
+            trimmed
+          )
         ) {
           continue;
         }
 
-        // Remove decorative separators.
+        // Remove decorative separator lines
         if (
           /^[-_*=\s]{3,}$/.test(trimmed) ||
           /^(\*\s*){3,}$/.test(trimmed)
@@ -213,37 +312,55 @@ ${colourful ? "YES" : "NO"}
           continue;
         }
 
-        // Remove accidental control characters,
-        // while keeping normal Unicode text.
+        // Remove invisible control characters,
+        // while preserving normal Unicode.
         line = line.replace(
           /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g,
           ""
         );
 
-        // Clean excessive Markdown emphasis markers.
-        line = line.replace(/\*\*(.*?)\*\*/g, "$1");
-        line = line.replace(/__(.*?)__/g, "$1");
+        // Clean bold/italic Markdown markers
+        line = line.replace(
+          /\*\*(.*?)\*\*/g,
+          "$1"
+        );
+
+        line = line.replace(
+          /__(.*?)__/g,
+          "$1"
+        );
 
         cleaned.push(line);
       }
 
-      // Reduce excessive blank lines.
       return cleaned
         .join("\n")
         .replace(/\n{3,}/g, "\n\n")
         .trim();
     }
 
-    const documentText = cleanDocumentText(generatedText);
+    const documentText =
+      cleanDocumentText(generatedText);
 
     if (!documentText) {
       return res.status(502).json({
         success: false,
-        error: "The generated document was empty after cleanup."
+        error:
+          "The generated document was empty after cleanup."
       });
     }
 
-    // TXT file
+    // --------------------------------------------------------
+    // PART 2 WILL CONTINUE HERE
+    // --------------------------------------------------------
+      // ============================================================
+    // PART 2/3 — FILE BUILDERS + PDF CONTENT PARSER
+    // ============================================================
+
+    // ------------------------------------------------------------
+    // TXT FILE
+    // ------------------------------------------------------------
+
     if (type === "txt") {
       const txtContent =
         documentText +
@@ -256,64 +373,101 @@ ${colourful ? "YES" : "NO"}
       return res.status(200).json({
         success: true,
         type: "txt",
-        filename: "smater-chat-ai-document.txt",
+        filename:
+          "smater-chat-ai-document.txt",
         url: txtUrl
       });
     }
 
-    // HTML file
+    // ------------------------------------------------------------
+    // HTML FILE
+    // ------------------------------------------------------------
+
     if (type === "html") {
-      const escaped = documentText
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;");
+      const escaped =
+        documentText
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;");
 
       const htmlContent = `
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<meta
+  name="viewport"
+  content="width=device-width, initial-scale=1.0"
+>
+
 <title>SMATER CHAT AI Document</title>
+
 <style>
+
   body {
-    font-family: Arial, sans-serif;
+    font-family:
+      Arial,
+      "Noto Sans",
+      sans-serif;
+
     line-height: 1.7;
+
     max-width: 900px;
+
     margin: 40px auto;
-    padding: 0 22px;
+
+    padding:
+      0 24px;
+
+    font-size: 16px;
+
+    color: #111;
   }
 
   h1 {
-    font-size: 30px;
-    margin-bottom: 20px;
+    font-size: 32px;
+    margin-bottom: 24px;
   }
 
   h2 {
-    font-size: 23px;
-    margin-top: 28px;
+    font-size: 24px;
+    margin-top: 30px;
   }
 
   h3 {
-    font-size: 19px;
-    margin-top: 22px;
+    font-size: 20px;
+    margin-top: 24px;
   }
 
   pre {
     white-space: pre-wrap;
-    font-family: Arial, sans-serif;
+    word-wrap: break-word;
+
+    font-family:
+      Arial,
+      "Noto Sans",
+      sans-serif;
+
+    font-size: 16px;
+    line-height: 1.7;
   }
 
   .footer {
-    margin-top: 45px;
+    margin-top: 50px;
     padding-top: 12px;
-    border-top: 1px solid #aaa;
+
+    border-top:
+      1px solid #999;
+
     font-size: 13px;
   }
+
 </style>
 </head>
 
 <body>
+
 <pre>${escaped}</pre>
 
 <div class="footer">
@@ -325,19 +479,343 @@ Prepared by: SMATER CHAT AI
 
       const htmlUrl =
         "data:text/html;charset=utf-8," +
-        encodeURIComponent(htmlContent);
+        encodeURIComponent(
+          htmlContent
+        );
 
       return res.status(200).json({
         success: true,
         type: "html",
-        filename: "smater-chat-ai-document.html",
+        filename:
+          "smater-chat-ai-document.html",
         url: htmlUrl
       });
     }
 
-    // PDF generation continues in Part 3.
-      // ------------------------------------------------------------
-    // PDF BUILDER
+    // ------------------------------------------------------------
+    // PDF HELPERS
+    // ------------------------------------------------------------
+
+    function cleanPdfLine(text) {
+      return String(text || "")
+        .replace(/\*\*(.*?)\*\*/g, "$1")
+        .replace(/__(.*?)__/g, "$1")
+        .replace(/`([^`]+)`/g, "$1")
+        .replace(/\t/g, " ")
+        .replace(/\s{2,}/g, " ")
+        .trim();
+    }
+
+    function isTableSeparator(line) {
+      const value =
+        String(line || "").trim();
+
+      if (!value.includes("|")) {
+        return false;
+      }
+
+      const cells =
+        value
+          .replace(/^\|/, "")
+          .replace(/\|$/, "")
+          .split("|");
+
+      if (cells.length < 2) {
+        return false;
+      }
+
+      return cells.every(cell =>
+        /^:?-{2,}:?$/.test(
+          cell.trim()
+        )
+      );
+    }
+
+    function parseDocument(text) {
+      const lines =
+        String(text || "")
+          .replace(/\r\n/g, "\n")
+          .replace(/\r/g, "\n")
+          .split("\n");
+
+      const blocks = [];
+
+      let previousWasSpace = false;
+
+      for (let rawLine of lines) {
+        let line =
+          rawLine.trim();
+
+        // --------------------------------------------------------
+        // EMPTY LINE
+        // --------------------------------------------------------
+
+        if (!line) {
+          if (!previousWasSpace) {
+            blocks.push({
+              type: "space"
+            });
+
+            previousWasSpace = true;
+          }
+
+          continue;
+        }
+
+        previousWasSpace = false;
+
+        // --------------------------------------------------------
+        // REMOVE DECORATIVE SEPARATORS
+        // --------------------------------------------------------
+
+        if (
+          /^[-_*=\s]{3,}$/.test(line) ||
+          /^(\*\s*){3,}$/.test(line)
+        ) {
+          continue;
+        }
+
+        // --------------------------------------------------------
+        // REMOVE GENERATED FOOTER
+        // --------------------------------------------------------
+
+        if (
+          /^prepared\s+by\s*:\s*smater\s+chat\s+ai/i.test(
+            line
+          )
+        ) {
+          continue;
+        }
+
+        // --------------------------------------------------------
+        // TABLE SEPARATOR
+        // --------------------------------------------------------
+
+        if (
+          isTableSeparator(line)
+        ) {
+          continue;
+        }
+
+        // --------------------------------------------------------
+        // H1
+        // --------------------------------------------------------
+
+        if (
+          /^#\s+/.test(line)
+        ) {
+          blocks.push({
+            type: "h1",
+            text: cleanPdfLine(
+              line.replace(
+                /^#\s+/,
+                ""
+              )
+            )
+          });
+
+          continue;
+        }
+
+        // --------------------------------------------------------
+        // H2
+        // --------------------------------------------------------
+
+        if (
+          /^##\s+/.test(line)
+        ) {
+          blocks.push({
+            type: "h2",
+            text: cleanPdfLine(
+              line.replace(
+                /^##\s+/,
+                ""
+              )
+            )
+          });
+
+          continue;
+        }
+
+        // --------------------------------------------------------
+        // H3
+        // --------------------------------------------------------
+
+        if (
+          /^###\s+/.test(line)
+        ) {
+          blocks.push({
+            type: "h3",
+            text: cleanPdfLine(
+              line.replace(
+                /^###\s+/,
+                ""
+              )
+            )
+          });
+
+          continue;
+        }
+
+        // --------------------------------------------------------
+        // CHAT FORMAT
+        // --------------------------------------------------------
+
+        const chatMatch =
+          line.match(
+            /^(User|AI|Assistant|SMATER CHAT AI)\s*:\s*(.*)$/i
+          );
+
+        if (chatMatch) {
+          blocks.push({
+            type: "chat",
+            label:
+              chatMatch[1],
+            text:
+              cleanPdfLine(
+                chatMatch[2]
+              )
+          });
+
+          continue;
+        }
+
+        // --------------------------------------------------------
+        // BULLET
+        // --------------------------------------------------------
+
+        if (
+          /^[-*•]\s+/.test(line)
+        ) {
+          blocks.push({
+            type: "bullet",
+            text: cleanPdfLine(
+              line.replace(
+                /^[-*•]\s+/,
+                ""
+              )
+            )
+          });
+
+          continue;
+        }
+
+        // --------------------------------------------------------
+        // NUMBERED LIST
+        // --------------------------------------------------------
+
+        const numberMatch =
+          line.match(
+            /^(\d+)[.)]\s+(.*)$/
+          );
+
+        if (numberMatch) {
+          blocks.push({
+            type: "number",
+            number:
+              numberMatch[1],
+            text:
+              cleanPdfLine(
+                numberMatch[2]
+              )
+          });
+
+          continue;
+        }
+
+        // --------------------------------------------------------
+        // MARKDOWN TABLE
+        // --------------------------------------------------------
+
+        if (
+          line.includes("|")
+        ) {
+          const cells =
+            line
+              .replace(/^\|/, "")
+              .replace(/\|$/, "")
+              .split("|")
+              .map(cell =>
+                cleanPdfLine(cell)
+              )
+              .filter(
+                cell => cell.length > 0
+              );
+
+          if (cells.length >= 2) {
+            blocks.push({
+              type: "table",
+              cells
+            });
+
+            continue;
+          }
+        }
+
+        // --------------------------------------------------------
+        // NORMAL PARAGRAPH
+        // --------------------------------------------------------
+
+        blocks.push({
+          type: "paragraph",
+          text: cleanPdfLine(line)
+        });
+      }
+
+      return blocks;
+    }
+
+    // ------------------------------------------------------------
+    // PDF TEXT WRAPPER
+    // ------------------------------------------------------------
+
+    function wrapText(
+      text,
+      maxLength
+    ) {
+      const words =
+        String(text || "")
+          .split(/\s+/)
+          .filter(Boolean);
+
+      const result = [];
+
+      let current = "";
+
+      for (const word of words) {
+        const test =
+          current
+            ? `${current} ${word}`
+            : word;
+
+        if (
+          test.length <= maxLength
+        ) {
+          current = test;
+        } else {
+          if (current) {
+            result.push(
+              current
+            );
+          }
+
+          current = word;
+        }
+      }
+
+      if (current) {
+        result.push(
+          current
+        );
+      }
+
+      return result.length
+        ? result
+        : [""];
+    }
+
+    // ------------------------------------------------------------
+    // PDF STRING ESCAPE
     // ------------------------------------------------------------
 
     function escapePdfText(text) {
@@ -347,7 +825,17 @@ Prepared by: SMATER CHAT AI
         .replace(/\)/g, "\\)");
     }
 
-    function pdfText(font, size, x, y, text) {
+    // ------------------------------------------------------------
+    // SIMPLE PDF TEXT COMMAND
+    // ------------------------------------------------------------
+
+    function pdfText(
+      font,
+      size,
+      x,
+      y,
+      text
+    ) {
       return [
         "BT",
         `/${font} ${size} Tf`,
@@ -357,525 +845,858 @@ Prepared by: SMATER CHAT AI
       ].join("\n");
     }
 
-    function wrapText(text, maxChars) {
-      const words = String(text || "").split(/\s+/);
-      const lines = [];
-      let current = "";
-
-      for (const word of words) {
-        if (!word) continue;
-
-        const test =
-          current ? `${current} ${word}` : word;
-
-        if (test.length <= maxChars) {
-          current = test;
-        } else {
-          if (current) lines.push(current);
-
-          // Very long words are split safely.
-          if (word.length > maxChars) {
-            let remaining = word;
-
-            while (remaining.length > maxChars) {
-              lines.push(remaining.slice(0, maxChars));
-              remaining = remaining.slice(maxChars);
-            }
-
-            current = remaining;
-          } else {
-            current = word;
-          }
-        }
-      }
-
-      if (current) lines.push(current);
-
-      return lines.length ? lines : [""];
-    }
-
-    function parseDocument(text) {
-      const rawLines = String(text || "")
-        .replace(/\r/g, "")
-        .split("\n");
-
-      const blocks = [];
-
-      for (let raw of rawLines) {
-        let line = raw.trim();
-
-        if (!line) {
-          blocks.push({
-            type: "space"
-          });
-          continue;
-        }
-
-        // Remove Markdown table separator rows.
-        if (
-          /^\|?\s*:?-{3,}\s*(\|\s*:?-{3,}\s*)+\|?$/.test(line)
-        ) {
-          continue;
-        }
-
-        // Markdown headings
-        if (/^###\s+/.test(line)) {
-          blocks.push({
-            type: "h3",
-            text: line.replace(/^###\s+/, "").trim()
-          });
-          continue;
-        }
-
-        if (/^##\s+/.test(line)) {
-          blocks.push({
-            type: "h2",
-            text: line.replace(/^##\s+/, "").trim()
-          });
-          continue;
-        }
-
-        if (/^#\s+/.test(line)) {
-          blocks.push({
-            type: "h1",
-            text: line.replace(/^#\s+/, "").trim()
-          });
-          continue;
-        }
-
-        // User / AI chat format
-        const chatMatch = line.match(
-          /^(User|AI|Assistant|SMATER CHAT AI)\s*:\s*(.*)$/i
-        );
-
-        if (chatMatch) {
-          blocks.push({
-            type: "chat",
-            label: chatMatch[1],
-            text: chatMatch[2]
-          });
-          continue;
-        }
-
-        // Markdown bullet
-        if (/^[-*•]\s+/.test(line)) {
-          blocks.push({
-            type: "bullet",
-            text: line.replace(/^[-*•]\s+/, "").trim()
-          });
-          continue;
-        }
-
-        // Numbered list
-        const numberMatch = line.match(/^(\d+)[.)]\s+(.*)$/);
-
-        if (numberMatch) {
-          blocks.push({
-            type: "number",
-            number: numberMatch[1],
-            text: numberMatch[2].trim()
-          });
-          continue;
-        }
-
-        // Markdown table row
-        if (
-          line.startsWith("|") &&
-          line.endsWith("|") &&
-          line.split("|").length >= 3
-        ) {
-          const cells = line
-            .split("|")
-            .slice(1, -1)
-            .map(cell =>
-              cell
-                .replace(/\*\*/g, "")
-                .trim()
-            );
-
-          blocks.push({
-            type: "table",
-            cells
-          });
-          continue;
-        }
-
-        // Clean stray Markdown symbols
-        line = line
-          .replace(/\*\*(.*?)\*\*/g, "$1")
-          .replace(/__(.*?)__/g, "$1")
-          .replace(/^>\s*/, "")
-          .trim();
-
-        blocks.push({
-          type: "paragraph",
-          text: line
-        });
-      }
-
-      return blocks;
-    }
+    // ------------------------------------------------------------
+    // PDF WILL BE BUILT IN PART 3
+    // ------------------------------------------------------------
+      // ============================================================
+    // PART 3/3 — PDF RENDERER + UNICODE + TABLES + FOOTER
+    // ============================================================
 
     function buildPdf(text, colourful) {
-      const PAGE_WIDTH = 595;
-      const PAGE_HEIGHT = 842;
+      return new Promise((resolve, reject) => {
+        try {
+          const doc = new PDFDocument({
+            size: "A4",
+            margin: 50,
+            bufferPages: true,
+            autoFirstPage: true
+          });
 
-      const marginLeft = 50;
-      const marginRight = 50;
-      const top = 790;
-      const bottom = 65;
+          const chunks = [];
 
-      const bodySize = 14;
-      const bodyLeading = 20;
+          doc.on("data", chunk => {
+            chunks.push(chunk);
+          });
 
-      const headingSize = 18;
-      const subHeadingSize = 15;
-      const titleSize = 24;
+          doc.on("end", () => {
+            const buffer =
+              Buffer.concat(chunks);
 
-      const blocks = parseDocument(text);
+            resolve({
+              base64:
+                buffer.toString("base64"),
+              pages:
+                doc.bufferedPageRange().count
+            });
+          });
 
-      const pages = [];
-      let current = [];
-      let y = top;
+          doc.on("error", reject);
 
-      function newPage() {
-        if (current.length) {
-          pages.push(current);
-        }
+          // ------------------------------------------------------
+          // FONT SETUP
+          // ------------------------------------------------------
 
-        current = [];
-        y = top;
-      }
+          let regularFont = "Helvetica";
+          let boldFont = "Helvetica-Bold";
 
-      function ensureSpace(height) {
-        if (y - height < bottom) {
-          newPage();
-        }
-      }
+          if (unicodeFont) {
+            regularFont = unicodeFont;
 
-      function addLine(font, size, x, text, leading = bodyLeading) {
-        ensureSpace(leading + 4);
+            const boldCandidate =
+              path.join(
+                process.cwd(),
+                "node_modules/@fontsource/noto-sans-devanagari/files/noto-sans-devanagari-devanagari-700-normal.woff"
+              );
 
-        current.push(
-          pdfText(
-            font,
-            size,
-            x,
-            y,
-            text
-          )
-        );
-
-        y -= leading;
-      }
-
-      for (const block of blocks) {
-        if (block.type === "space") {
-          y -= 10;
-
-          if (y < bottom) {
-            newPage();
+            if (
+              fs.existsSync(
+                boldCandidate
+              )
+            ) {
+              boldFont =
+                boldCandidate;
+            } else {
+              boldFont =
+                unicodeFont;
+            }
           }
 
-          continue;
-        }
+          // ------------------------------------------------------
+          // DOCUMENT SETTINGS
+          // ------------------------------------------------------
 
-        if (block.type === "h1") {
-          ensureSpace(45);
+          const blocks =
+            parseDocument(text);
 
-          addLine(
-            "F2",
-            titleSize,
-            marginLeft,
-            block.text,
-            30
-          );
+          const pageWidth =
+            doc.page.width;
 
-          y -= 8;
-          continue;
-        }
+          const left =
+            doc.page.margins.left;
 
-        if (block.type === "h2") {
-          ensureSpace(35);
+          const right =
+            doc.page.margins.right;
 
-          addLine(
-            "F2",
-            headingSize,
-            marginLeft,
-            block.text,
-            24
-          );
+          const usableWidth =
+            pageWidth -
+            left -
+            right;
 
-          y -= 5;
-          continue;
-        }
+          // ------------------------------------------------------
+          // COLOUR SETTINGS
+          // ------------------------------------------------------
 
-        if (block.type === "h3") {
-          ensureSpace(30);
+          // Default is professional black/white.
+          // Colour is used only when explicitly requested.
 
-          addLine(
-            "F2",
-            subHeadingSize,
-            marginLeft,
-            block.text,
-            21
-          );
+          const titleColor =
+            colourful
+              ? "#2457D6"
+              : "#111111";
 
-          y -= 3;
-          continue;
-        }
+          const headingColor =
+            colourful
+              ? "#174EA6"
+              : "#111111";
 
-        if (block.type === "bullet") {
-          const lines = wrapText(
-            block.text,
-            70
-          );
+          const bodyColor =
+            "#111111";
 
-          lines.forEach((line, index) => {
-            addLine(
-              "F1",
-              bodySize,
-              marginLeft + (index === 0 ? 0 : 18),
-              `${index === 0 ? "• " : "  "}${line}`
+          const tableHeaderColor =
+            colourful
+              ? "#E8F0FF"
+              : "#F0F0F0";
+
+          // ------------------------------------------------------
+          // BASIC HELPERS
+          // ------------------------------------------------------
+
+          function setFont(
+            font,
+            size
+          ) {
+            doc
+              .font(font)
+              .fontSize(size);
+          }
+
+          function pageBottom() {
+            return (
+              doc.page.height -
+              doc.page.margins.bottom
             );
-          });
+          }
 
-          continue;
-        }
+          function ensureSpace(
+            needed
+          ) {
+            if (
+              doc.y + needed >
+              pageBottom()
+            ) {
+              doc.addPage();
+            }
+          }
 
-        if (block.type === "number") {
-          const prefix = `${block.number}. `;
-          const lines = wrapText(
-            block.text,
-            67
-          );
+          function cleanForPdf(
+            value
+          ) {
+            return String(
+              value || ""
+            )
+              .replace(
+                /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g,
+                ""
+              )
+              .trim();
+          }
 
-          lines.forEach((line, index) => {
-            addLine(
-              "F1",
-              bodySize,
-              marginLeft,
-              `${index === 0 ? prefix : "   "}${line}`
+          // ------------------------------------------------------
+          // TITLE
+          // ------------------------------------------------------
+
+          function drawTitle(text) {
+            ensureSpace(70);
+
+            setFont(
+              boldFont,
+              24
             );
-          });
 
-          continue;
-        }
+            doc
+              .fillColor(titleColor)
+              .text(
+                cleanForPdf(text),
+                {
+                  width:
+                    usableWidth,
+                  align:
+                    "left",
+                  lineGap: 5
+                }
+              );
 
-        if (block.type === "chat") {
-          ensureSpace(35);
+            doc.moveDown(0.7);
 
-          addLine(
-            "F2",
-            subHeadingSize,
-            marginLeft,
-            block.label,
-            21
-          );
+            // Small underline
+            doc
+              .strokeColor(
+                colourful
+                  ? "#2457D6"
+                  : "#777777"
+              )
+              .lineWidth(1)
+              .moveTo(
+                left,
+                doc.y
+              )
+              .lineTo(
+                pageWidth - right,
+                doc.y
+              )
+              .stroke();
 
-          const lines = wrapText(
-            block.text,
-            68
-          );
+            doc.moveDown(0.8);
 
-          lines.forEach(line => {
-            addLine(
-              "F1",
-              bodySize,
-              marginLeft + 12,
-              line
+            doc.fillColor(
+              bodyColor
             );
-          });
+          }
 
-          y -= 5;
-          continue;
-        }
+          // ------------------------------------------------------
+          // HEADING
+          // ------------------------------------------------------
 
-        if (block.type === "table") {
-          const cells = block.cells;
+          function drawHeading(
+            text,
+            size
+          ) {
+            ensureSpace(50);
 
-          // Simple clean table rendering.
-          // Each cell is separated visually by spaces.
-          const tableText = cells.join("    ");
-
-          const lines = wrapText(
-            tableText,
-            68
-          );
-
-          lines.forEach((line, index) => {
-            addLine(
-              "F1",
-              bodySize,
-              marginLeft,
-              line,
-              19
+            setFont(
+              boldFont,
+              size
             );
-          });
 
-          y -= 3;
-          continue;
-        }
+            doc
+              .fillColor(
+                size >= 18
+                  ? headingColor
+                  : "#222222"
+              )
+              .text(
+                cleanForPdf(text),
+                {
+                  width:
+                    usableWidth,
+                  lineGap: 3
+                }
+              );
 
-        if (block.type === "paragraph") {
-          const lines = wrapText(
-            block.text,
-            72
-          );
-
-          lines.forEach(line => {
-            addLine(
-              "F1",
-              bodySize,
-              marginLeft,
-              line
+            doc.moveDown(
+              size >= 18
+                ? 0.5
+                : 0.35
             );
-          });
 
-          y -= 5;
+            doc.fillColor(
+              bodyColor
+            );
+          }
+
+          // ------------------------------------------------------
+          // PARAGRAPH
+          // ------------------------------------------------------
+
+          function drawParagraph(
+            text
+          ) {
+            const value =
+              cleanForPdf(text);
+
+            if (!value) return;
+
+            ensureSpace(35);
+
+            setFont(
+              regularFont,
+              13.5
+            );
+
+            doc
+              .fillColor(
+                bodyColor
+              )
+              .text(
+                value,
+                {
+                  width:
+                    usableWidth,
+                  align:
+                    "left",
+                  lineGap: 4,
+                  paragraphGap: 7,
+                  continued: false
+                }
+              );
+
+            doc.moveDown(0.25);
+          }
+
+          // ------------------------------------------------------
+          // BULLET
+          // ------------------------------------------------------
+
+          function drawBullet(
+            text
+          ) {
+            ensureSpace(32);
+
+            setFont(
+              regularFont,
+              13.5
+            );
+
+            const bullet =
+              "•";
+
+            doc
+              .fillColor(
+                bodyColor
+              )
+              .text(
+                bullet,
+                {
+                  width: 18,
+                  continued: true
+                }
+              );
+
+            doc
+              .text(
+                cleanForPdf(text),
+                {
+                  width:
+                    usableWidth - 18,
+                  lineGap: 4
+                }
+              );
+
+            doc.moveDown(0.2);
+          }
+
+          // ------------------------------------------------------
+          // NUMBERED LIST
+          // ------------------------------------------------------
+
+          function drawNumber(
+            number,
+            text
+          ) {
+            ensureSpace(32);
+
+            setFont(
+              regularFont,
+              13.5
+            );
+
+            const prefix =
+              `${number}.`;
+
+            doc
+              .fillColor(
+                bodyColor
+              )
+              .text(
+                prefix,
+                {
+                  width: 28,
+                  continued: true
+                }
+              );
+
+            doc.text(
+              cleanForPdf(text),
+              {
+                width:
+                  usableWidth - 28,
+                lineGap: 4
+              }
+            );
+
+            doc.moveDown(0.2);
+          }
+
+          // ------------------------------------------------------
+          // CHAT BLOCK
+          // ------------------------------------------------------
+
+          function drawChat(
+            label,
+            text
+          ) {
+            ensureSpace(55);
+
+            setFont(
+              boldFont,
+              14
+            );
+
+            doc
+              .fillColor(
+                headingColor
+              )
+              .text(
+                cleanForPdf(label),
+                {
+                  width:
+                    usableWidth
+                }
+              );
+
+            doc.moveDown(0.15);
+
+            setFont(
+              regularFont,
+              13.5
+            );
+
+            doc
+              .fillColor(
+                bodyColor
+              )
+              .text(
+                cleanForPdf(text),
+                {
+                  width:
+                    usableWidth - 15,
+                  indent: 15,
+                  lineGap: 4
+                }
+              );
+
+            doc.moveDown(0.35);
+          }
+
+          // ------------------------------------------------------
+          // TABLE
+          // ------------------------------------------------------
+
+          function drawTable(
+            tableRows
+          ) {
+            if (
+              !tableRows ||
+              !tableRows.length
+            ) {
+              return;
+            }
+
+            const rows =
+              tableRows.filter(
+                row =>
+                  row &&
+                  row.length
+              );
+
+            if (!rows.length) {
+              return;
+            }
+
+            const columnCount =
+              Math.max(
+                ...rows.map(
+                  row =>
+                    row.length
+                )
+              );
+
+            if (
+              columnCount < 2
+            ) {
+              rows.forEach(row => {
+                drawParagraph(
+                  row.join("    ")
+                );
+              });
+
+              return;
+            }
+
+            const colWidth =
+              usableWidth /
+              columnCount;
+
+            const cellPadding = 6;
+            const fontSize = 10.5;
+
+            function drawRow(
+              cells,
+              header
+            ) {
+              const values =
+                Array.from(
+                  {
+                    length:
+                      columnCount
+                  },
+                  (_, index) =>
+                    cleanForPdf(
+                      cells[index] ||
+                      ""
+                    )
+                );
+
+              const heights =
+                values.map(value => {
+                  const lines =
+                    Math.max(
+                      1,
+                      Math.ceil(
+                        value.length /
+                        Math.max(
+                          8,
+                          Math.floor(
+                            colWidth /
+                            5.5
+                          )
+                        )
+                      )
+                    );
+
+                  return (
+                    lines *
+                    13
+                  ) + 14;
+                });
+
+              const rowHeight =
+                Math.max(
+                  ...heights,
+                  28
+                );
+
+              if (
+                doc.y +
+                rowHeight +
+                5 >
+                pageBottom()
+              ) {
+                doc.addPage();
+              }
+
+              const startY =
+                doc.y;
+
+              for (
+                let i = 0;
+                i < columnCount;
+                i++
+              ) {
+                const x =
+                  left +
+                  i *
+                    colWidth;
+
+                doc
+                  .save()
+                  .rect(
+                    x,
+                    startY,
+                    colWidth,
+                    rowHeight
+                  )
+                  .fill(
+                    header
+                      ? tableHeaderColor
+                      : "#FFFFFF"
+                  )
+                  .restore();
+
+                doc
+                  .save()
+                  .lineWidth(0.5)
+                  .strokeColor(
+                    "#BBBBBB"
+                  )
+                  .rect(
+                    x,
+                    startY,
+                    colWidth,
+                    rowHeight
+                  )
+                  .stroke()
+                  .restore();
+
+                setFont(
+                  header
+                    ? boldFont
+                    : regularFont,
+                  fontSize
+                );
+
+                doc
+                  .fillColor(
+                    bodyColor
+                  )
+                  .text(
+                    values[i],
+                    x +
+                      cellPadding,
+                    startY +
+                      cellPadding,
+                    {
+                      width:
+                        colWidth -
+                        cellPadding *
+                          2,
+                      height:
+                        rowHeight -
+                        cellPadding *
+                          2,
+                      lineGap: 1
+                    }
+                  );
+              }
+
+              doc.y =
+                startY +
+                rowHeight;
+            }
+
+            // First row is treated as table header.
+            drawRow(
+              rows[0],
+              true
+            );
+
+            for (
+              let i = 1;
+              i < rows.length;
+              i++
+            ) {
+              drawRow(
+                rows[i],
+                false
+              );
+            }
+
+            doc.moveDown(0.7);
+          }
+
+          // ------------------------------------------------------
+          // RENDER BLOCKS
+          // ------------------------------------------------------
+
+          let pendingTable = [];
+
+          function flushTable() {
+            if (
+              pendingTable.length
+            ) {
+              drawTable(
+                pendingTable
+              );
+
+              pendingTable = [];
+            }
+          }
+
+          for (
+            const block of blocks
+          ) {
+            if (
+              block.type ===
+              "table"
+            ) {
+              pendingTable.push(
+                block.cells
+              );
+
+              continue;
+            }
+
+            flushTable();
+
+            if (
+              block.type ===
+              "space"
+            ) {
+              doc.moveDown(
+                0.55
+              );
+
+              continue;
+            }
+
+            if (
+              block.type ===
+              "h1"
+            ) {
+              drawTitle(
+                block.text
+              );
+
+              continue;
+            }
+
+            if (
+              block.type ===
+              "h2"
+            ) {
+              drawHeading(
+                block.text,
+                18
+              );
+
+              continue;
+            }
+
+            if (
+              block.type ===
+              "h3"
+            ) {
+              drawHeading(
+                block.text,
+                15
+              );
+
+              continue;
+            }
+
+            if (
+              block.type ===
+              "bullet"
+            ) {
+              drawBullet(
+                block.text
+              );
+
+              continue;
+            }
+
+            if (
+              block.type ===
+              "number"
+            ) {
+              drawNumber(
+                block.number,
+                block.text
+              );
+
+              continue;
+            }
+
+            if (
+              block.type ===
+              "chat"
+            ) {
+              drawChat(
+                block.label,
+                block.text
+              );
+
+              continue;
+            }
+
+            if (
+              block.type ===
+              "paragraph"
+            ) {
+              drawParagraph(
+                block.text
+              );
+            }
+          }
+
+          flushTable();
+
+          // ------------------------------------------------------
+          // FOOTER
+          // ------------------------------------------------------
+
+          const range =
+            doc.bufferedPageRange();
+
+          for (
+            let i = 0;
+            i < range.count;
+            i++
+          ) {
+            doc.switchToPage(
+              i
+            );
+
+            const footerY =
+              doc.page.height -
+              34;
+
+            doc
+              .save()
+              .strokeColor(
+                "#BBBBBB"
+              )
+              .lineWidth(0.5)
+              .moveTo(
+                left,
+                footerY - 7
+              )
+              .lineTo(
+                pageWidth - right,
+                footerY - 7
+              )
+              .stroke()
+              .restore();
+
+            setFont(
+              regularFont,
+              8.5
+            );
+
+            doc
+              .fillColor(
+                "#555555"
+              )
+              .text(
+                `Prepared by: SMATER CHAT AI     Page ${i + 1} of ${range.count}`,
+                left,
+                footerY,
+                {
+                  width:
+                    usableWidth,
+                  align:
+                    "center"
+                }
+              );
+          }
+
+          // Return to final page before ending.
+          if (range.count) {
+            doc.switchToPage(
+              range.start +
+              range.count -
+              1
+            );
+          }
+
+          doc.end();
+
+        } catch (error) {
+          reject(error);
         }
-      }
-
-      if (current.length) {
-        pages.push(current);
-      }
-
-      // ------------------------------------------------------------
-      // PDF OBJECT CREATION
-      // ------------------------------------------------------------
-
-      const objects = [];
-
-      function addObject(content) {
-        objects.push(content);
-        return objects.length;
-      }
-
-      const catalogId = addObject("");
-      const pagesId = addObject("");
-
-      const fontRegularId = addObject(
-        "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>"
-      );
-
-      const fontBoldId = addObject(
-        "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>"
-      );
-
-      const fontFooterId = addObject(
-        "<< /Type /Font /Subtype /Type1 /BaseFont /Times-Roman >>"
-      );
-
-      const pageIds = [];
-
-      for (let i = 0; i < pages.length; i++) {
-        const pageBlocks = pages[i].slice();
-
-        // Clean footer: added exactly once to every page.
-        pageBlocks.push(
-          pdfText(
-            "F3",
-            9,
-            marginLeft,
-            35,
-            `Prepared by: SMATER CHAT AI     Page ${i + 1} of ${pages.length}`
-          )
-        );
-
-        const stream = pageBlocks.join("\n");
-
-        const streamId = addObject(
-          `<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`
-        );
-
-        const pageId = addObject(
-          `<<
-/Type /Page
-/Parent ${pagesId} 0 R
-/MediaBox [0 0 ${PAGE_WIDTH} ${PAGE_HEIGHT}]
-/Resources <<
-  /Font <<
-    /F1 ${fontRegularId} 0 R
-    /F2 ${fontBoldId} 0 R
-    /F3 ${fontFooterId} 0 R
-  >>
->>
-/Contents ${streamId} 0 R
->>`
-        );
-
-        pageIds.push(pageId);
-      }
-
-      objects[catalogId - 1] =
-        `<< /Type /Catalog /Pages ${pagesId} 0 R >>`;
-
-      objects[pagesId - 1] =
-        `<<
-/Type /Pages
-/Kids [${pageIds.map(id => `${id} 0 R`).join(" ")}]
-/Count ${pageIds.length}
->>`;
-
-      // ------------------------------------------------------------
-      // PDF HEADER + XREF
-      // ------------------------------------------------------------
-
-      let pdf = "%PDF-1.4\n%\xE2\xE3\xCF\xD3\n";
-
-      const offsets = [0];
-
-      for (let i = 0; i < objects.length; i++) {
-        offsets.push(pdf.length);
-
-        pdf += `${i + 1} 0 obj\n`;
-        pdf += `${objects[i]}\n`;
-        pdf += "endobj\n";
-      }
-
-      const xrefOffset = pdf.length;
-
-      pdf += "xref\n";
-      pdf += `0 ${objects.length + 1}\n`;
-      pdf += "0000000000 65535 f \n";
-
-      for (let i = 1; i < offsets.length; i++) {
-        pdf += String(offsets[i]).padStart(10, "0");
-        pdf += " 00000 n \n";
-      }
-
-      pdf += "trailer\n";
-      pdf += `<< /Size ${objects.length + 1} /Root ${catalogId} 0 R >>\n`;
-      pdf += "startxref\n";
-      pdf += `${xrefOffset}\n`;
-      pdf += "%%EOF";
-
-      const base64 = Buffer
-        .from(pdf, "binary")
-        .toString("base64");
-
-      return {
-        base64,
-        pages: pages.length,
-        colourful
-      };
+      });
     }
 
-    // ------------------------------------------------------------
-    // BUILD PDF
-    // ------------------------------------------------------------
+    // ============================================================
+    // CREATE PDF
+    // ============================================================
 
-    const pdf = buildPdf(
-      documentText,
-      colourful
-    );
+    const pdf =
+      await buildPdf(
+        documentText,
+        colourful
+      );
 
     return res.status(200).json({
       success: true,
       type: "pdf",
-      filename: "smater-chat-ai-document.pdf",
-      url: `data:application/pdf;base64,${pdf.base64}`,
-      pages: pdf.pages
+      filename:
+        "smater-chat-ai-document.pdf",
+      url:
+        `data:application/pdf;base64,${pdf.base64}`,
+      pages:
+        pdf.pages,
+      colourful
     });
 
   } catch (error) {
@@ -886,7 +1707,8 @@ Prepared by: SMATER CHAT AI
 
     return res.status(500).json({
       success: false,
-      error: "I couldn't create that file right now. Please try again."
+      error:
+        "I couldn't create that file right now. Please try again."
     });
   }
-                                             }
+}
