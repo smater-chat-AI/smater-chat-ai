@@ -1947,3 +1947,80 @@ try {
     fontFixError
   );
 }
+// ============================================================
+// SMATER CHAT AI - FINAL STATIC FONT PATH FIX
+// PASTE AT THE VERY END OF api/file.js
+// ============================================================
+
+try {
+  const __staticFont = (relativePath) => {
+    try {
+      const url = new URL(
+        relativePath,
+        import.meta.url
+      );
+
+      const filePath =
+        url.pathname;
+
+      if (fs.existsSync(filePath)) {
+        return filePath;
+      }
+    } catch (_) {}
+
+    return null;
+  };
+
+  const __fontMap = {
+    "@fontsource/noto-sans": {
+      "noto-sans-latin-400-normal.woff2":
+        "../node_modules/@fontsource/noto-sans/files/noto-sans-latin-400-normal.woff2",
+
+      "noto-sans-latin-700-normal.woff2":
+        "../node_modules/@fontsource/noto-sans/files/noto-sans-latin-700-normal.woff2"
+    },
+
+    "@fontsource/noto-sans-devanagari": {
+      "noto-sans-devanagari-400-normal.woff2":
+        "../node_modules/@fontsource/noto-sans-devanagari/files/noto-sans-devanagari-400-normal.woff2",
+
+      "noto-sans-devanagari-700-normal.woff2":
+        "../node_modules/@fontsource/noto-sans-devanagari/files/noto-sans-devanagari-700-normal.woff2"
+    }
+  };
+
+  resolveFont = function (
+    packageName,
+    fileName
+  ) {
+    const relative =
+      __fontMap?.[packageName]?.[fileName];
+
+    if (relative) {
+      const found =
+        __staticFont(relative);
+
+      if (found) {
+        console.log(
+          "SMATER CHAT AI: font found:",
+          packageName,
+          fileName
+        );
+
+        return found;
+      }
+    }
+
+    return null;
+  };
+
+  console.log(
+    "SMATER CHAT AI: static font resolver installed"
+  );
+
+} catch (error) {
+  console.error(
+    "SMATER CHAT AI: static font resolver failed:",
+    error
+  );
+}
