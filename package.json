@@ -5,6 +5,7 @@
   "type": "module",
   "dependencies": {
     "pdfkit": "^0.17.2",
+    "@fontsource/noto-sans": "^5.2.7",
     "@fontsource/noto-sans-devanagari": "^5.2.7"
   }
 }
