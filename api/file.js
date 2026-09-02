@@ -438,29 +438,46 @@ ${colourful ? "YES" : "NO"}
               doc.addPage();
             }
           }
+function writeText(
+  value,
+  size = 13,
+  font = regular
+) {
+  space();
 
-          function writeText(
-            value,
-            size = 13,
-            font = regular
-          ) {
+  const text =
+    String(value || "");
 
-            checkSpace();
+  // Hindi / Devanagari text
+  const hasDevanagari =
+    /[\u0900-\u097F]/.test(text);
 
-            doc
-              .font(font)
-              .fontSize(size)
-              .fillColor("#111111")
-              .text(
-                String(value || ""),
-                {
-                  width,
-                  lineGap: 4
-                }
-              );
+  // Use Unicode font only when Hindi is present.
+  // English-only text stays on Helvetica so
+  // missing-glyph boxes are avoided.
+  const selectedFont =
+    hasDevanagari
+      ? font
+      : (
+          font === bold
+            ? "Helvetica-Bold"
+            : "Helvetica"
+        );
 
-            doc.moveDown(0.15);
-          }
+  doc
+    .font(selectedFont)
+    .fontSize(size)
+    .fillColor("#111111")
+    .text(text, {
+      width,
+      lineGap: 4
+    });
+
+  doc.moveDown(0.15);
+}
+          
+        
+  
           // ============================================================
 // api/file.js — PART 3/4
 // PDF CONTENT RENDERING
