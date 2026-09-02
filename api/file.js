@@ -1865,3 +1865,85 @@ export default async function handler(
     });
   }
 }
+// ============================================================
+// FINAL FONT RESOLUTION FIX
+// Paste this block at the VERY END of api/file.js
+// ============================================================
+
+try {
+  const __fontFs = await import("node:fs");
+  const __fontPath = await import("node:path");
+  const __fontModule = await import("node:module");
+
+  const __fs = __fontFs.default || __fontFs;
+  const __path = __fontPath.default || __fontPath;
+  const __createRequire = __fontModule.createRequire;
+
+  const __require = __createRequire(import.meta.url);
+
+  function __findFont(packageName, fileName) {
+    const candidates = [];
+
+    // 1. Resolve package itself, then go to /files
+    try {
+      const packageEntry = __require.resolve(packageName);
+      const packageDir = __path.dirname(packageEntry);
+
+      candidates.push(
+        __path.join(packageDir, "files", fileName)
+      );
+
+      candidates.push(
+        __path.join(
+          __path.dirname(packageDir),
+          packageName,
+          "files",
+          fileName
+        )
+      );
+    } catch (_) {}
+
+    // 2. Vercel / Node common locations
+    candidates.push(
+      __path.join(
+        process.cwd(),
+        "node_modules",
+        packageName,
+        "files",
+        fileName
+      )
+    );
+
+    candidates.push(
+      __path.join(
+        "/var/task/node_modules",
+        packageName,
+        "files",
+        fileName
+      )
+    );
+
+    for (const file of candidates) {
+      try {
+        if (__fs.existsSync(file)) {
+          return file;
+        }
+      } catch (_) {}
+    }
+
+    return null;
+  }
+
+  // Override the old resolver safely.
+  resolveFont = function (packageName, fileName) {
+    return __findFont(packageName, fileName);
+  };
+
+  console.log("SMATER CHAT AI: final font resolver installed");
+
+} catch (fontFixError) {
+  console.error(
+    "SMATER CHAT AI: final font resolver setup failed:",
+    fontFixError
+  );
+}
