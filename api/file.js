@@ -3,113 +3,96 @@ import PDFDocument from "pdfkit";
 const OPENROUTER_URL =
   "https://openrouter.ai/api/v1/chat/completions";
 
-const DEVANAGARI_REGULAR_URL =
+const HINDI_REGULAR_URL =
   "https://raw.githubusercontent.com/notofonts/noto-fonts/main/hinted/ttf/NotoSansDevanagari/NotoSansDevanagari-Regular.ttf";
 
-const DEVANAGARI_BOLD_URL =
+const HINDI_BOLD_URL =
   "https://raw.githubusercontent.com/notofonts/noto-fonts/main/hinted/ttf/NotoSansDevanagari/NotoSansDevanagari-Bold.ttf";
 
-let hindiRegularBuffer = null;
-let hindiBoldBuffer = null;
+/* =========================================
+   BASIC HELPERS
+========================================= */
 
-function cleanText(text = "") {
-  return String(text)
-    .replace(/\r/g, "")
-    .replace(/\*\*(.*?)\*\*/g, "$1")
-    .replace(/__(.*?)__/g, "$1")
+function cleanText(value) {
+  return String(value ?? "")
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n")
     .trim();
 }
 
-function safeFileName(name = "smater-chat-ai") {
-  return (
-    String(name)
-      .replace(/[^a-zA-Z0-9_-]/g, "_")
-      .slice(0, 80) ||
-    "smater-chat-ai"
-  );
+function safeFileName(value) {
+  const name = cleanText(value)
+    .replace(/[<>:"/\\|?*\x00-\x1F]/g, "")
+    .replace(/\s+/g, "-")
+    .slice(0, 80);
+
+  return name || "smater-chat-ai";
 }
 
-/*
- * ---------------------------------------------------------
- * LANGUAGE
- * ---------------------------------------------------------
- *
- * Default = English
- *
- * Hindi PDF:
- * "Hindi PDF"
- *
- * Both:
- * "Hindi + English PDF"
- */
+/* =========================================
+   LANGUAGE
+========================================= */
 
-function detectLanguage(prompt = "") {
-  const text =
-    String(prompt).toLowerCase();
+function detectLanguage(prompt) {
+  const text = cleanText(prompt).toLowerCase();
 
-  const hindi =
-    text.includes("hindi") ||
-    text.includes("हिंदी") ||
-    text.includes("हिन्दी") ||
-    text.includes("devanagari") ||
-    text.includes("देवनागरी");
+  const explicitlyHindi =
+    /\b(hindi|हिंदी|हिन्दी)\b/.test(text);
 
-  const english =
-    text.includes("english") ||
-    text.includes("अंग्रेजी") ||
-    text.includes("अंग्रेज़ी");
+  const explicitlyEnglish =
+    /\b(english)\b/.test(text);
 
-  if (hindi && english) {
+  const explicitlyBoth =
+    (
+      /\b(hindi\s*(and|&|\+)\s*english)\b/.test(text) ||
+      /\b(english\s*(and|&|\+)\s*hindi)\b/.test(text) ||
+      /हिंदी.*अंग्रेज़ी|अंग्रेज़ी.*हिंदी/.test(text)
+    );
+
+  if (explicitlyBoth) {
     return "both";
   }
 
-  if (hindi) {
+  if (explicitlyHindi) {
     return "hindi";
   }
+
+  if (explicitlyEnglish) {
+    return "english";
+  }
+
+  /*
+    Important:
+    Hinglish/Roman Hindi without an explicit
+    language request still produces an English PDF.
+  */
 
   return "english";
 }
 
-/*
- * ---------------------------------------------------------
- * COLOUR
- * ---------------------------------------------------------
- *
- * Normal PDF = black/white.
- * Colour only when explicitly requested.
- */
+/* =========================================
+   COLOUR
+========================================= */
 
-function isColourfulRequest(prompt = "") {
-  const text =
-    String(prompt).toLowerCase();
+function isColourfulRequest(prompt) {
+  const text = cleanText(prompt).toLowerCase();
 
   return (
-    text.includes("colourful") ||
-    text.includes("colorful") ||
-    text.includes("colour pdf") ||
-    text.includes("color pdf") ||
-    text.includes("colour document") ||
-    text.includes("color document") ||
-    text.includes("colourful pdf") ||
-    text.includes("colorful pdf") ||
-    text.includes("professional colourful") ||
-    text.includes("professional colorful")
+    /\b(colou?rful|colour|color|colou?r)\b/.test(text) &&
+    (
+      text.includes("pdf") ||
+      text.includes("file") ||
+      text.includes("document")
+    )
   );
 }
 
-/*
- * ---------------------------------------------------------
- * HINDI FONT LOADER
- * ---------------------------------------------------------
- *
- * IMPORTANT:
- * We use TTF, not WOFF2.
- * The old WOFF2 font caused the fontkit DataView crash.
- */
+/* =========================================
+   HINDI FONT
+========================================= */
 
-async function loadHindiFont(url) {
-  const response =
-    await fetch(url);
+async function downloadFont(url) {
+  const response = await fetch(url);
 
   if (!response.ok) {
     throw new Error(
@@ -117,252 +100,138 @@ async function loadHindiFont(url) {
     );
   }
 
-  const arrayBuffer =
-    await response.arrayBuffer();
+  const arrayBuffer = await response.arrayBuffer();
 
-  return Buffer.from(
-    arrayBuffer
-  );
-}
+  const buffer = Buffer.from(arrayBuffer);
 
-async function getHindiFonts() {
-  if (
-    hindiRegularBuffer &&
-    hindiBoldBuffer
-  ) {
-    return {
-      regular:
-        hindiRegularBuffer,
-      bold:
-        hindiBoldBuffer
-    };
+  if (!buffer.length) {
+    throw new Error("Hindi font file is empty");
   }
 
-  hindiRegularBuffer =
-    await loadHindiFont(
-      DEVANAGARI_REGULAR_URL
-    );
+  return buffer;
+}
 
-  hindiBoldBuffer =
-    await loadHindiFont(
-      DEVANAGARI_BOLD_URL
-    );
-
-  console.log(
-    "SMATER CHAT AI: Hindi TTF fonts loaded"
-  );
+async function loadHindiFonts() {
+  const [regular, bold] = await Promise.all([
+    downloadFont(HINDI_REGULAR_URL),
+    downloadFont(HINDI_BOLD_URL)
+  ]);
 
   return {
-    regular:
-      hindiRegularBuffer,
-    bold:
-      hindiBoldBuffer
+    regular,
+    bold
   };
 }
 
-/*
- * ---------------------------------------------------------
- * TEXT HELPERS
- * ---------------------------------------------------------
- */
+/* =========================================
+   HINDI DETECTION
+========================================= */
 
-function containsHindi(text = "") {
-  return /[\u0900-\u097F]/.test(
-    String(text)
-  );
+function containsHindi(text) {
+  return /[\u0900-\u097F]/.test(String(text || ""));
 }
 
-function splitLanguageRuns(text = "") {
-  const value =
-    String(text);
+/* =========================================
+   MIXED LANGUAGE RUNS
+========================================= */
+
+function splitLanguageRuns(text) {
+  const value = String(text || "");
+
+  if (!value) {
+    return [];
+  }
 
   const runs = [];
 
   let current = "";
-  let currentHindi = null;
+  let currentHindi = containsHindi(value[0]);
 
   for (const char of value) {
-    const charHindi =
-      /[\u0900-\u097F]/.test(
-        char
-      );
+    const isHindi = containsHindi(char);
 
     if (
-      currentHindi === null
+      current &&
+      isHindi !== currentHindi
     ) {
-      currentHindi =
-        charHindi;
-
-      current = char;
-
-      continue;
-    }
-
-    if (
-      charHindi ===
-      currentHindi
-    ) {
-      current += char;
-    } else {
       runs.push({
         text: current,
-        hindi:
-          currentHindi
+        hindi: currentHindi
       });
 
-      current = char;
-
-      currentHindi =
-        charHindi;
+      current = "";
     }
+
+    current += char;
+    currentHindi = isHindi;
   }
 
   if (current) {
     runs.push({
       text: current,
-      hindi:
-        currentHindi
+      hindi: currentHindi
     });
   }
 
   return runs;
 }
 
-/*
- * ---------------------------------------------------------
- * MARKDOWN HELPERS
- * ---------------------------------------------------------
- */
+/* =========================================
+   MARKDOWN HELPERS
+========================================= */
 
-function removeMarkdownFormatting(
-  text = ""
-) {
-  return String(text)
-    .replace(
-      /\*\*(.*?)\*\*/g,
-      "$1"
-    )
-    .replace(
-      /__(.*?)__/g,
-      "$1"
-    )
-    .replace(
-      /^`(.*?)`$/g,
-      "$1"
-    )
+function stripMarkdown(value) {
+  return String(value || "")
+    .replace(/^#{1,6}\s+/gm, "")
+    .replace(/^\s*[-*+]\s+/gm, "")
+    .replace(/^\s*\d+[.)]\s+/gm, "")
+    .replace(/\*\*(.*?)\*\*/g, "$1")
+    .replace(/__(.*?)__/g, "$1")
+    .replace(/`([^`]+)`/g, "$1")
     .trim();
 }
 
-function getHeadingInfo(
-  line = ""
-) {
-  const match =
-    String(line)
-      .trim()
-      .match(
-        /^(#{1,3})\s+(.+)$/
-      );
-
-  if (!match) {
-    return null;
-  }
-
-  return {
-    level:
-      match[1].length,
-
-    text:
-      removeMarkdownFormatting(
-        match[2]
-      )
-  };
+function isHeading(line) {
+  return /^#{1,6}\s+/.test(line);
 }
 
-function getBulletText(
-  line = ""
-) {
-  const match =
-    String(line)
-      .trim()
-      .match(
-        /^[-*•]\s+(.+)$/
-      );
-
-  if (!match) {
-    return null;
-  }
-
-  return removeMarkdownFormatting(
-    match[1]
-  );
+function isBullet(line) {
+  return /^\s*[-*+]\s+/.test(line);
 }
 
-function getNumberedText(
-  line = ""
-) {
-  const match =
-    String(line)
-      .trim()
-      .match(
-        /^(\d+)[.)]\s+(.+)$/
-      );
-
-  if (!match) {
-    return null;
-  }
-
-  return {
-    number:
-      match[1],
-
-    text:
-      removeMarkdownFormatting(
-        match[2]
-      )
-  };
+function isNumbered(line) {
+  return /^\s*\d+[.)]\s+/.test(line);
 }
-/*
- * ---------------------------------------------------------
- * PDF FONT SETUP
- * ---------------------------------------------------------
- */
 
-function registerFonts(
-  doc,
-  language,
-  hindiFonts
-) {
-  /*
-   * PDFKit's built-in Helvetica is used
-   * for English text.
-   *
-   * Hindi / Devanagari uses downloaded TTF.
-   */
+function cleanHeading(line) {
+  return line
+    .replace(/^#{1,6}\s+/, "")
+    .trim();
+}
 
-  doc.registerFont(
-    "SMATER_EN",
-    "Helvetica"
-  );
+function cleanBullet(line) {
+  return line
+    .replace(/^\s*[-*+]\s+/, "")
+    .trim();
+}
 
-  doc.registerFont(
-    "SMATER_EN_BOLD",
-    "Helvetica-Bold"
-  );
-
-  if (
-    language === "hindi" ||
-    language === "both"
-  ) {
-    if (
-      !hindiFonts ||
-      !hindiFonts.regular ||
-      !hindiFonts.bold
-    ) {
-      throw new Error(
-        "Hindi TTF fonts are not available"
-      );
+function cleanNumbered(line) {
+  return line
+    .replace(/^\s*\d+[.)]\s+/, "")
+    .trim();
     }
+/* =========================================
+   PDF FONT REGISTRATION
+========================================= */
 
+function registerFonts(doc, hindiFonts) {
+  /*
+    English:
+    PDFKit's built-in Helvetica is used directly.
+    We intentionally do NOT register WOFF/WOFF2 fonts.
+  */
+
+  if (hindiFonts) {
     doc.registerFont(
       "SMATER_HI",
       hindiFonts.regular
@@ -375,296 +244,286 @@ function registerFonts(
   }
 }
 
-/*
- * ---------------------------------------------------------
- * PDF TEXT WRITER
- * ---------------------------------------------------------
- */
+/* =========================================
+   FONT SELECTION
+========================================= */
+
+function setRegularFont(doc, language) {
+  if (language === "hindi" || language === "both") {
+    doc.font("SMATER_HI");
+    return;
+  }
+
+  doc.font("Helvetica");
+}
+
+function setBoldFont(doc, language) {
+  if (language === "hindi" || language === "both") {
+    doc.font("SMATER_HI_BOLD");
+    return;
+  }
+
+  doc.font("Helvetica-Bold");
+}
+
+/* =========================================
+   SAFE PAGE BREAK
+========================================= */
+
+function ensureSpace(doc, needed = 40) {
+  const bottomLimit =
+    doc.page.height -
+    doc.page.margins.bottom;
+
+  if (
+    doc.y + needed >
+    bottomLimit
+  ) {
+    /*
+      IMPORTANT:
+      Only ONE direct addPage().
+      No continueOnNewPage().
+      No recursive page creation.
+    */
+
+    doc.addPage();
+    return true;
+  }
+
+  return false;
+}
+
+/* =========================================
+   MIXED TEXT WRITER
+========================================= */
 
 function writeMixedText(
   doc,
   text,
   options = {}
 ) {
-  const {
-    language = "english",
-    bold = false,
-    size = 11,
-    lineGap = 4
-  } = options;
+  const value = String(text || "");
 
-  const value =
-    String(text ?? "");
+  if (!value) {
+    return;
+  }
 
-  doc.fontSize(size);
+  const language =
+    options.language || "english";
 
-  /*
-   * Pure Hindi PDF
-   */
+  const fontSize =
+    options.fontSize || 11;
+
+  const lineGap =
+    options.lineGap ?? 4;
+
+  const width =
+    options.width ||
+    (
+      doc.page.width -
+      doc.page.margins.left -
+      doc.page.margins.right
+    );
+
+  const continued =
+    options.continued === true;
+
+  doc.fontSize(fontSize);
+
+  if (language === "both") {
+    const runs =
+      splitLanguageRuns(value);
+
+    if (!runs.length) {
+      doc.font("Helvetica");
+      doc.text(
+        value,
+        {
+          width,
+          lineGap,
+          continued
+        }
+      );
+      return;
+    }
+
+    runs.forEach(
+      (run, index) => {
+        if (run.hindi) {
+          doc.font("SMATER_HI");
+        } else {
+          doc.font("Helvetica");
+        }
+
+        doc.text(
+          run.text,
+          {
+            width,
+            lineGap,
+            continued:
+              index < runs.length - 1
+          }
+        );
+      }
+    );
+
+    if (continued) {
+      return;
+    }
+
+    return;
+  }
+
   if (language === "hindi") {
-    doc.font(
-      bold
-        ? "SMATER_HI_BOLD"
-        : "SMATER_HI"
-    );
-
-    doc.text(
-      value,
-      {
-        lineGap
-      }
-    );
-
-    return;
+    doc.font("SMATER_HI");
+  } else {
+    doc.font("Helvetica");
   }
 
-  /*
-   * Pure English PDF
-   */
-  if (language === "english") {
-    doc.font(
-      bold
-        ? "SMATER_EN_BOLD"
-        : "SMATER_EN"
-    );
-
-    doc.text(
-      value,
-      {
-        lineGap
-      }
-    );
-
-    return;
-  }
-
-  /*
-   * Hindi + English PDF
-   *
-   * Switches fonts automatically
-   * whenever Devanagari text appears.
-   */
-
-  const runs =
-    splitLanguageRuns(
-      value
-    );
-
-  for (const run of runs) {
-    if (!run.text) {
-      continue;
+  doc.text(
+    value,
+    {
+      width,
+      lineGap,
+      continued
     }
-
-    if (run.hindi) {
-      doc.font(
-        bold
-          ? "SMATER_HI_BOLD"
-          : "SMATER_HI"
-      );
-    } else {
-      doc.font(
-        bold
-          ? "SMATER_EN_BOLD"
-          : "SMATER_EN"
-      );
-    }
-
-    doc.text(
-      run.text,
-      {
-        continued: true
-      }
-    );
-  }
-
-  doc.text("", {
-    lineGap
-  });
+  );
 }
 
-/*
- * ---------------------------------------------------------
- * PAGE HEADER / FOOTER
- * ---------------------------------------------------------
- */
+/* =========================================
+   PAGE NUMBER
+========================================= */
 
-function addPageNumber(
-  doc,
-  pageNumber
-) {
-  const oldY =
-    doc.y;
+function drawPageNumber(doc, language) {
+  const pageNumber =
+    doc.bufferedPageRange().count;
 
-  doc
-    .font(
-      "SMATER_EN"
-    )
-    .fontSize(8)
-    .text(
-      `Page ${pageNumber}`,
-      0,
-      doc.page.height - 35,
-      {
-        align: "center",
-        width:
-          doc.page.width
-      }
-    );
+  const text =
+    `Page ${pageNumber}`;
 
+  const oldX = doc.x;
+  const oldY = doc.y;
+
+  doc.font(
+    language === "hindi" || language === "both"
+      ? "SMATER_HI"
+      : "Helvetica"
+  );
+
+  doc.fontSize(8);
+
+  doc.text(
+    text,
+    doc.page.margins.left,
+    doc.page.height - 30,
+    {
+      width:
+        doc.page.width -
+        doc.page.margins.left -
+        doc.page.margins.right,
+      align: "center",
+      lineBreak: false
+    }
+  );
+
+  doc.x = oldX;
   doc.y = oldY;
 }
 
-/*
- * ---------------------------------------------------------
- * TITLE
- * ---------------------------------------------------------
- */
+/* =========================================
+   TITLE
+========================================= */
 
 function writeTitle(
   doc,
   text,
-  language,
-  colourful
+  language
 ) {
-  const title =
-    removeMarkdownFormatting(
-      text
-    );
+  ensureSpace(doc, 70);
 
-  doc
-    .font(
-      language === "hindi"
-        ? "SMATER_HI_BOLD"
-        : "SMATER_EN_BOLD"
-    )
-    .fontSize(22);
+  setBoldFont(doc, language);
 
-  if (colourful) {
-    doc.fillColor("#2457C5");
-  } else {
-    doc.fillColor("#000000");
-  }
+  doc.fontSize(20);
 
   doc.text(
-    title,
+    stripMarkdown(text),
     {
+      width:
+        doc.page.width -
+        doc.page.margins.left -
+        doc.page.margins.right,
       align: "center",
-      lineGap: 6
+      lineGap: 5
     }
   );
 
-  doc.moveDown(0.8);
-
-  doc.fillColor(
-    "#000000"
-  );
+  doc.moveDown(0.7);
 }
 
-/*
- * ---------------------------------------------------------
- * HEADING
- * ---------------------------------------------------------
- */
+/* =========================================
+   HEADING
+========================================= */
 
 function writeHeading(
   doc,
   text,
-  level,
-  language,
-  colourful
+  language
 ) {
-  const heading =
-    removeMarkdownFormatting(
-      text
-    );
+  ensureSpace(doc, 50);
 
-  const size =
-    level === 1
-      ? 17
-      : level === 2
-        ? 14
-        : 12;
+  setBoldFont(doc, language);
 
-  doc.moveDown(
-    level === 1
-      ? 0.8
-      : 0.5
-  );
-
-  doc
-    .font(
-      language === "hindi"
-        ? "SMATER_HI_BOLD"
-        : "SMATER_EN_BOLD"
-    )
-    .fontSize(size);
-
-  if (colourful) {
-    doc.fillColor(
-      level === 1
-        ? "#2457C5"
-        : "#333333"
-    );
-  } else {
-    doc.fillColor(
-      "#000000"
-    );
-  }
+  doc.fontSize(14);
 
   doc.text(
-    heading,
+    cleanHeading(text),
     {
+      width:
+        doc.page.width -
+        doc.page.margins.left -
+        doc.page.margins.right,
       lineGap: 4
     }
   );
 
-  doc.fillColor(
-    "#000000"
-  );
-
-  doc.moveDown(0.2);
+  doc.moveDown(0.35);
 }
 
-/*
- * ---------------------------------------------------------
- * BULLET
- * ---------------------------------------------------------
- */
+/* =========================================
+   BULLET
+========================================= */
 
 function writeBullet(
   doc,
   text,
   language
 ) {
-  const bullet =
-    removeMarkdownFormatting(
-      text
-    );
+  ensureSpace(doc, 35);
 
-  doc
-    .font(
-      language === "hindi"
-        ? "SMATER_HI"
-        : "SMATER_EN"
-    )
-    .fontSize(11)
-    .fillColor("#000000");
+  setRegularFont(doc, language);
+
+  doc.fontSize(11);
 
   doc.text(
-    `• ${bullet}`,
+    `• ${cleanBullet(text)}`,
     {
-      indent: 12,
-      hanging: 6,
+      width:
+        doc.page.width -
+        doc.page.margins.left -
+        doc.page.margins.right -
+        8,
+      indent: 8,
+      hanging: 8,
       lineGap: 4
     }
   );
+
+  doc.moveDown(0.15);
 }
 
-/*
- * ---------------------------------------------------------
- * NUMBERED ITEM
- * ---------------------------------------------------------
- */
+/* =========================================
+   NUMBERED ITEM
+========================================= */
 
 function writeNumbered(
   doc,
@@ -672,35 +531,32 @@ function writeNumbered(
   text,
   language
 ) {
-  const value =
-    removeMarkdownFormatting(
-      text
-    );
+  ensureSpace(doc, 35);
 
-  doc
-    .font(
-      language === "hindi"
-        ? "SMATER_HI"
-        : "SMATER_EN"
-    )
-    .fontSize(11)
-    .fillColor("#000000");
+  setRegularFont(doc, language);
+
+  doc.fontSize(11);
 
   doc.text(
-    `${number}. ${value}`,
+    `${number}. ${cleanNumbered(text)}`,
     {
-      indent: 12,
-      hanging: 10,
+      width:
+        doc.page.width -
+        doc.page.margins.left -
+        doc.page.margins.right -
+        8,
+      indent: 8,
+      hanging: 8,
       lineGap: 4
     }
   );
+
+  doc.moveDown(0.15);
 }
 
-/*
- * ---------------------------------------------------------
- * NORMAL PARAGRAPH
- * ---------------------------------------------------------
- */
+/* =========================================
+   PARAGRAPH
+========================================= */
 
 function writeParagraph(
   doc,
@@ -708,37 +564,35 @@ function writeParagraph(
   language
 ) {
   const value =
-    removeMarkdownFormatting(
-      text
-    );
+    stripMarkdown(text);
 
   if (!value) {
-    doc.moveDown(0.3);
     return;
   }
+
+  ensureSpace(doc, 40);
+
+  setRegularFont(doc, language);
+
+  doc.fontSize(11);
 
   writeMixedText(
     doc,
     value,
     {
       language,
-      size: 11,
-      lineGap: 5
+      fontSize: 11,
+      lineGap: 4
     }
   );
 
-  doc.moveDown(0.25);
+  doc.moveDown(0.45);
 }
-/*
- * ---------------------------------------------------------
- * AI CONTENT GENERATION
- * ---------------------------------------------------------
- */
+/* =========================================
+   AI CONTENT GENERATION
+========================================= */
 
-async function generateAIContent(
-  prompt,
-  language
-) {
+async function generateAIContent(prompt) {
   const apiKey =
     process.env.OPENROUTER_API_KEY;
 
@@ -748,97 +602,112 @@ async function generateAIContent(
     );
   }
 
-  let languageInstruction =
-    "Write the PDF content in English.";
+  const response = await fetch(
+    OPENROUTER_URL,
+    {
+      method: "POST",
 
-  if (language === "hindi") {
-    languageInstruction =
-      "Write the PDF content completely in Hindi using Devanagari script.";
-  }
+      headers: {
+        "Authorization":
+          `Bearer ${apiKey}`,
 
-  if (language === "both") {
-    languageInstruction =
-      "Write the PDF content in both Hindi and English. Use Devanagari for Hindi and normal English script for English.";
-  }
+        "Content-Type":
+          "application/json",
 
-  const systemPrompt = `
+        "HTTP-Referer":
+          "https://smater-chat-ai.vercel.app",
+
+        "X-Title":
+          "SMATER CHAT AI"
+      },
+
+      body: JSON.stringify({
+        model: "openrouter/free",
+
+        messages: [
+          {
+            role: "system",
+
+            content: `
 You are SMATER CHAT AI.
 
-Create high-quality content for a PDF.
+Create clean, useful document content
+for a PDF.
 
-${languageInstruction}
+IMPORTANT LANGUAGE RULE:
+- Default language is English.
+- If the user explicitly asks for Hindi,
+  write in Hindi.
+- If the user explicitly asks for English,
+  write in English.
+- If the user explicitly asks for Hindi
+  and English together, write both.
+- Hinglish/Roman Hindi alone does NOT mean
+  Hindi PDF. Keep the PDF in English.
 
-Important rules:
-- Follow the user's requested topic exactly.
-- Give a useful title.
-- Use clear headings and subheadings when appropriate.
-- Use bullet points where useful.
-- Use numbered lists when useful.
-- Keep paragraphs readable.
-- Add a short conclusion when appropriate.
-- Do not mention these instructions.
-- Do not add unnecessary disclaimers.
-- Do not use markdown tables unless they are genuinely useful.
-- Do not put the entire answer inside a code block.
-`;
+IMPORTANT FORMAT RULE:
+Return document content only.
+Do not add explanations about these instructions.
+Do not add internal metadata.
+Do not add safety labels.
 
-  const response =
-    await fetch(
-      OPENROUTER_URL,
-      {
-        method: "POST",
+Use clear headings, paragraphs,
+bullet points and numbered lists
+when useful.
 
-        headers: {
-          "Content-Type":
-            "application/json",
+Do not use unnecessary emojis.
+Do not use decorative characters
+that may break PDF rendering.
+`
+          },
 
-          Authorization:
-            `Bearer ${apiKey}`,
+          {
+            role: "user",
 
-          "HTTP-Referer":
-            "https://smater-chat-ai.vercel.app/",
+            content:
+              cleanText(prompt)
+          }
+        ],
 
-          "X-Title":
-            "SMATER CHAT AI"
-        },
-
-        body: JSON.stringify({
-          model:
-            "openrouter/free",
-
-          messages: [
-            {
-              role: "system",
-              content:
-                systemPrompt
-            },
-
-            {
-              role: "user",
-              content:
-                cleanText(prompt)
-            }
-          ],
-
-          temperature: 0.3
-        })
-      }
-    );
-
-  if (!response.ok) {
-    const errorText =
-      await response.text();
-
-    throw new Error(
-      `OpenRouter error ${response.status}: ${errorText.slice(0, 500)}`
-    );
-  }
+        temperature: 0.4
+      })
+    }
+  );
 
   const data =
     await response.json();
 
-  const content =
+  if (!response.ok) {
+    console.error(
+      "OpenRouter PDF content error:",
+      response.status,
+      data
+    );
+
+    throw new Error(
+      data?.error?.message ||
+      "AI content generation failed"
+    );
+  }
+
+  let content =
     data?.choices?.[0]?.message?.content;
+
+  if (
+    Array.isArray(content)
+  ) {
+    content =
+      content
+        .map(item =>
+          typeof item === "string"
+            ? item
+            : item?.text || ""
+        )
+        .join("\n");
+  }
+
+  content =
+    cleanText(content);
 
   if (!content) {
     throw new Error(
@@ -846,155 +715,90 @@ Important rules:
     );
   }
 
-  return cleanText(
-    content
-  );
+  return content;
 }
 
-/*
- * ---------------------------------------------------------
- * CONTENT RENDERER
- * ---------------------------------------------------------
- */
+/* =========================================
+   PDF CONTENT RENDERING
+========================================= */
 
 function renderContent(
   doc,
   content,
-  language,
-  colourful
+  language
 ) {
   const lines =
-    String(content)
-      .replace(/\r/g, "")
+    String(content || "")
+      .replace(/\r\n/g, "\n")
+      .replace(/\r/g, "\n")
       .split("\n");
 
-  let titleWritten =
-    false;
+  let numberedCounter = 0;
 
-  let pageNumber = 1;
-
-  /*
-   * Add footer to every page.
-   */
-  doc.on(
-    "pageAdded",
-    () => {
-      pageNumber += 1;
-
-      addPageNumber(
-        doc,
-        pageNumber
-      );
-    }
-  );
-
-  for (let i = 0; i < lines.length; i++) {
-    const raw =
-      lines[i];
-
+  for (const rawLine of lines) {
     const line =
-      raw.trim();
+      rawLine.trim();
 
     if (!line) {
-      doc.moveDown(0.25);
+      doc.moveDown(0.3);
       continue;
     }
 
     /*
-     * Markdown heading
-     */
-    const heading =
-      getHeadingInfo(
-        line
-      );
+      Heading
+    */
 
-    if (heading) {
-      if (
-        !titleWritten &&
-        heading.level === 1
-      ) {
-        writeTitle(
-          doc,
-          heading.text,
-          language,
-          colourful
-        );
+    if (isHeading(line)) {
+      numberedCounter = 0;
 
-        titleWritten = true;
-      } else {
-        writeHeading(
-          doc,
-          heading.text,
-          heading.level,
-          language,
-          colourful
-        );
-      }
-
-      continue;
-    }
-
-    /*
-     * Bullet point
-     */
-    const bullet =
-      getBulletText(
-        line
-      );
-
-    if (bullet) {
-      writeBullet(
-        doc,
-        bullet,
-        language
-      );
-
-      continue;
-    }
-
-    /*
-     * Numbered list
-     */
-    const numbered =
-      getNumberedText(
-        line
-      );
-
-    if (numbered) {
-      writeNumbered(
-        doc,
-        numbered.number,
-        numbered.text,
-        language
-      );
-
-      continue;
-    }
-
-    /*
-     * Automatically treat the first
-     * short line as a possible title.
-     */
-    if (
-      !titleWritten &&
-      lines.length > 1 &&
-      line.length <= 100
-    ) {
-      writeTitle(
+      writeHeading(
         doc,
         line,
-        language,
-        colourful
+        language
       );
-
-      titleWritten = true;
 
       continue;
     }
 
     /*
-     * Normal paragraph
-     */
+      Bullet
+    */
+
+    if (isBullet(line)) {
+      numberedCounter = 0;
+
+      writeBullet(
+        doc,
+        line,
+        language
+      );
+
+      continue;
+    }
+
+    /*
+      Numbered list
+    */
+
+    if (isNumbered(line)) {
+      numberedCounter += 1;
+
+      writeNumbered(
+        doc,
+        numberedCounter,
+        line,
+        language
+      );
+
+      continue;
+    }
+
+    /*
+      Normal paragraph
+    */
+
+    numberedCounter = 0;
+
     writeParagraph(
       doc,
       line,
@@ -1003,272 +807,355 @@ function renderContent(
   }
 }
 
-/*
- * ---------------------------------------------------------
- * PDF BUILDER
- * ---------------------------------------------------------
- */
+/* =========================================
+   PDF CREATION
+========================================= */
 
-async function buildPdf(
-  content,
+async function buildPdf({
+  prompt,
   language,
   colourful
-) {
+}) {
   let hindiFonts = null;
 
   /*
-   * Hindi TTF fonts are needed only
-   * for Hindi or mixed-language PDFs.
-   */
+    Hindi font is downloaded ONLY when
+    Hindi output is actually required.
+  */
+
   if (
     language === "hindi" ||
     language === "both"
   ) {
     hindiFonts =
-      await getHindiFonts();
+      await loadHindiFonts();
   }
 
-  return await new Promise(
-    (resolve, reject) => {
-      try {
-        const doc =
-          new PDFDocument({
-            size: "A4",
+  const doc =
+    new PDFDocument({
+      size: "A4",
 
-            margins: {
-              top: 55,
-              bottom: 55,
-              left: 55,
-              right: 55
-            },
+      margins: {
+        top: 55,
+        bottom: 55,
+        left: 55,
+        right: 55
+      },
 
-            bufferPages: true,
+      autoFirstPage: true,
 
-            autoFirstPage: true
-          });
+      bufferPages: true,
 
-        const chunks = [];
+      compress: true,
+
+      info: {
+        Title:
+          "SMATER CHAT AI Document",
+
+        Author:
+          "SMATER CHAT AI",
+
+        Creator:
+          "SMATER CHAT AI"
+      }
+    });
+
+  /*
+    Register ONLY the actual Hindi TTF.
+    English uses PDFKit's built-in Helvetica.
+  */
+
+  registerFonts(
+    doc,
+    hindiFonts
+  );
+
+  const chunks = [];
+
+  const pdfPromise =
+    new Promise(
+      (resolve, reject) => {
 
         doc.on(
           "data",
-          (chunk) => {
-            chunks.push(
-              chunk
-            );
-          }
-        );
-
-        doc.on(
-          "error",
-          (error) => {
-            reject(error);
+          chunk => {
+            chunks.push(chunk);
           }
         );
 
         doc.on(
           "end",
           () => {
-            resolve(
-              Buffer.concat(
-                chunks
-              )
-            );
+            try {
+              resolve(
+                Buffer.concat(chunks)
+              );
+            } catch (error) {
+              reject(error);
+            }
           }
         );
 
-        /*
-         * Register fonts.
-         *
-         * English = PDFKit built-in Helvetica.
-         * Hindi = TTF Noto Sans Devanagari.
-         */
-        registerFonts(
-          doc,
-          language,
-          hindiFonts
+        doc.on(
+          "error",
+          error => {
+            reject(error);
+          }
         );
-
-        /*
-         * Default PDF appearance:
-         * black and white.
-         *
-         * Colour is enabled only when
-         * explicitly requested.
-         */
-        doc.fillColor(
-          "#000000"
-        );
-
-        doc.fontSize(11);
-
-        /*
-         * Document heading.
-         */
-        writeTitle(
-          doc,
-          "SMATER CHAT AI",
-          "english",
-          colourful
-        );
-
-        doc.moveDown(0.4);
-
-        /*
-         * Main AI-generated content.
-         */
-        renderContent(
-          doc,
-          content,
-          language,
-          colourful
-        );
-
-        /*
-         * Prepared by line.
-         */
-        doc.moveDown(1);
-
-        doc
-          .font(
-            "SMATER_EN_BOLD"
-          )
-          .fontSize(9)
-          .fillColor("#000000")
-          .text(
-            "Prepared by: SMATER CHAT AI",
-            {
-              align: "center"
-            }
-          );
-
-        /*
-         * Finalize PDF.
-         */
-        doc.end();
-
-      } catch (error) {
-        reject(error);
       }
+    );
+
+  /*
+    Default PDF appearance:
+    simple black/white.
+
+    Colour is used only when the user
+    explicitly requested a colourful PDF.
+  */
+
+  if (colourful) {
+    doc.fillColor("#222222");
+  } else {
+    doc.fillColor("#000000");
+  }
+
+  /*
+    Main title
+  */
+
+  writeTitle(
+    doc,
+    "SMATER CHAT AI",
+    language
+  );
+
+  /*
+    Document content
+  */
+
+  renderContent(
+    doc,
+    contentForPdf(prompt, language),
+    language
+  );
+
+  /*
+    Prepared by
+  */
+
+  ensureSpace(doc, 45);
+
+  setRegularFont(
+    doc,
+    language
+  );
+
+  doc.fontSize(9);
+
+  doc.fillColor(
+    colourful
+      ? "#555555"
+      : "#000000"
+  );
+
+  doc.text(
+    "Prepared by: SMATER CHAT AI",
+    {
+      align: "center",
+
+      width:
+        doc.page.width -
+        doc.page.margins.left -
+        doc.page.margins.right,
+
+      lineGap: 3
     }
   );
-}
-/*
- * ---------------------------------------------------------
- * REQUEST HANDLER
- * ---------------------------------------------------------
- */
 
-export default async function handler(
-  req,
-  res
+  /*
+    Page numbers are written AFTER all
+    content has been created.
+
+    This is deliberately NOT done through
+    pageAdded / addPage / continueOnNewPage.
+
+    Therefore there is no recursive page
+    creation.
+  */
+
+  const range =
+    doc.bufferedPageRange();
+
+  for (
+    let i = range.start;
+    i < range.start + range.count;
+    i++
+  ) {
+    doc.switchToPage(i);
+
+    drawPageNumber(
+      doc,
+      language
+    );
+  }
+
+  /*
+    Return to the final page before ending.
+  */
+
+  if (range.count > 0) {
+    doc.switchToPage(
+      range.start + range.count - 1
+    );
+  }
+
+  doc.end();
+
+  return await pdfPromise;
+}
+
+/* =========================================
+   PDF CONTENT PREPARATION
+========================================= */
+
+function contentForPdf(
+  prompt,
+  language
 ) {
+  /*
+    This function is intentionally simple.
+    The AI-generated document content is
+    supplied by the handler later.
+
+    It is kept separate so rendering logic
+    stays predictable.
+  */
+
+  return cleanText(prompt);
+}
+/* =========================================
+   API HANDLER
+========================================= */
+
+export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({
-      ok: false,
-      error:
-        "Method not allowed"
+      error: "Method not allowed"
     });
   }
 
   try {
+    console.log(
+      "SMATER CHAT AI: PDF request"
+    );
+
     const body =
-      req.body || {};
+      typeof req.body === "string"
+        ? JSON.parse(req.body)
+        : (req.body || {});
 
     const prompt =
-      body.prompt ||
-      body.description ||
-      body.text ||
-      "";
+      cleanText(
+        body.prompt ||
+        body.description ||
+        body.text ||
+        ""
+      );
 
-    if (
-      !String(prompt).trim()
-    ) {
+    if (!prompt) {
       return res.status(400).json({
-        ok: false,
         error:
-          "Please provide a PDF description."
+          "Please enter a description for the PDF."
       });
     }
 
-    /*
-     * Language rules:
-     * No language specified = English.
-     */
     const language =
-      detectLanguage(
-        prompt
-      );
+      detectLanguage(prompt);
 
-    /*
-     * Colour only when explicitly requested.
-     */
     const colourful =
-      isColourfulRequest(
-        prompt
-      );
+      isColourfulRequest(prompt);
 
     console.log(
-      "SMATER CHAT AI: PDF request",
+      "SMATER CHAT AI PDF settings:",
       {
         language,
         colourful
       }
     );
 
-    /*
-     * Generate the actual AI-written content.
-     */
+    /* =======================================
+       GENERATE ACTUAL AI DOCUMENT CONTENT
+    ======================================= */
+
     const aiContent =
       await generateAIContent(
-        prompt,
-        language
+        prompt
       );
 
-    if (
-      !aiContent ||
-      !aiContent.trim()
-    ) {
+    if (!aiContent) {
       throw new Error(
-        "AI generated empty content"
+        "AI did not generate document content."
       );
     }
 
-    /*
-     * Build the actual PDF.
-     */
+    /* =======================================
+       BUILD PDF
+       
+       IMPORTANT:
+       buildPdf() receives the generated
+       content as its prompt value.
+    ======================================= */
+
     const pdfBuffer =
-      await buildPdf(
-        aiContent,
+      await buildPdf({
+        prompt: aiContent,
         language,
         colourful
-      );
+      });
 
     if (
       !pdfBuffer ||
       !pdfBuffer.length
     ) {
       throw new Error(
-        "PDF buffer is empty"
+        "PDF buffer is empty."
       );
     }
 
-    /*
-     * Create a safe file name.
-     */
+    /* =======================================
+       FILE NAME
+    ======================================= */
+
+    const firstLine =
+      cleanText(aiContent)
+        .split("\n")
+        .find(Boolean) ||
+      "SMATER CHAT AI";
+
     const baseName =
       safeFileName(
-        "SMATER-CHAT-AI-PDF"
+        firstLine
+          .replace(/^#+\s*/, "")
+          .slice(0, 60)
       );
 
     const fileName =
       `${baseName}.pdf`;
 
-    /*
-     * Return the PDF as base64.
-     *
-     * This keeps the existing frontend
-     * response pattern compatible.
-     */
+    /* =======================================
+       BASE64
+    ======================================= */
+
+    const base64 =
+      pdfBuffer.toString("base64");
+
+    /* =======================================
+       FINAL RESPONSE
+       
+       Keep all common field names so the
+       existing frontend can continue to work.
+    ======================================= */
+
     return res.status(200).json({
       ok: true,
 
@@ -1283,17 +1170,14 @@ export default async function handler(
         "application/pdf",
 
       data:
-        pdfBuffer.toString(
-          "base64"
-        ),
+        base64,
 
       base64:
-        pdfBuffer.toString(
-          "base64"
-        )
+        base64
     });
 
   } catch (error) {
+
     console.error(
       "SMATER CHAT AI file generation error:",
       error
