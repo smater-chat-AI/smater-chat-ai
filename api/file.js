@@ -2024,3 +2024,73 @@ try {
     error
   );
 }
+// ============================================================
+// SMATER CHAT AI - PDF FONT FALLBACK FIX
+// ============================================================
+
+try {
+  const __fs = await import("node:fs");
+  const __path = await import("node:path");
+
+  const fs = __fs.default || __fs;
+  const path = __path.default || __path;
+
+  function findSystemFont(names) {
+    const locations = [
+      "/usr/share/fonts/truetype/dejavu",
+      "/usr/share/fonts/truetype/noto",
+      "/usr/share/fonts/opentype/noto",
+      "/usr/share/fonts"
+    ];
+
+    for (const location of locations) {
+      for (const name of names) {
+        const file = path.join(location, name);
+
+        try {
+          if (fs.existsSync(file)) {
+            return file;
+          }
+        } catch (_) {}
+      }
+    }
+
+    return null;
+  }
+
+  const systemEnglish =
+    findSystemFont([
+      "DejaVuSans.ttf",
+      "DejaVuSans.ttf"
+    ]);
+
+  if (systemEnglish) {
+    const originalFindFonts = findFonts;
+
+    findFonts = function () {
+      const fonts = originalFindFonts();
+
+      return {
+        ...fonts,
+        englishRegular:
+          fonts.englishRegular || systemEnglish,
+        englishBold:
+          fonts.englishBold || systemEnglish
+      };
+    };
+
+    console.log(
+      "SMATER CHAT AI: English PDF fallback font enabled"
+    );
+  } else {
+    console.log(
+      "SMATER CHAT AI: no system English fallback font found"
+    );
+  }
+
+} catch (pdfFontFallbackError) {
+  console.error(
+    "SMATER CHAT AI: PDF fallback setup failed:",
+    pdfFontFallbackError
+  );
+}
