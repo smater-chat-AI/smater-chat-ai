@@ -61,12 +61,6 @@ function detectLanguage(prompt) {
     return "english";
   }
 
-  /*
-    Important:
-    Hinglish/Roman Hindi without an explicit
-    language request still produces an English PDF.
-  */
-
   return "english";
 }
 
@@ -78,7 +72,7 @@ function isColourfulRequest(prompt) {
   const text = cleanText(prompt).toLowerCase();
 
   return (
-    /\b(colou?rful|colour|color|colou?r)\b/.test(text) &&
+    /\b(colou?rful|colour|color)\b/.test(text) &&
     (
       text.includes("pdf") ||
       text.includes("file") ||
@@ -100,22 +94,27 @@ async function downloadFont(url) {
     );
   }
 
-  const arrayBuffer = await response.arrayBuffer();
+  const arrayBuffer =
+    await response.arrayBuffer();
 
-  const buffer = Buffer.from(arrayBuffer);
+  const buffer =
+    Buffer.from(arrayBuffer);
 
   if (!buffer.length) {
-    throw new Error("Hindi font file is empty");
+    throw new Error(
+      "Hindi font file is empty"
+    );
   }
 
   return buffer;
 }
 
 async function loadHindiFonts() {
-  const [regular, bold] = await Promise.all([
-    downloadFont(HINDI_REGULAR_URL),
-    downloadFont(HINDI_BOLD_URL)
-  ]);
+  const [regular, bold] =
+    await Promise.all([
+      downloadFont(HINDI_REGULAR_URL),
+      downloadFont(HINDI_BOLD_URL)
+    ]);
 
   return {
     regular,
@@ -128,7 +127,9 @@ async function loadHindiFonts() {
 ========================================= */
 
 function containsHindi(text) {
-  return /[\u0900-\u097F]/.test(String(text || ""));
+  return /[\u0900-\u097F]/.test(
+    String(text || "")
+  );
 }
 
 /* =========================================
@@ -145,10 +146,12 @@ function splitLanguageRuns(text) {
   const runs = [];
 
   let current = "";
-  let currentHindi = containsHindi(value[0]);
+  let currentHindi =
+    containsHindi(value[0]);
 
   for (const char of value) {
-    const isHindi = containsHindi(char);
+    const isHindi =
+      containsHindi(char);
 
     if (
       current &&
@@ -219,18 +222,13 @@ function cleanNumbered(line) {
   return line
     .replace(/^\s*\d+[.)]\s+/, "")
     .trim();
-    }
+}
+
 /* =========================================
    PDF FONT REGISTRATION
 ========================================= */
 
 function registerFonts(doc, hindiFonts) {
-  /*
-    English:
-    PDFKit's built-in Helvetica is used directly.
-    We intentionally do NOT register WOFF/WOFF2 fonts.
-  */
-
   if (hindiFonts) {
     doc.registerFont(
       "SMATER_HI",
@@ -249,7 +247,10 @@ function registerFonts(doc, hindiFonts) {
 ========================================= */
 
 function setRegularFont(doc, language) {
-  if (language === "hindi" || language === "both") {
+  if (
+    language === "hindi" ||
+    language === "both"
+  ) {
     doc.font("SMATER_HI");
     return;
   }
@@ -258,13 +259,28 @@ function setRegularFont(doc, language) {
 }
 
 function setBoldFont(doc, language) {
-  if (language === "hindi" || language === "both") {
+  if (
+    language === "hindi" ||
+    language === "both"
+  ) {
     doc.font("SMATER_HI_BOLD");
     return;
   }
 
   doc.font("Helvetica-Bold");
 }
+
+/* =========================================
+   FONTKIT SAFETY
+========================================= */
+
+/*
+  Prevent fontkit from applying problematic
+  OpenType feature lookups that can crash
+  while processing some Devanagari fonts.
+*/
+
+const SAFE_FONT_FEATURES = [];
 
 /* =========================================
    SAFE PAGE BREAK
@@ -279,20 +295,12 @@ function ensureSpace(doc, needed = 40) {
     doc.y + needed >
     bottomLimit
   ) {
-    /*
-      IMPORTANT:
-      Only ONE direct addPage().
-      No continueOnNewPage().
-      No recursive page creation.
-    */
-
     doc.addPage();
     return true;
   }
 
   return false;
-}
-
+  }
 /* =========================================
    MIXED TEXT WRITER
 ========================================= */
@@ -336,14 +344,17 @@ function writeMixedText(
 
     if (!runs.length) {
       doc.font("Helvetica");
+
       doc.text(
         value,
         {
           width,
           lineGap,
-          continued
+          continued,
+          features: SAFE_FONT_FEATURES
         }
       );
+
       return;
     }
 
@@ -361,15 +372,14 @@ function writeMixedText(
             width,
             lineGap,
             continued:
-              index < runs.length - 1
+              index < runs.length - 1,
+
+            features:
+              SAFE_FONT_FEATURES
           }
         );
       }
     );
-
-    if (continued) {
-      return;
-    }
 
     return;
   }
@@ -385,7 +395,8 @@ function writeMixedText(
     {
       width,
       lineGap,
-      continued
+      continued,
+      features: SAFE_FONT_FEATURES
     }
   );
 }
@@ -394,7 +405,10 @@ function writeMixedText(
    PAGE NUMBER
 ========================================= */
 
-function drawPageNumber(doc, language) {
+function drawPageNumber(
+  doc,
+  language
+) {
   const pageNumber =
     doc.bufferedPageRange().count;
 
@@ -405,7 +419,8 @@ function drawPageNumber(doc, language) {
   const oldY = doc.y;
 
   doc.font(
-    language === "hindi" || language === "both"
+    language === "hindi" ||
+    language === "both"
       ? "SMATER_HI"
       : "Helvetica"
   );
@@ -421,8 +436,13 @@ function drawPageNumber(doc, language) {
         doc.page.width -
         doc.page.margins.left -
         doc.page.margins.right,
+
       align: "center",
-      lineBreak: false
+
+      lineBreak: false,
+
+      features:
+        SAFE_FONT_FEATURES
     }
   );
 
@@ -441,7 +461,10 @@ function writeTitle(
 ) {
   ensureSpace(doc, 70);
 
-  setBoldFont(doc, language);
+  setBoldFont(
+    doc,
+    language
+  );
 
   doc.fontSize(20);
 
@@ -452,8 +475,13 @@ function writeTitle(
         doc.page.width -
         doc.page.margins.left -
         doc.page.margins.right,
+
       align: "center",
-      lineGap: 5
+
+      lineGap: 5,
+
+      features:
+        SAFE_FONT_FEATURES
     }
   );
 
@@ -471,7 +499,10 @@ function writeHeading(
 ) {
   ensureSpace(doc, 50);
 
-  setBoldFont(doc, language);
+  setBoldFont(
+    doc,
+    language
+  );
 
   doc.fontSize(14);
 
@@ -482,7 +513,11 @@ function writeHeading(
         doc.page.width -
         doc.page.margins.left -
         doc.page.margins.right,
-      lineGap: 4
+
+      lineGap: 4,
+
+      features:
+        SAFE_FONT_FEATURES
     }
   );
 
@@ -500,7 +535,10 @@ function writeBullet(
 ) {
   ensureSpace(doc, 35);
 
-  setRegularFont(doc, language);
+  setRegularFont(
+    doc,
+    language
+  );
 
   doc.fontSize(11);
 
@@ -512,9 +550,15 @@ function writeBullet(
         doc.page.margins.left -
         doc.page.margins.right -
         8,
+
       indent: 8,
+
       hanging: 8,
-      lineGap: 4
+
+      lineGap: 4,
+
+      features:
+        SAFE_FONT_FEATURES
     }
   );
 
@@ -533,7 +577,10 @@ function writeNumbered(
 ) {
   ensureSpace(doc, 35);
 
-  setRegularFont(doc, language);
+  setRegularFont(
+    doc,
+    language
+  );
 
   doc.fontSize(11);
 
@@ -545,9 +592,15 @@ function writeNumbered(
         doc.page.margins.left -
         doc.page.margins.right -
         8,
+
       indent: 8,
+
       hanging: 8,
-      lineGap: 4
+
+      lineGap: 4,
+
+      features:
+        SAFE_FONT_FEATURES
     }
   );
 
@@ -572,7 +625,10 @@ function writeParagraph(
 
   ensureSpace(doc, 40);
 
-  setRegularFont(doc, language);
+  setRegularFont(
+    doc,
+    language
+  );
 
   doc.fontSize(11);
 
@@ -602,33 +658,35 @@ async function generateAIContent(prompt) {
     );
   }
 
-  const response = await fetch(
-    OPENROUTER_URL,
-    {
-      method: "POST",
+  const response =
+    await fetch(
+      OPENROUTER_URL,
+      {
+        method: "POST",
 
-      headers: {
-        "Authorization":
-          `Bearer ${apiKey}`,
+        headers: {
+          "Authorization":
+            `Bearer ${apiKey}`,
 
-        "Content-Type":
-          "application/json",
+          "Content-Type":
+            "application/json",
 
-        "HTTP-Referer":
-          "https://smater-chat-ai.vercel.app",
+          "HTTP-Referer":
+            "https://smater-chat-ai.vercel.app",
 
-        "X-Title":
-          "SMATER CHAT AI"
-      },
+          "X-Title":
+            "SMATER CHAT AI"
+        },
 
-      body: JSON.stringify({
-        model: "openrouter/free",
+        body: JSON.stringify({
+          model:
+            "openrouter/free",
 
-        messages: [
-          {
-            role: "system",
+          messages: [
+            {
+              role: "system",
 
-            content: `
+              content: `
 You are SMATER CHAT AI.
 
 Create clean, useful document content
@@ -659,20 +717,20 @@ Do not use unnecessary emojis.
 Do not use decorative characters
 that may break PDF rendering.
 `
-          },
+            },
 
-          {
-            role: "user",
+            {
+              role: "user",
 
-            content:
-              cleanText(prompt)
-          }
-        ],
+              content:
+                cleanText(prompt)
+            }
+          ],
 
-        temperature: 0.4
-      })
-    }
-  );
+          temperature: 0.4
+        })
+      }
+    );
 
   const data =
     await response.json();
@@ -744,9 +802,7 @@ function renderContent(
       continue;
     }
 
-    /*
-      Heading
-    */
+    /* Heading */
 
     if (isHeading(line)) {
       numberedCounter = 0;
@@ -760,9 +816,7 @@ function renderContent(
       continue;
     }
 
-    /*
-      Bullet
-    */
+    /* Bullet */
 
     if (isBullet(line)) {
       numberedCounter = 0;
@@ -776,9 +830,7 @@ function renderContent(
       continue;
     }
 
-    /*
-      Numbered list
-    */
+    /* Numbered list */
 
     if (isNumbered(line)) {
       numberedCounter += 1;
@@ -793,9 +845,7 @@ function renderContent(
       continue;
     }
 
-    /*
-      Normal paragraph
-    */
+    /* Normal paragraph */
 
     numberedCounter = 0;
 
@@ -805,6 +855,17 @@ function renderContent(
       language
     );
   }
+}
+
+/* =========================================
+   PDF CONTENT PREPARATION
+========================================= */
+
+function contentForPdf(
+  prompt,
+  language
+) {
+  return cleanText(prompt);
 }
 
 /* =========================================
@@ -819,7 +880,7 @@ async function buildPdf({
   let hindiFonts = null;
 
   /*
-    Hindi font is downloaded ONLY when
+    Hindi font is downloaded only when
     Hindi output is actually required.
   */
 
@@ -861,8 +922,8 @@ async function buildPdf({
     });
 
   /*
-    Register ONLY the actual Hindi TTF.
-    English uses PDFKit's built-in Helvetica.
+    Register only actual Hindi TTF.
+    English uses PDFKit Helvetica.
   */
 
   registerFonts(
@@ -905,23 +966,13 @@ async function buildPdf({
       }
     );
 
-  /*
-    Default PDF appearance:
-    simple black/white.
-
-    Colour is used only when the user
-    explicitly requested a colourful PDF.
-  */
-
   if (colourful) {
     doc.fillColor("#222222");
   } else {
     doc.fillColor("#000000");
   }
 
-  /*
-    Main title
-  */
+  /* Main title */
 
   writeTitle(
     doc,
@@ -929,21 +980,23 @@ async function buildPdf({
     language
   );
 
-  /*
-    Document content
-  */
+  /* Document content */
 
   renderContent(
     doc,
-    contentForPdf(prompt, language),
+    contentForPdf(
+      prompt,
+      language
+    ),
     language
   );
 
-  /*
-    Prepared by
-  */
+  /* Prepared by */
 
-  ensureSpace(doc, 45);
+  ensureSpace(
+    doc,
+    45
+  );
 
   setRegularFont(
     doc,
@@ -968,20 +1021,14 @@ async function buildPdf({
         doc.page.margins.left -
         doc.page.margins.right,
 
-      lineGap: 3
+      lineGap: 3,
+
+      features:
+        SAFE_FONT_FEATURES
     }
   );
 
-  /*
-    Page numbers are written AFTER all
-    content has been created.
-
-    This is deliberately NOT done through
-    pageAdded / addPage / continueOnNewPage.
-
-    Therefore there is no recursive page
-    creation.
-  */
+  /* Page numbers */
 
   const range =
     doc.bufferedPageRange();
@@ -999,13 +1046,13 @@ async function buildPdf({
     );
   }
 
-  /*
-    Return to the final page before ending.
-  */
+  /* Return to final page */
 
   if (range.count > 0) {
     doc.switchToPage(
-      range.start + range.count - 1
+      range.start +
+      range.count -
+      1
     );
   }
 
@@ -1013,31 +1060,14 @@ async function buildPdf({
 
   return await pdfPromise;
 }
-
-/* =========================================
-   PDF CONTENT PREPARATION
-========================================= */
-
-function contentForPdf(
-  prompt,
-  language
-) {
-  /*
-    This function is intentionally simple.
-    The AI-generated document content is
-    supplied by the handler later.
-
-    It is kept separate so rendering logic
-    stays predictable.
-  */
-
-  return cleanText(prompt);
-}
 /* =========================================
    API HANDLER
 ========================================= */
 
-export default async function handler(req, res) {
+export default async function handler(
+  req,
+  res
+) {
   if (req.method !== "POST") {
     return res.status(405).json({
       error: "Method not allowed"
@@ -1100,10 +1130,6 @@ export default async function handler(req, res) {
 
     /* =======================================
        BUILD PDF
-       
-       IMPORTANT:
-       buildPdf() receives the generated
-       content as its prompt value.
     ======================================= */
 
     const pdfBuffer =
@@ -1151,7 +1177,7 @@ export default async function handler(req, res) {
 
     /* =======================================
        FINAL RESPONSE
-       
+
        Keep all common field names so the
        existing frontend can continue to work.
     ======================================= */
