@@ -1,10 +1,1 @@
-{
-  "functions": {
-    "api/file.js": {
-      "includeFiles": [
-        "node_modules/@fontsource/noto-sans/files/*.woff2",
-        "node_modules/@fontsource/noto-sans-devanagari/files/*.woff2"
-      ]
-    }
-  }
-}
+{}
