@@ -1793,10 +1793,18 @@ function sendPdf(
     "application/pdf"
   );
 
-  res.setHeader(
-    "Content-Disposition",
-    `attachment; filename="${fileName}"`
-  );
+   const safeName =
+  safeFileName(
+    fileName.replace(/\.pdf$/i, "")
+  ) + ".pdf";
+
+const encodedName =
+  encodeURIComponent(fileName);
+
+res.setHeader(
+  "Content-Disposition",
+  `attachment; filename="${safeName}"; filename*=UTF-8''${encodedName}`
+);
 
   res.setHeader(
     "Content-Length",
