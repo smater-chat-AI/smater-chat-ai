@@ -5147,6 +5147,989 @@ $("createPdfBtn").onclick = () => {
 
 })();
  </script>
+ <script>
+(function () {
+
+  /*
+   * SMATER CHAT AI
+   * Safe file-upload patch
+   *
+   * Purpose:
+   * - Prevent large PDF/file Base64 payloads
+   * - Keep Camera, Gallery and Mic untouched
+   * - Keep normal chat working
+   * - Send readable text files as text
+   * - Extract text from normal text-based PDFs in the browser
+   */
+
+  let smaterFileSending = false;
+
+
+  function smaterSetStatus(text) {
+
+    const status =
+      document.getElementById("status");
+
+    if (status) {
+      status.textContent = "● " + text;
+    }
+
+  }
+
+
+  function smaterShowError(message) {
+
+    if (
+      typeof addMessage === "function"
+    ) {
+
+      addMessage(
+        "assistant",
+        message
+      );
+
+    } else {
+
+      alert(message);
+
+    }
+
+  }
+
+
+  function smaterReadText(selectedFile) {
+
+    return new Promise(
+      (resolve, reject) => {
+
+        const reader =
+          new FileReader();
+
+        reader.onload = () => {
+
+          resolve(
+            typeof reader.result === "string"
+              ? reader.result
+              : ""
+          );
+
+        };
+
+        reader.onerror = () => {
+
+          reject(
+            new Error(
+              "File could not be read."
+            )
+          );
+
+        };
+
+        reader.readAsText(
+          selectedFile
+        );
+
+      }
+    );
+
+  }
+
+
+  async function smaterLoadPdfLibrary() {
+
+    if (window.pdfjsLib) {
+      return window.pdfjsLib;
+    }
+
+    await new Promise(
+      (resolve, reject) => {
+
+        const existing =
+          document.querySelector(
+            'script[data-smater-pdfjs="1"]'
+          );
+
+        if (existing) {
+
+          existing.addEventListener(
+            "load",
+            resolve,
+            { once: true }
+          );
+
+          existing.addEventListener(
+            "error",
+            reject,
+            { once: true }
+          );
+
+          return;
+        }
+
+
+        const script =
+          document.createElement("script");
+
+        script.src =
+          "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs";
+
+        script.type = "module";
+
+        script.dataset.smaterPdfjs = "1";
+
+        script.onload = resolve;
+
+        script.onerror = () =>
+          reject(
+            new Error(
+              "PDF reader could not be loaded."
+            )
+          );
+
+        document.head.appendChild(script);
+
+      }
+    );
+
+    /*
+     * pdf.js module loading can expose the
+     * library slightly later than script.onload.
+     */
+    for (
+      let i = 0;
+      i < 30;
+      i++
+    ) {
+
+      if (window.pdfjsLib) {
+        return window.pdfjsLib;
+      }
+
+      await new Promise(
+        resolve =>
+          setTimeout(resolve, 100)
+      );
+
+    }
+
+    throw new Error(
+      "PDF reader is not available."
+    );
+
+  }
+
+
+  async function smaterExtractPdfText(
+    selectedFile
+  ) {
+
+    /*
+     * Load the PDF as ArrayBuffer.
+     * This stays inside the browser.
+     */
+    const buffer =
+      await selectedFile.arrayBuffer();
+
+
+    /*
+     * Use pdf.js if available.
+     */
+    let pdfjs;
+
+    try {
+
+      pdfjs =
+        await smaterLoadPdfLibrary();
+
+    } catch (error) {
+
+      throw new Error(
+        "This PDF could not be opened for reading."
+      );
+
+    }
+
+
+    if (
+      !pdfjs ||
+      !pdfjs.getDocument
+    ) {
+
+      throw new Error(
+        "PDF reader is unavailable."
+      );
+
+    }
+
+
+    const pdf =
+      await pdfjs.getDocument({
+        data: buffer
+      }).promise;
+
+
+    const pages = [];
+
+    /*
+     * Safety limit:
+     * don't create an enormous chat request.
+     */
+    const MAX_TEXT =
+      180000;
+
+
+    for (
+      let pageNumber = 1;
+      pageNumber <= pdf.numPages;
+      pageNumber++
+    ) {
+
+      const page =
+        await pdf.getPage(pageNumber);
+
+      const content =
+        await page.getTextContent();
+
+      const text =
+        content.items
+          .map(
+            item =>
+              item &&
+              typeof item.str === "string"
+                ? item.str
+                : ""
+          )
+          .join(" ");
+
+      if (text.trim()) {
+
+        pages.push(
+          "Page " +
+          pageNumber +
+          ":\n" +
+          text.trim()
+        );
+
+      }
+
+      const current =
+        pages.join("\n\n");
+
+      if (
+        current.length >= MAX_TEXT
+      ) {
+
+        break;
+
+      }
+
+    }
+
+
+    const finalText =
+      pages
+        .join("\n\n")
+        .slice(0, MAX_TEXT)
+        .trim();
+
+
+    if (!finalText) {
+
+      throw new Error(
+        "This PDF does not contain selectable text. Scanned/image-only PDFs need OCR."
+      );
+
+    }
+
+
+    return finalText;
+
+  }
+
+
+  async function smaterPrepareFile(
+    selectedFile
+  ) {
+
+    if (!selectedFile) {
+      return null;
+    }
+
+
+    const name =
+      selectedFile.name || "file";
+
+
+    const type =
+      selectedFile.type || "";
+
+
+    /*
+     * Text-based files:
+     * send their actual text instead of
+     * Base64.
+     */
+    if (
+      type.startsWith("text/") ||
+      /\.(txt|csv|json|md)$/i.test(name)
+    ) {
+
+      const text =
+        await smaterReadText(
+          selectedFile
+        );
+
+      return {
+        name: name,
+        type: type || "text/plain",
+        text: text.slice(0, 180000)
+      };
+
+    }
+
+
+    /*
+     * PDF:
+     * extract text in browser instead of
+     * sending the whole PDF as Base64.
+     */
+    if (
+      type === "application/pdf" ||
+      /\.pdf$/i.test(name)
+    ) {
+
+      const text =
+        await smaterExtractPdfText(
+          selectedFile
+        );
+
+      return {
+        name: name,
+        type: "application/pdf",
+        text: text
+      };
+
+    }
+
+
+    /*
+     * Images:
+     * Keep the existing image behaviour,
+     * but reject extremely large files rather
+     * than causing a Vercel 413.
+     */
+    if (
+      type.startsWith("image/")
+    ) {
+
+      if (
+        selectedFile.size >
+        8 * 1024 * 1024
+      ) {
+
+        throw new Error(
+          "This image is too large. Please choose an image under 8 MB."
+        );
+
+      }
+
+
+      /*
+       * Convert image to a smaller JPEG
+       * before sending it.
+       */
+      const compressed =
+        await smaterCompressImage(
+          selectedFile
+        );
+
+      return {
+        name: name,
+        type: "image/jpeg",
+        data: compressed
+      };
+
+    }
+
+
+    /*
+     * Other files:
+     * prevent oversized Base64 payloads.
+     */
+    if (
+      selectedFile.size >
+      2 * 1024 * 1024
+    ) {
+
+      throw new Error(
+        "This file is too large to send through chat. Please use a smaller file."
+      );
+
+    }
+
+
+    /*
+     * Small unknown files can continue
+     * through the existing attachment format.
+     */
+    const data =
+      await new Promise(
+        (resolve, reject) => {
+
+          const reader =
+            new FileReader();
+
+          reader.onload = () =>
+            resolve(reader.result);
+
+          reader.onerror = () =>
+            reject(
+              new Error(
+                "File could not be read."
+              )
+            );
+
+          reader.readAsDataURL(
+            selectedFile
+          );
+
+        }
+      );
+
+
+    return {
+      name: name,
+      type: type || "application/octet-stream",
+      data: data
+    };
+
+  }
+
+
+  function smaterCompressImage(
+    selectedFile
+  ) {
+
+    return new Promise(
+      (resolve, reject) => {
+
+        const reader =
+          new FileReader();
+
+        reader.onload = () => {
+
+          const image =
+            new Image();
+
+          image.onload = () => {
+
+            const MAX_SIDE = 1600;
+
+            let width =
+              image.naturalWidth;
+
+            let height =
+              image.naturalHeight;
+
+
+            if (
+              width > MAX_SIDE ||
+              height > MAX_SIDE
+            ) {
+
+              if (width > height) {
+
+                height =
+                  Math.round(
+                    height *
+                    MAX_SIDE /
+                    width
+                  );
+
+                width =
+                  MAX_SIDE;
+
+              } else {
+
+                width =
+                  Math.round(
+                    width *
+                    MAX_SIDE /
+                    height
+                  );
+
+                height =
+                  MAX_SIDE;
+
+              }
+
+            }
+
+
+            const canvas =
+              document.createElement(
+                "canvas"
+              );
+
+            canvas.width =
+              width;
+
+            canvas.height =
+              height;
+
+
+            const ctx =
+              canvas.getContext(
+                "2d"
+              );
+
+            if (!ctx) {
+
+              reject(
+                new Error(
+                  "Image could not be processed."
+                )
+              );
+
+              return;
+
+            }
+
+
+            ctx.drawImage(
+              image,
+              0,
+              0,
+              width,
+              height
+            );
+
+
+            resolve(
+              canvas.toDataURL(
+                "image/jpeg",
+                0.78
+              )
+            );
+
+          };
+
+
+          image.onerror = () =>
+            reject(
+              new Error(
+                "Image could not be processed."
+              )
+            );
+
+
+          image.src =
+            reader.result;
+
+        };
+
+
+        reader.onerror = () =>
+          reject(
+            new Error(
+              "Image could not be read."
+            )
+          );
+
+
+        reader.readAsDataURL(
+          selectedFile
+        );
+
+      }
+    );
+
+  }
+
+
+  /*
+   * Replace only the SEND operation.
+   *
+   * Camera/Gallery/Mic button handlers
+   * remain untouched.
+   */
+  async function smaterSendMessage() {
+
+    if (
+      smaterFileSending ||
+      typeof sending !== "undefined" &&
+      sending
+    ) {
+      return;
+    }
+
+
+    const input =
+      document.getElementById("input");
+
+    const selectedFile =
+      typeof file !== "undefined"
+        ? file
+        : null;
+
+
+    const text =
+      input
+        ? input.value.trim()
+        : "";
+
+
+    if (!text && !selectedFile) {
+      return;
+    }
+
+
+    smaterFileSending = true;
+
+
+    if (typeof sending !== "undefined") {
+      sending = true;
+    }
+
+
+    if (typeof updateSendButton === "function") {
+      updateSendButton();
+    }
+
+
+    smaterSetStatus(
+      "Preparing…"
+    );
+
+
+    const userText =
+      text ||
+      "Please analyze the attached file.";
+
+
+    /*
+     * Keep the normal visible chat message.
+     */
+    if (selectedFile) {
+
+      addMessage(
+        "user",
+        userText +
+        "\n\n[Attached: " +
+        selectedFile.name +
+        "]"
+      );
+
+    } else {
+
+      addMessage(
+        "user",
+        userText
+      );
+
+    }
+
+
+    if (input) {
+
+      input.value = "";
+
+      input.style.height =
+        "44px";
+
+    }
+
+
+    let loading = null;
+
+
+    try {
+
+      /*
+       * Prepare the file without blindly
+       * converting a PDF into Base64.
+       */
+      let attachment = null;
+
+      if (selectedFile) {
+
+        smaterSetStatus(
+          "Reading file…"
+        );
+
+        attachment =
+          await smaterPrepareFile(
+            selectedFile
+          );
+
+      }
+
+
+      const chatInner =
+        document.getElementById(
+          "chatInner"
+        );
+
+
+      if (chatInner) {
+
+        loading =
+          document.createElement(
+            "div"
+          );
+
+        loading.className =
+          "message assistant";
+
+        loading.innerHTML = `
+          <div class="avatar">S</div>
+          <div class="messageWrap">
+            <div class="bubble">
+              Thinking…
+            </div>
+          </div>
+        `;
+
+        chatInner.appendChild(
+          loading
+        );
+
+        if (
+          typeof scrollChat ===
+          "function"
+        ) {
+          scrollChat();
+        }
+
+      }
+
+
+      const requestMessages =
+        messages.map(item => ({
+          role: item.role,
+          content: item.content
+        }));
+
+
+      /*
+       * For text/PDF files, send extracted text
+       * as a separate user message instead of
+       * putting the entire file into the JSON
+       * payload.
+       */
+      if (
+        attachment &&
+        typeof attachment.text === "string"
+      ) {
+
+        requestMessages.push({
+          role: "user",
+          content:
+            "File: " +
+            attachment.name +
+            "\n\n" +
+            "File content:\n\n" +
+            attachment.text
+        });
+
+      }
+
+
+      const response =
+        await fetch(
+          "/api/chat",
+          {
+            method: "POST",
+
+            headers: {
+              "Content-Type":
+                "application/json"
+            },
+
+            body: JSON.stringify({
+
+              messages:
+                requestMessages,
+
+              language:
+                typeof language !== "undefined"
+                  ? language
+                  : "auto",
+
+              mode:
+                typeof mode !== "undefined"
+                  ? mode
+                  : "normal",
+
+              /*
+               * Only images/other small files
+               * use the attachment field.
+               *
+               * PDF/text files have already been
+               * converted to text above.
+               */
+              file:
+                attachment &&
+                typeof attachment.text !== "string"
+                  ? attachment
+                  : null
+
+            })
+          }
+        );
+
+
+      if (loading) {
+        loading.remove();
+        loading = null;
+      }
+
+
+      let data = {};
+
+      try {
+
+        data =
+          await response.json();
+
+      } catch (_) {
+
+        data = {};
+
+      }
+
+
+      if (!response.ok) {
+
+        if (
+          response.status === 413
+        ) {
+
+          throw new Error(
+            "The file is still too large for the chat request. Please try a smaller file."
+          );
+
+        }
+
+
+        throw new Error(
+          data.error ||
+          "AI request failed."
+        );
+
+      }
+
+
+      const answer =
+        typeof data.text === "string"
+          ? data.text.trim()
+          : "";
+
+
+      if (!answer) {
+
+        throw new Error(
+          "AI returned an empty response."
+        );
+
+      }
+
+
+      addMessage(
+        "assistant",
+        answer
+      );
+
+
+      smaterSetStatus(
+        "AI ready"
+      );
+
+
+    } catch (error) {
+
+      if (loading) {
+        loading.remove();
+      }
+
+
+      console.error(
+        "SMATER CHAT AI file/chat error:",
+        error
+      );
+
+
+      smaterShowError(
+        error &&
+        error.message
+          ? error.message
+          : "Sorry, I couldn't complete that request. Please try again."
+      );
+
+
+      smaterSetStatus(
+        "AI ready"
+      );
+
+    } finally {
+
+      smaterFileSending = false;
+
+
+      if (
+        typeof sending !== "undefined"
+      ) {
+        sending = false;
+      }
+
+
+      if (
+        typeof removeFile ===
+        "function"
+      ) {
+        removeFile();
+      }
+
+
+      if (
+        typeof updateSendButton ===
+        "function"
+      ) {
+        updateSendButton();
+      }
+
+
+      if (input) {
+        input.focus();
+      }
+
+    }
+
+  }
+
+
+  /*
+   * Override ONLY the Send button.
+   *
+   * Existing Camera, Gallery and Mic
+   * handlers are not changed.
+   */
+  const sendButton =
+    document.getElementById(
+      "sendBtn"
+    );
+
+
+  if (sendButton) {
+
+    sendButton.onclick =
+      smaterSendMessage;
+
+  }
+
+
+})();
+</script>
  
 </body>
 </html>
