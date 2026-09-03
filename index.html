@@ -4931,6 +4931,391 @@ $("createPdfBtn").onclick = () => {
 
 };
 </script>
+<script>
+/* =========================================
+   SMATER CHAT AI
+   FINAL FILE API RESPONSE FIX
+   ========================================= */
 
+(function () {
+
+  async function smaterCreateFileFinal() {
+
+    if (typeof fileCreating !== "undefined" && fileCreating) {
+      return;
+    }
+
+    const promptBox =
+      document.getElementById("createFilePrompt");
+
+    const typeBox =
+      document.getElementById("createFileType");
+
+    const prompt =
+      promptBox
+        ? promptBox.value.trim()
+        : "";
+
+    const type =
+      typeBox
+        ? typeBox.value || "pdf"
+        : "pdf";
+
+    if (!prompt) {
+
+      alert(
+        "Please describe what you want to create."
+      );
+
+      if (promptBox) {
+        promptBox.focus();
+      }
+
+      return;
+    }
+
+    const button =
+      document.getElementById("createFileBtn");
+
+    try {
+
+      if (typeof fileCreating !== "undefined") {
+        fileCreating = true;
+      }
+
+      if (button) {
+        button.disabled = true;
+        button.textContent = "Creating…";
+      }
+
+      const status =
+        document.getElementById("status");
+
+      if (status) {
+        status.textContent =
+          "● Creating file…";
+      }
+
+      /*
+       * Close the creator modal.
+       */
+      if (typeof closeModal === "function") {
+        closeModal();
+      }
+
+      /*
+       * Show user's request in chat.
+       */
+      if (typeof addMessage === "function") {
+
+        addMessage(
+          "user",
+          "Create " +
+          type.toUpperCase() +
+          ":\n" +
+          prompt
+        );
+
+      }
+
+      /*
+       * Loading message.
+       */
+      const chatInner =
+        document.getElementById("chatInner");
+
+      let loading = null;
+
+      if (chatInner) {
+
+        loading =
+          document.createElement("div");
+
+        loading.className =
+          "message assistant";
+
+        loading.innerHTML = `
+          <div class="avatar">S</div>
+          <div class="messageWrap">
+            <div class="bubble">
+              Preparing your file…
+            </div>
+          </div>
+        `;
+
+        chatInner.appendChild(
+          loading
+        );
+
+        if (typeof scrollChat === "function") {
+          scrollChat();
+        }
+
+      }
+
+      /*
+       * Request the existing /api/file endpoint.
+       */
+      const response =
+        await fetch(
+          "/api/file",
+          {
+            method: "POST",
+
+            headers: {
+              "Content-Type":
+                "application/json"
+            },
+
+            body: JSON.stringify({
+
+              prompt: prompt,
+
+              type: type,
+
+              format: type,
+
+              language:
+                typeof language !== "undefined"
+                  ? language
+                  : "auto"
+
+            })
+          }
+        );
+
+      let data = {};
+
+      try {
+
+        data =
+          await response.json();
+
+      } catch (error) {
+
+        data = {};
+
+      }
+
+      /*
+       * Remove loading message.
+       */
+      if (loading) {
+        loading.remove();
+      }
+
+      /*
+       * Backend error.
+       */
+      if (!response.ok) {
+
+        throw new Error(
+          data.error ||
+          "File creation failed."
+        );
+
+      }
+
+      /*
+       * NEW API FORMAT:
+       *
+       * data.data
+       * data.base64
+       * data.fileName
+       * data.mimeType
+       */
+
+      const base64 =
+        typeof data.data === "string"
+          ? data.data
+          : typeof data.base64 === "string"
+            ? data.base64
+            : "";
+
+      if (!base64) {
+
+        throw new Error(
+          "No file data was returned."
+        );
+
+      }
+
+      const mimeType =
+        data.mimeType ||
+        data.fileType ||
+        (
+          type === "pdf"
+            ? "application/pdf"
+            : type === "html"
+              ? "text/html"
+              : "text/plain"
+        );
+
+      const fileName =
+        data.fileName ||
+        data.filename ||
+        (
+          type === "pdf"
+            ? "smater-chat-ai.pdf"
+            : type === "html"
+              ? "smater-chat-ai.html"
+              : "smater-chat-ai.txt"
+        );
+
+      /*
+       * Create a proper browser download.
+       */
+      const binary =
+        atob(base64);
+
+      const bytes =
+        new Uint8Array(
+          binary.length
+        );
+
+      for (
+        let i = 0;
+        i < binary.length;
+        i++
+      ) {
+
+        bytes[i] =
+          binary.charCodeAt(i);
+
+      }
+
+      const blob =
+        new Blob(
+          [bytes],
+          {
+            type: mimeType
+          }
+        );
+
+      const url =
+        URL.createObjectURL(blob);
+
+      /*
+       * Show ready message.
+       */
+      if (
+        typeof showCreatedFile ===
+        "function"
+      ) {
+
+        showCreatedFile(
+          url,
+          fileName
+        );
+
+      } else {
+
+        /*
+         * Safe fallback if the original
+         * display function is unavailable.
+         */
+        const link =
+          document.createElement("a");
+
+        link.href = url;
+        link.download = fileName;
+
+        document.body.appendChild(
+          link
+        );
+
+        link.click();
+
+        link.remove();
+
+      }
+
+      if (status) {
+        status.textContent =
+          "● AI ready";
+      }
+
+    } catch (error) {
+
+      console.error(
+        "SMATER CHAT AI file creation error:",
+        error
+      );
+
+      if (typeof addMessage === "function") {
+
+        addMessage(
+          "assistant",
+          "I couldn't create that file right now. Please try again."
+        );
+
+      } else {
+
+        alert(
+          "I couldn't create that file right now. Please try again."
+        );
+
+      }
+
+      const status =
+        document.getElementById("status");
+
+      if (status) {
+        status.textContent =
+          "● AI ready";
+      }
+
+    } finally {
+
+      if (typeof fileCreating !== "undefined") {
+        fileCreating = false;
+      }
+
+      const button =
+        document.getElementById("createFileBtn");
+
+      if (button) {
+        button.disabled = false;
+        button.textContent =
+          "Create File";
+      }
+
+    }
+
+  }
+
+
+  /*
+   * Replace the click handler ONLY when
+   * the Create File button exists.
+   *
+   * No other tool is touched.
+   */
+  document.addEventListener(
+    "click",
+    function (event) {
+
+      const target =
+        event.target;
+
+      if (
+        target &&
+        target.id === "createFileBtn"
+      ) {
+
+        event.preventDefault();
+        event.stopImmediatePropagation();
+
+        smaterCreateFileFinal();
+
+      }
+
+    },
+    true
+  );
+
+})();
+</script>
+ 
 </body>
 </html>
