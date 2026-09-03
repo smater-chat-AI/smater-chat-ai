@@ -1,12 +1,16 @@
 import PDFDocument from "pdfkit";
-import fs from "fs";
-import path from "path";
-import { createRequire } from "module";
-
-const require = createRequire(import.meta.url);
 
 const OPENROUTER_URL =
   "https://openrouter.ai/api/v1/chat/completions";
+
+const DEVANAGARI_REGULAR_URL =
+  "https://raw.githubusercontent.com/notofonts/noto-fonts/main/hinted/ttf/NotoSansDevanagari/NotoSansDevanagari-Regular.ttf";
+
+const DEVANAGARI_BOLD_URL =
+  "https://raw.githubusercontent.com/notofonts/noto-fonts/main/hinted/ttf/NotoSansDevanagari/NotoSansDevanagari-Bold.ttf";
+
+let hindiRegularBuffer = null;
+let hindiBoldBuffer = null;
 
 function cleanText(text = "") {
   return String(text)
@@ -20,32 +24,34 @@ function safeFileName(name = "smater-chat-ai") {
   return (
     String(name)
       .replace(/[^a-zA-Z0-9_-]/g, "_")
-      .slice(0, 80) || "smater-chat-ai"
+      .slice(0, 80) ||
+    "smater-chat-ai"
   );
 }
 
 /*
  * ---------------------------------------------------------
- * LANGUAGE DETECTION
+ * LANGUAGE
  * ---------------------------------------------------------
  *
- * Default:
- * English
+ * Default = English
  *
- * "Hindi PDF":
- * Hindi
+ * Hindi PDF:
+ * "Hindi PDF"
  *
- * "Hindi + English PDF":
- * Both
+ * Both:
+ * "Hindi + English PDF"
  */
 
 function detectLanguage(prompt = "") {
-  const text = String(prompt).toLowerCase();
+  const text =
+    String(prompt).toLowerCase();
 
   const hindi =
     text.includes("hindi") ||
     text.includes("हिंदी") ||
     text.includes("हिन्दी") ||
+    text.includes("devanagari") ||
     text.includes("देवनागरी");
 
   const english =
@@ -66,15 +72,16 @@ function detectLanguage(prompt = "") {
 
 /*
  * ---------------------------------------------------------
- * COLOUR DETECTION
+ * COLOUR
  * ---------------------------------------------------------
  *
- * PDF stays normal black/white unless the user explicitly
- * asks for colour.
+ * Normal PDF = black/white.
+ * Colour only when explicitly requested.
  */
 
 function isColourfulRequest(prompt = "") {
-  const text = String(prompt).toLowerCase();
+  const text =
+    String(prompt).toLowerCase();
 
   return (
     text.includes("colourful") ||
@@ -92,55 +99,72 @@ function isColourfulRequest(prompt = "") {
 
 /*
  * ---------------------------------------------------------
- * FONT RESOLUTION
+ * HINDI FONT LOADER
  * ---------------------------------------------------------
  *
- * We use Node's package resolver instead of hard-coding
- * /var/task/node_modules paths.
+ * IMPORTANT:
+ * We use TTF, not WOFF2.
+ * The old WOFF2 font caused the fontkit DataView crash.
  */
 
-function resolveFont(packageName, fileName) {
-  try {
-    return require.resolve(
-      `${packageName}/files/${fileName}`
+async function loadHindiFont(url) {
+  const response =
+    await fetch(url);
+
+  if (!response.ok) {
+    throw new Error(
+      `Hindi font download failed: ${response.status}`
     );
-  } catch (error) {
-    return null;
   }
+
+  const arrayBuffer =
+    await response.arrayBuffer();
+
+  return Buffer.from(
+    arrayBuffer
+  );
 }
 
-function findFonts() {
-  const englishRegular =
-    resolveFont(
-      "@fontsource/noto-sans",
-      "noto-sans-latin-400-normal.woff2"
+async function getHindiFonts() {
+  if (
+    hindiRegularBuffer &&
+    hindiBoldBuffer
+  ) {
+    return {
+      regular:
+        hindiRegularBuffer,
+      bold:
+        hindiBoldBuffer
+    };
+  }
+
+  hindiRegularBuffer =
+    await loadHindiFont(
+      DEVANAGARI_REGULAR_URL
     );
 
-  const englishBold =
-    resolveFont(
-      "@fontsource/noto-sans",
-      "noto-sans-latin-700-normal.woff2"
+  hindiBoldBuffer =
+    await loadHindiFont(
+      DEVANAGARI_BOLD_URL
     );
 
-  const hindiRegular =
-    resolveFont(
-      "@fontsource/noto-sans-devanagari",
-      "noto-sans-devanagari-400-normal.woff2"
-    );
-
-  const hindiBold =
-    resolveFont(
-      "@fontsource/noto-sans-devanagari",
-      "noto-sans-devanagari-700-normal.woff2"
-    );
+  console.log(
+    "SMATER CHAT AI: Hindi TTF fonts loaded"
+  );
 
   return {
-    englishRegular,
-    englishBold,
-    hindiRegular,
-    hindiBold
+    regular:
+      hindiRegularBuffer,
+    bold:
+      hindiBoldBuffer
   };
 }
+
+/*
+ * ---------------------------------------------------------
+ * TEXT HELPERS
+ * ---------------------------------------------------------
+ */
 
 function containsHindi(text = "") {
   return /[\u0900-\u097F]/.test(
@@ -148,20 +172,10 @@ function containsHindi(text = "") {
   );
 }
 
-function containsEnglish(text = "") {
-  return /[A-Za-z]/.test(
-    String(text)
-  );
-}
-
-/*
- * Split a line into Hindi and non-Hindi runs.
- * This lets mixed Hindi + English documents use
- * the appropriate font for each part.
- */
-
 function splitLanguageRuns(text = "") {
-  const value = String(text);
+  const value =
+    String(text);
+
   const runs = [];
 
   let current = "";
@@ -169,31 +183,45 @@ function splitLanguageRuns(text = "") {
 
   for (const char of value) {
     const charHindi =
-      /[\u0900-\u097F]/.test(char);
+      /[\u0900-\u097F]/.test(
+        char
+      );
 
-    if (currentHindi === null) {
-      currentHindi = charHindi;
+    if (
+      currentHindi === null
+    ) {
+      currentHindi =
+        charHindi;
+
       current = char;
+
       continue;
     }
 
-    if (charHindi === currentHindi) {
+    if (
+      charHindi ===
+      currentHindi
+    ) {
       current += char;
     } else {
       runs.push({
         text: current,
-        hindi: currentHindi
+        hindi:
+          currentHindi
       });
 
       current = char;
-      currentHindi = charHindi;
+
+      currentHindi =
+        charHindi;
     }
   }
 
   if (current) {
     runs.push({
       text: current,
-      hindi: currentHindi
+      hindi:
+        currentHindi
     });
   }
 
@@ -201,218 +229,8 @@ function splitLanguageRuns(text = "") {
 }
 
 /*
- * Escape HTML special characters.
- */
-
-function escapeHtml(text = "") {
-  return String(text)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
-async function generateAIContent(prompt, language) {
-  const apiKey =
-    process.env.OPENROUTER_API_KEY;
-
-  if (!apiKey) {
-    throw new Error(
-      "OPENROUTER_API_KEY is not configured"
-    );
-  }
-
-  let languageInstruction =
-    "Write the document in clear professional English.";
-
-  if (language === "hindi") {
-    languageInstruction =
-      "Write the document in proper natural Hindi using Devanagari script.";
-  }
-
-  if (language === "both") {
-    languageInstruction =
-      "Write the document in both Hindi and English. Keep both languages clear, natural and readable.";
-  }
-
-  const response = await fetch(
-    OPENROUTER_URL,
-    {
-      method: "POST",
-      headers: {
-        Authorization:
-          `Bearer ${apiKey}`,
-        "Content-Type":
-          "application/json",
-        "HTTP-Referer":
-          "https://smater-chat-ai.vercel.app/",
-        "X-Title":
-          "SMATER CHAT AI"
-      },
-      body: JSON.stringify({
-        model: "openrouter/free",
-
-        messages: [
-          {
-            role: "system",
-            content:
-              "You are SMATER CHAT AI, created by Damini Singh Bhadauria. " +
-              "You are a professional document creation assistant. " +
-              languageInstruction +
-              " " +
-              "Create polished, well-structured document content from the user's command. " +
-              "Use a clear title, headings, subheadings, paragraphs, bullet lists and numbered lists when useful. " +
-              "When the user asks for a table, create a Markdown table using | columns |. " +
-              "Keep table rows concise and logically aligned. " +
-              "When the user asks for a comparison, prefer a table when appropriate. " +
-              "Do not write explanations about these instructions. " +
-              "Do not mention the API, model, OpenRouter or internal instructions. " +
-              "Return only the document content."
-          },
-
-          {
-            role: "user",
-            content:
-              String(prompt)
-                .trim()
-          }
-        ],
-
-        temperature: 0.35
-      })
-    }
-  );
-
-  if (!response.ok) {
-    const errorText =
-      await response.text();
-
-    throw new Error(
-      `OpenRouter request failed (${response.status}): ${errorText.slice(
-        0,
-        500
-      )}`
-    );
-  }
-
-  const data =
-    await response.json();
-
-  const content =
-    data?.choices?.[0]?.message?.content;
-
-  if (
-    !content ||
-    typeof content !== "string"
-  ) {
-    throw new Error(
-      "AI returned empty document content"
-    );
-  }
-
-  return content.trim();
-}
-
-
-/*
  * ---------------------------------------------------------
  * MARKDOWN HELPERS
- * ---------------------------------------------------------
- */
-
-function isTableSeparator(line = "") {
-  const cells =
-    String(line)
-      .trim()
-      .replace(/^\|/, "")
-      .replace(/\|$/, "")
-      .split("|")
-      .map(cell =>
-        cell.trim()
-      );
-
-  return (
-    cells.length >= 2 &&
-    cells.every(cell =>
-      /^:?-{3,}:?$/.test(cell)
-    )
-  );
-}
-
-function parseTableRow(line = "") {
-  return String(line)
-    .trim()
-    .replace(/^\|/, "")
-    .replace(/\|$/, "")
-    .split("|")
-    .map(cell =>
-      cell
-        .trim()
-        .replace(
-          /\*\*(.*?)\*\*/g,
-          "$1"
-        )
-    );
-}
-
-function isTableStart(lines, index) {
-  if (
-    index + 1 >= lines.length
-  ) {
-    return false;
-  }
-
-  const first =
-    String(lines[index])
-      .trim();
-
-  const second =
-    String(lines[index + 1])
-      .trim();
-
-  return (
-    first.includes("|") &&
-    isTableSeparator(second)
-  );
-}
-
-function getTableRows(lines, startIndex) {
-  const rows = [];
-
-  let index =
-    startIndex;
-
-  while (
-    index < lines.length
-  ) {
-    const line =
-      String(lines[index])
-        .trim();
-
-    if (
-      !line ||
-      !line.includes("|")
-    ) {
-      break;
-    }
-
-    rows.push(
-      parseTableRow(line)
-    );
-
-    index++;
-  }
-
-  return {
-    rows,
-    nextIndex: index
-  };
-}
-
-
-/*
- * ---------------------------------------------------------
- * TEXT / MARKDOWN CLEANING
  * ---------------------------------------------------------
  */
 
@@ -434,12 +252,6 @@ function removeMarkdownFormatting(
     )
     .trim();
 }
-
-
-/*
- * Convert common Markdown heading
- * syntax into clean heading text.
- */
 
 function getHeadingInfo(
   line = ""
@@ -466,11 +278,6 @@ function getHeadingInfo(
   };
 }
 
-
-/*
- * Detect bullet lines.
- */
-
 function getBulletText(
   line = ""
 ) {
@@ -481,17 +288,14 @@ function getBulletText(
         /^[-*•]\s+(.+)$/
       );
 
-  return match
-    ? removeMarkdownFormatting(
-        match[1]
-      )
-    : null;
+  if (!match) {
+    return null;
+  }
+
+  return removeMarkdownFormatting(
+    match[1]
+  );
 }
-
-
-/*
- * Detect numbered list lines.
- */
 
 function getNumberedText(
   line = ""
@@ -508,835 +312,838 @@ function getNumberedText(
   }
 
   return {
-    number: match[1],
+    number:
+      match[1],
+
     text:
       removeMarkdownFormatting(
         match[2]
       )
   };
 }
-function buildPdf(
-  content,
-  title,
+/*
+ * ---------------------------------------------------------
+ * PDF FONT SETUP
+ * ---------------------------------------------------------
+ */
+
+function registerFonts(
+  doc,
+  language,
+  hindiFonts
+) {
+  /*
+   * PDFKit's built-in Helvetica is used
+   * for English text.
+   *
+   * Hindi / Devanagari uses downloaded TTF.
+   */
+
+  doc.registerFont(
+    "SMATER_EN",
+    "Helvetica"
+  );
+
+  doc.registerFont(
+    "SMATER_EN_BOLD",
+    "Helvetica-Bold"
+  );
+
+  if (
+    language === "hindi" ||
+    language === "both"
+  ) {
+    if (
+      !hindiFonts ||
+      !hindiFonts.regular ||
+      !hindiFonts.bold
+    ) {
+      throw new Error(
+        "Hindi TTF fonts are not available"
+      );
+    }
+
+    doc.registerFont(
+      "SMATER_HI",
+      hindiFonts.regular
+    );
+
+    doc.registerFont(
+      "SMATER_HI_BOLD",
+      hindiFonts.bold
+    );
+  }
+}
+
+/*
+ * ---------------------------------------------------------
+ * PDF TEXT WRITER
+ * ---------------------------------------------------------
+ */
+
+function writeMixedText(
+  doc,
+  text,
+  options = {}
+) {
+  const {
+    language = "english",
+    bold = false,
+    size = 11,
+    lineGap = 4
+  } = options;
+
+  const value =
+    String(text ?? "");
+
+  doc.fontSize(size);
+
+  /*
+   * Pure Hindi PDF
+   */
+  if (language === "hindi") {
+    doc.font(
+      bold
+        ? "SMATER_HI_BOLD"
+        : "SMATER_HI"
+    );
+
+    doc.text(
+      value,
+      {
+        lineGap
+      }
+    );
+
+    return;
+  }
+
+  /*
+   * Pure English PDF
+   */
+  if (language === "english") {
+    doc.font(
+      bold
+        ? "SMATER_EN_BOLD"
+        : "SMATER_EN"
+    );
+
+    doc.text(
+      value,
+      {
+        lineGap
+      }
+    );
+
+    return;
+  }
+
+  /*
+   * Hindi + English PDF
+   *
+   * Switches fonts automatically
+   * whenever Devanagari text appears.
+   */
+
+  const runs =
+    splitLanguageRuns(
+      value
+    );
+
+  for (const run of runs) {
+    if (!run.text) {
+      continue;
+    }
+
+    if (run.hindi) {
+      doc.font(
+        bold
+          ? "SMATER_HI_BOLD"
+          : "SMATER_HI"
+      );
+    } else {
+      doc.font(
+        bold
+          ? "SMATER_EN_BOLD"
+          : "SMATER_EN"
+      );
+    }
+
+    doc.text(
+      run.text,
+      {
+        continued: true
+      }
+    );
+  }
+
+  doc.text("", {
+    lineGap
+  });
+}
+
+/*
+ * ---------------------------------------------------------
+ * PAGE HEADER / FOOTER
+ * ---------------------------------------------------------
+ */
+
+function addPageNumber(
+  doc,
+  pageNumber
+) {
+  const oldY =
+    doc.y;
+
+  doc
+    .font(
+      "SMATER_EN"
+    )
+    .fontSize(8)
+    .text(
+      `Page ${pageNumber}`,
+      0,
+      doc.page.height - 35,
+      {
+        align: "center",
+        width:
+          doc.page.width
+      }
+    );
+
+  doc.y = oldY;
+}
+
+/*
+ * ---------------------------------------------------------
+ * TITLE
+ * ---------------------------------------------------------
+ */
+
+function writeTitle(
+  doc,
+  text,
   language,
   colourful
 ) {
-  return new Promise(
+  const title =
+    removeMarkdownFormatting(
+      text
+    );
+
+  doc
+    .font(
+      language === "hindi"
+        ? "SMATER_HI_BOLD"
+        : "SMATER_EN_BOLD"
+    )
+    .fontSize(22);
+
+  if (colourful) {
+    doc.fillColor("#2457C5");
+  } else {
+    doc.fillColor("#000000");
+  }
+
+  doc.text(
+    title,
+    {
+      align: "center",
+      lineGap: 6
+    }
+  );
+
+  doc.moveDown(0.8);
+
+  doc.fillColor(
+    "#000000"
+  );
+}
+
+/*
+ * ---------------------------------------------------------
+ * HEADING
+ * ---------------------------------------------------------
+ */
+
+function writeHeading(
+  doc,
+  text,
+  level,
+  language,
+  colourful
+) {
+  const heading =
+    removeMarkdownFormatting(
+      text
+    );
+
+  const size =
+    level === 1
+      ? 17
+      : level === 2
+        ? 14
+        : 12;
+
+  doc.moveDown(
+    level === 1
+      ? 0.8
+      : 0.5
+  );
+
+  doc
+    .font(
+      language === "hindi"
+        ? "SMATER_HI_BOLD"
+        : "SMATER_EN_BOLD"
+    )
+    .fontSize(size);
+
+  if (colourful) {
+    doc.fillColor(
+      level === 1
+        ? "#2457C5"
+        : "#333333"
+    );
+  } else {
+    doc.fillColor(
+      "#000000"
+    );
+  }
+
+  doc.text(
+    heading,
+    {
+      lineGap: 4
+    }
+  );
+
+  doc.fillColor(
+    "#000000"
+  );
+
+  doc.moveDown(0.2);
+}
+
+/*
+ * ---------------------------------------------------------
+ * BULLET
+ * ---------------------------------------------------------
+ */
+
+function writeBullet(
+  doc,
+  text,
+  language
+) {
+  const bullet =
+    removeMarkdownFormatting(
+      text
+    );
+
+  doc
+    .font(
+      language === "hindi"
+        ? "SMATER_HI"
+        : "SMATER_EN"
+    )
+    .fontSize(11)
+    .fillColor("#000000");
+
+  doc.text(
+    `• ${bullet}`,
+    {
+      indent: 12,
+      hanging: 6,
+      lineGap: 4
+    }
+  );
+}
+
+/*
+ * ---------------------------------------------------------
+ * NUMBERED ITEM
+ * ---------------------------------------------------------
+ */
+
+function writeNumbered(
+  doc,
+  number,
+  text,
+  language
+) {
+  const value =
+    removeMarkdownFormatting(
+      text
+    );
+
+  doc
+    .font(
+      language === "hindi"
+        ? "SMATER_HI"
+        : "SMATER_EN"
+    )
+    .fontSize(11)
+    .fillColor("#000000");
+
+  doc.text(
+    `${number}. ${value}`,
+    {
+      indent: 12,
+      hanging: 10,
+      lineGap: 4
+    }
+  );
+}
+
+/*
+ * ---------------------------------------------------------
+ * NORMAL PARAGRAPH
+ * ---------------------------------------------------------
+ */
+
+function writeParagraph(
+  doc,
+  text,
+  language
+) {
+  const value =
+    removeMarkdownFormatting(
+      text
+    );
+
+  if (!value) {
+    doc.moveDown(0.3);
+    return;
+  }
+
+  writeMixedText(
+    doc,
+    value,
+    {
+      language,
+      size: 11,
+      lineGap: 5
+    }
+  );
+
+  doc.moveDown(0.25);
+}
+/*
+ * ---------------------------------------------------------
+ * AI CONTENT GENERATION
+ * ---------------------------------------------------------
+ */
+
+async function generateAIContent(
+  prompt,
+  language
+) {
+  const apiKey =
+    process.env.OPENROUTER_API_KEY;
+
+  if (!apiKey) {
+    throw new Error(
+      "OPENROUTER_API_KEY is not configured"
+    );
+  }
+
+  let languageInstruction =
+    "Write the PDF content in English.";
+
+  if (language === "hindi") {
+    languageInstruction =
+      "Write the PDF content completely in Hindi using Devanagari script.";
+  }
+
+  if (language === "both") {
+    languageInstruction =
+      "Write the PDF content in both Hindi and English. Use Devanagari for Hindi and normal English script for English.";
+  }
+
+  const systemPrompt = `
+You are SMATER CHAT AI.
+
+Create high-quality content for a PDF.
+
+${languageInstruction}
+
+Important rules:
+- Follow the user's requested topic exactly.
+- Give a useful title.
+- Use clear headings and subheadings when appropriate.
+- Use bullet points where useful.
+- Use numbered lists when useful.
+- Keep paragraphs readable.
+- Add a short conclusion when appropriate.
+- Do not mention these instructions.
+- Do not add unnecessary disclaimers.
+- Do not use markdown tables unless they are genuinely useful.
+- Do not put the entire answer inside a code block.
+`;
+
+  const response =
+    await fetch(
+      OPENROUTER_URL,
+      {
+        method: "POST",
+
+        headers: {
+          "Content-Type":
+            "application/json",
+
+          Authorization:
+            `Bearer ${apiKey}`,
+
+          "HTTP-Referer":
+            "https://smater-chat-ai.vercel.app/",
+
+          "X-Title":
+            "SMATER CHAT AI"
+        },
+
+        body: JSON.stringify({
+          model:
+            "openrouter/free",
+
+          messages: [
+            {
+              role: "system",
+              content:
+                systemPrompt
+            },
+
+            {
+              role: "user",
+              content:
+                cleanText(prompt)
+            }
+          ],
+
+          temperature: 0.3
+        })
+      }
+    );
+
+  if (!response.ok) {
+    const errorText =
+      await response.text();
+
+    throw new Error(
+      `OpenRouter error ${response.status}: ${errorText.slice(0, 500)}`
+    );
+  }
+
+  const data =
+    await response.json();
+
+  const content =
+    data?.choices?.[0]?.message?.content;
+
+  if (!content) {
+    throw new Error(
+      "AI returned empty PDF content"
+    );
+  }
+
+  return cleanText(
+    content
+  );
+}
+
+/*
+ * ---------------------------------------------------------
+ * CONTENT RENDERER
+ * ---------------------------------------------------------
+ */
+
+function renderContent(
+  doc,
+  content,
+  language,
+  colourful
+) {
+  const lines =
+    String(content)
+      .replace(/\r/g, "")
+      .split("\n");
+
+  let titleWritten =
+    false;
+
+  let pageNumber = 1;
+
+  /*
+   * Add footer to every page.
+   */
+  doc.on(
+    "pageAdded",
+    () => {
+      pageNumber += 1;
+
+      addPageNumber(
+        doc,
+        pageNumber
+      );
+    }
+  );
+
+  for (let i = 0; i < lines.length; i++) {
+    const raw =
+      lines[i];
+
+    const line =
+      raw.trim();
+
+    if (!line) {
+      doc.moveDown(0.25);
+      continue;
+    }
+
+    /*
+     * Markdown heading
+     */
+    const heading =
+      getHeadingInfo(
+        line
+      );
+
+    if (heading) {
+      if (
+        !titleWritten &&
+        heading.level === 1
+      ) {
+        writeTitle(
+          doc,
+          heading.text,
+          language,
+          colourful
+        );
+
+        titleWritten = true;
+      } else {
+        writeHeading(
+          doc,
+          heading.text,
+          heading.level,
+          language,
+          colourful
+        );
+      }
+
+      continue;
+    }
+
+    /*
+     * Bullet point
+     */
+    const bullet =
+      getBulletText(
+        line
+      );
+
+    if (bullet) {
+      writeBullet(
+        doc,
+        bullet,
+        language
+      );
+
+      continue;
+    }
+
+    /*
+     * Numbered list
+     */
+    const numbered =
+      getNumberedText(
+        line
+      );
+
+    if (numbered) {
+      writeNumbered(
+        doc,
+        numbered.number,
+        numbered.text,
+        language
+      );
+
+      continue;
+    }
+
+    /*
+     * Automatically treat the first
+     * short line as a possible title.
+     */
+    if (
+      !titleWritten &&
+      lines.length > 1 &&
+      line.length <= 100
+    ) {
+      writeTitle(
+        doc,
+        line,
+        language,
+        colourful
+      );
+
+      titleWritten = true;
+
+      continue;
+    }
+
+    /*
+     * Normal paragraph
+     */
+    writeParagraph(
+      doc,
+      line,
+      language
+    );
+  }
+}
+
+/*
+ * ---------------------------------------------------------
+ * PDF BUILDER
+ * ---------------------------------------------------------
+ */
+
+async function buildPdf(
+  content,
+  language,
+  colourful
+) {
+  let hindiFonts = null;
+
+  /*
+   * Hindi TTF fonts are needed only
+   * for Hindi or mixed-language PDFs.
+   */
+  if (
+    language === "hindi" ||
+    language === "both"
+  ) {
+    hindiFonts =
+      await getHindiFonts();
+  }
+
+  return await new Promise(
     (resolve, reject) => {
       try {
-        const fonts =
-          findFonts();
-
-        if (!fonts.englishRegular) {
-          throw new Error(
-            "English PDF font not found"
-          );
-        }
-
-        if (
-          (language === "hindi" ||
-            language === "both") &&
-          !fonts.hindiRegular
-        ) {
-          throw new Error(
-            "Hindi PDF font not found"
-          );
-        }
-
         const doc =
           new PDFDocument({
             size: "A4",
+
             margins: {
-              top: 60,
-              bottom: 60,
-              left: 50,
-              right: 50
+              top: 55,
+              bottom: 55,
+              left: 55,
+              right: 55
             },
-            bufferPages: true
+
+            bufferPages: true,
+
+            autoFirstPage: true
           });
 
         const chunks = [];
 
         doc.on(
           "data",
-          chunk => {
-            chunks.push(chunk);
+          (chunk) => {
+            chunks.push(
+              chunk
+            );
           }
         );
 
         doc.on(
           "error",
-          reject
+          (error) => {
+            reject(error);
+          }
         );
 
         doc.on(
           "end",
           () => {
-            try {
-              resolve(
-                Buffer.concat(
-                  chunks
-                )
-              );
-            } catch (error) {
-              reject(error);
-            }
-          }
-        );
-
-        /*
-         * Register fonts
-         */
-        doc.registerFont(
-          "SMATER_EN",
-          fonts.englishRegular
-        );
-
-        if (fonts.englishBold) {
-          doc.registerFont(
-            "SMATER_EN_BOLD",
-            fonts.englishBold
-          );
-        }
-
-        if (fonts.hindiRegular) {
-          doc.registerFont(
-            "SMATER_HI",
-            fonts.hindiRegular
-          );
-        }
-
-        if (fonts.hindiBold) {
-          doc.registerFont(
-            "SMATER_HI_BOLD",
-            fonts.hindiBold
-          );
-        }
-
-        const pageWidth =
-          doc.page.width -
-          doc.page.margins.left -
-          doc.page.margins.right;
-
-        const normalColor =
-          "#111111";
-
-        const accentColor =
-          colourful
-            ? "#1f4e79"
-            : "#111111";
-
-        const tableHeaderColor =
-          colourful
-            ? "#dbeafe"
-            : "#eeeeee";
-
-        const tableBorderColor =
-          colourful
-            ? "#7aa7d9"
-            : "#999999";
-
-
-        function setFont(
-          text = "",
-          bold = false
-        ) {
-          const hindi =
-            containsHindi(text);
-
-          if (
-            hindi &&
-            fonts.hindiRegular
-          ) {
-            if (
-              bold &&
-              fonts.hindiBold
-            ) {
-              doc.font(
-                "SMATER_HI_BOLD"
-              );
-            } else {
-              doc.font(
-                "SMATER_HI"
-              );
-            }
-
-            return;
-          }
-
-          if (
-            bold &&
-            fonts.englishBold
-          ) {
-            doc.font(
-              "SMATER_EN_BOLD"
-            );
-          } else {
-            doc.font(
-              "SMATER_EN"
-            );
-          }
-        }
-
-
-        function writeMixed(
-          text,
-          options = {}
-        ) {
-          const {
-            fontSize = 11,
-            bold = false,
-            color = normalColor,
-            align = "left",
-            lineGap = 4
-          } = options;
-
-          const value =
-            String(text || "");
-
-          const runs =
-            splitLanguageRuns(
-              value
-            );
-
-          if (
-            runs.length === 1
-          ) {
-            setFont(
-              value,
-              bold
-            );
-
-            doc
-              .fontSize(fontSize)
-              .fillColor(color)
-              .text(
-                value,
-                {
-                  width:
-                    pageWidth,
-                  align,
-                  lineGap
-                }
-              );
-
-            return;
-          }
-
-          for (
-            let i = 0;
-            i < runs.length;
-            i++
-          ) {
-            const run =
-              runs[i];
-
-            setFont(
-              run.text,
-              bold
-            );
-
-            doc
-              .fontSize(fontSize)
-              .fillColor(color)
-              .text(
-                run.text,
-                {
-                  width:
-                    pageWidth,
-                  align,
-                  lineGap,
-                  continued:
-                    i <
-                    runs.length - 1
-                }
-              );
-          }
-
-          doc.text("");
-        }
-
-
-        function drawHeading(
-          text,
-          level = 2
-        ) {
-          const size =
-            level === 1
-              ? 20
-              : level === 2
-                ? 16
-                : 13;
-
-          doc.moveDown(
-            0.35
-          );
-
-          writeMixed(
-            text,
-            {
-              fontSize:
-                size,
-              bold: true,
-              color:
-                accentColor,
-              lineGap: 5
-            }
-          );
-
-          doc.moveDown(
-            0.2
-          );
-        }
-
-
-        function drawParagraph(
-          text
-        ) {
-          writeMixed(
-            text,
-            {
-              fontSize: 11,
-              color:
-                normalColor,
-              lineGap: 4
-            }
-          );
-
-          doc.moveDown(
-            0.12
-          );
-        }
-
-
-        function drawBullet(
-          text
-        ) {
-          const x =
-            doc.page.margins.left;
-
-          const bulletWidth =
-            18;
-
-          const textWidth =
-            pageWidth -
-            bulletWidth;
-
-          setFont(
-            text,
-            false
-          );
-
-          doc
-            .fontSize(11)
-            .fillColor(
-              normalColor
-            );
-
-          doc.text(
-            "•",
-            x,
-            doc.y,
-            {
-              width:
-                bulletWidth
-            }
-          );
-
-          const currentY =
-            doc.y;
-
-          doc.text(
-            text,
-            x +
-              bulletWidth,
-            currentY,
-            {
-              width:
-                textWidth,
-              lineGap: 3
-            }
-          );
-
-          doc.moveDown(
-            0.08
-          );
-        }
-
-
-        function drawNumbered(
-          number,
-          text
-        ) {
-          const x =
-            doc.page.margins.left;
-
-          const numberWidth =
-            25;
-
-          setFont(
-            text,
-            false
-          );
-
-          doc
-            .fontSize(11)
-            .fillColor(
-              normalColor
-            );
-
-          doc.text(
-            `${number}.`,
-            x,
-            doc.y,
-            {
-              width:
-                numberWidth
-            }
-          );
-
-          const currentY =
-            doc.y;
-
-          doc.text(
-            text,
-            x +
-              numberWidth,
-            currentY,
-            {
-              width:
-                pageWidth -
-                numberWidth,
-              lineGap: 3
-            }
-          );
-
-          doc.moveDown(
-            0.08
-          );
-        }
-
-
-        /*
-         * Professional table renderer
-         */
-        function drawTable(
-          rows
-        ) {
-          if (
-            !rows ||
-            rows.length < 2
-          ) {
-            return;
-          }
-
-          const columnCount =
-            Math.max(
-              ...rows.map(
-                row =>
-                  row.length
+            resolve(
+              Buffer.concat(
+                chunks
               )
             );
-
-          const normalized =
-            rows.map(row => {
-              const copy =
-                row.slice();
-
-              while (
-                copy.length <
-                columnCount
-              ) {
-                copy.push("");
-              }
-
-              return copy;
-            });
-
-          const tableWidth =
-            pageWidth;
-
-          const columnWidth =
-            tableWidth /
-            columnCount;
-
-          const cellPadding =
-            6;
-
-          const fontSize = 9;
-
-          for (
-            let r = 0;
-            r < normalized.length;
-            r++
-          ) {
-            const row =
-              normalized[r];
-
-            const isHeader =
-              r === 0;
-
-            let rowHeight = 28;
-
-            for (
-              let c = 0;
-              c < columnCount;
-              c++
-            ) {
-              const value =
-                removeMarkdownFormatting(
-                  row[c] || ""
-                );
-
-              setFont(
-                value,
-                isHeader
-              );
-
-              const height =
-                doc.heightOfString(
-                  value,
-                  {
-                    width:
-                      Math.max(
-                        20,
-                        columnWidth -
-                          cellPadding *
-                            2
-                      ),
-                    fontSize,
-                    lineGap: 2
-                  }
-                ) +
-                cellPadding *
-                  2;
-
-              rowHeight =
-                Math.max(
-                  rowHeight,
-                  height
-                );
-            }
-
-            /*
-             * Start a new page if the row
-             * will not fit.
-             */
-            if (
-              doc.y +
-                rowHeight >
-              doc.page.height -
-                doc.page.margins.bottom
-            ) {
-              doc.addPage();
-            }
-
-            const startY =
-              doc.y;
-
-            for (
-              let c = 0;
-              c < columnCount;
-              c++
-            ) {
-              const value =
-                removeMarkdownFormatting(
-                  row[c] || ""
-                );
-
-              const startX =
-                doc.page.margins.left +
-                c *
-                  columnWidth;
-
-              doc
-                .save()
-                .lineWidth(0.6)
-                .strokeColor(
-                  tableBorderColor
-                );
-
-              if (
-                isHeader
-              ) {
-                doc
-                  .rect(
-                    startX,
-                    startY,
-                    columnWidth,
-                    rowHeight
-                  )
-                  .fill(
-                    tableHeaderColor
-                  );
-
-                doc
-                  .rect(
-                    startX,
-                    startY,
-                    columnWidth,
-                    rowHeight
-                  )
-                  .stroke();
-              } else {
-                doc
-                  .rect(
-                    startX,
-                    startY,
-                    columnWidth,
-                    rowHeight
-                  )
-                  .stroke();
-              }
-
-              setFont(
-                value,
-                isHeader
-              );
-
-              doc
-                .fontSize(
-                  fontSize
-                )
-                .fillColor(
-                  isHeader
-                    ? accentColor
-                    : normalColor
-                )
-                .text(
-                  value,
-                  startX +
-                    cellPadding,
-                  startY +
-                    cellPadding,
-                  {
-                    width:
-                      Math.max(
-                        20,
-                        columnWidth -
-                          cellPadding *
-                            2
-                      ),
-                    height:
-                      rowHeight -
-                      cellPadding *
-                        2,
-                    align:
-                      "left",
-                    lineGap: 2
-                  }
-                );
-
-              doc.restore();
-            }
-
-            doc.y =
-              startY +
-              rowHeight;
-          }
-
-          doc.moveDown(
-            0.45
-          );
-        }
-
-
-        /*
-         * TITLE
-         */
-        writeMixed(
-          title ||
-            "SMATER CHAT AI",
-          {
-            fontSize: 21,
-            bold: true,
-            color:
-              accentColor,
-            align:
-              "center",
-            lineGap: 5
           }
         );
 
-        doc.moveDown(
-          0.8
+        /*
+         * Register fonts.
+         *
+         * English = PDFKit built-in Helvetica.
+         * Hindi = TTF Noto Sans Devanagari.
+         */
+        registerFonts(
+          doc,
+          language,
+          hindiFonts
         );
 
-
         /*
-         * CONTENT
+         * Default PDF appearance:
+         * black and white.
+         *
+         * Colour is enabled only when
+         * explicitly requested.
          */
-        const lines =
-          cleanText(
-            content
-          ).split("\n");
-
-        for (
-          let i = 0;
-          i < lines.length;
-        ) {
-          const raw =
-            lines[i];
-
-          const line =
-            raw.trim();
-
-          if (!line) {
-            doc.moveDown(
-              0.35
-            );
-
-            i++;
-            continue;
-          }
-
-
-          /*
-           * TABLE
-           */
-          if (
-            isTableStart(
-              lines,
-              i
-            )
-          ) {
-            const table =
-              getTableRows(
-                lines,
-                i
-              );
-
-            drawTable(
-              table.rows
-            );
-
-            i =
-              table.nextIndex;
-
-            continue;
-          }
-
-
-          /*
-           * HEADING
-           */
-          const heading =
-            getHeadingInfo(
-              line
-            );
-
-          if (heading) {
-            drawHeading(
-              heading.text,
-              heading.level
-            );
-
-            i++;
-            continue;
-          }
-
-
-          /*
-           * BULLET
-           */
-          const bullet =
-            getBulletText(
-              line
-            );
-
-          if (bullet) {
-            drawBullet(
-              bullet
-            );
-
-            i++;
-            continue;
-          }
-
-
-          /*
-           * NUMBERED LIST
-           */
-          const numbered =
-            getNumberedText(
-              line
-            );
-
-          if (numbered) {
-            drawNumbered(
-              numbered.number,
-              numbered.text
-            );
-
-            i++;
-            continue;
-          }
-
-
-          /*
-           * NORMAL PARAGRAPH
-           */
-          drawParagraph(
-            removeMarkdownFormatting(
-              line
-            )
-          );
-
-          i++;
-        }
-                /*
-         * Prepared by line
-         */
-        doc.moveDown(0.8);
-
-        writeMixed(
-          "Prepared by: SMATER CHAT AI",
-          {
-            fontSize: 9,
-            bold: false,
-            color: "#666666",
-            align: "center",
-            lineGap: 2
-          }
+        doc.fillColor(
+          "#000000"
         );
 
+        doc.fontSize(11);
 
         /*
-         * PAGE NUMBERS
+         * Document heading.
          */
-        const pageRange =
-          doc.bufferedPageRange();
+        writeTitle(
+          doc,
+          "SMATER CHAT AI",
+          "english",
+          colourful
+        );
 
-        for (
-          let pageIndex = 0;
-          pageIndex < pageRange.count;
-          pageIndex++
-        ) {
-          doc.switchToPage(
-            pageRange.start +
-              pageIndex
+        doc.moveDown(0.4);
+
+        /*
+         * Main AI-generated content.
+         */
+        renderContent(
+          doc,
+          content,
+          language,
+          colourful
+        );
+
+        /*
+         * Prepared by line.
+         */
+        doc.moveDown(1);
+
+        doc
+          .font(
+            "SMATER_EN_BOLD"
+          )
+          .fontSize(9)
+          .fillColor("#000000")
+          .text(
+            "Prepared by: SMATER CHAT AI",
+            {
+              align: "center"
+            }
           );
 
-          setFont(
-            "Page",
-            false
-          );
-
-          doc
-            .fontSize(8)
-            .fillColor("#666666")
-            .text(
-              `Page ${pageIndex + 1}`,
-              50,
-              doc.page.height - 30,
-              {
-                width:
-                  doc.page.width - 100,
-                align: "center"
-              }
-            );
-        }
-
+        /*
+         * Finalize PDF.
+         */
         doc.end();
 
       } catch (error) {
@@ -1345,340 +1152,9 @@ function buildPdf(
     }
   );
 }
-
-
 /*
  * ---------------------------------------------------------
- * TEXT FILE
- * ---------------------------------------------------------
- */
-
-function makeTextFile(
-  content,
-  title
-) {
-  const safeTitle =
-    safeFileName(
-      title ||
-        "smater-chat-ai"
-    );
-
-  const text = [
-    title ||
-      "SMATER CHAT AI",
-    "",
-    cleanText(content),
-    "",
-    "Prepared by: SMATER CHAT AI"
-  ].join("\n");
-
-  return {
-    fileName:
-      `${safeTitle}.txt`,
-
-    mimeType:
-      "text/plain;charset=utf-8",
-
-    buffer:
-      Buffer.from(
-        text,
-        "utf8"
-      )
-  };
-}
-
-
-/*
- * ---------------------------------------------------------
- * HTML FILE
- * ---------------------------------------------------------
- */
-
-function makeHtmlFile(
-  content,
-  title,
-  colourful = false
-) {
-  const safeTitle =
-    escapeHtml(
-      title ||
-        "SMATER CHAT AI"
-    );
-
-  const accent =
-    colourful
-      ? "#1f4e79"
-      : "#111111";
-
-  const lines =
-    cleanText(
-      content
-    ).split("\n");
-
-  const htmlParts = [];
-
-  for (
-    let i = 0;
-    i < lines.length;
-  ) {
-    const line =
-      lines[i].trim();
-
-    if (!line) {
-      htmlParts.push(
-        '<div class="space"></div>'
-      );
-
-      i++;
-      continue;
-    }
-
-
-    /*
-     * TABLE
-     */
-    if (
-      isTableStart(
-        lines,
-        i
-      )
-    ) {
-      const table =
-        getTableRows(
-          lines,
-          i
-        );
-
-      const rows =
-        table.rows;
-
-      let html =
-        '<table><tbody>';
-
-      for (
-        let r = 0;
-        r < rows.length;
-        r++
-      ) {
-        const cells =
-          rows[r];
-
-        html += "<tr>";
-
-        for (
-          const cell of cells
-        ) {
-          const tag =
-            r === 0
-              ? "th"
-              : "td";
-
-          html +=
-            `<${tag}>${escapeHtml(
-              removeMarkdownFormatting(
-                cell
-              )
-            )}</${tag}>`;
-        }
-
-        html += "</tr>";
-      }
-
-      html +=
-        "</tbody></table>";
-
-      htmlParts.push(
-        html
-      );
-
-      i =
-        table.nextIndex;
-
-      continue;
-    }
-
-
-    /*
-     * HEADING
-     */
-    const heading =
-      getHeadingInfo(
-        line
-      );
-
-    if (heading) {
-      const tag =
-        `h${heading.level}`;
-
-      htmlParts.push(
-        `<${tag}>${escapeHtml(
-          heading.text
-        )}</${tag}>`
-      );
-
-      i++;
-      continue;
-    }
-
-
-    /*
-     * BULLET
-     */
-    const bullet =
-      getBulletText(
-        line
-      );
-
-    if (bullet) {
-      htmlParts.push(
-        `<div class="bullet">• ${escapeHtml(
-          bullet
-        )}</div>`
-      );
-
-      i++;
-      continue;
-    }
-
-
-    /*
-     * NUMBERED LIST
-     */
-    const numbered =
-      getNumberedText(
-        line
-      );
-
-    if (numbered) {
-      htmlParts.push(
-        `<div class="number">${escapeHtml(
-          numbered.number
-        )}. ${escapeHtml(
-          numbered.text
-        )}</div>`
-      );
-
-      i++;
-      continue;
-    }
-
-
-    /*
-     * NORMAL PARAGRAPH
-     */
-    htmlParts.push(
-      `<p>${escapeHtml(
-        removeMarkdownFormatting(
-          line
-        )
-      )}</p>`
-    );
-
-    i++;
-  }
-
-  const body =
-    htmlParts.join("\n");
-
-  const html = `<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport"
-      content="width=device-width,initial-scale=1">
-
-<title>${safeTitle}</title>
-
-<style>
-body{
-  font-family:Arial,sans-serif;
-  margin:40px;
-  color:#111;
-  line-height:1.6;
-}
-
-h1{
-  text-align:center;
-  color:${accent};
-  font-size:28px;
-  margin-bottom:30px;
-}
-
-h2{
-  color:${accent};
-  font-size:21px;
-  margin-top:24px;
-}
-
-h3{
-  color:${accent};
-  font-size:17px;
-  margin-top:20px;
-}
-
-p{
-  font-size:15px;
-}
-
-.bullet,
-.number{
-  margin:7px 0;
-  font-size:15px;
-}
-
-.space{
-  height:10px;
-}
-
-table{
-  width:100%;
-  border-collapse:collapse;
-  margin:18px 0;
-}
-
-th,
-td{
-  border:1px solid #999;
-  padding:8px;
-  text-align:left;
-}
-
-th{
-  background:${colourful
-    ? "#dbeafe"
-    : "#eeeeee"};
-  color:${accent};
-}
-
-.footer{
-  margin-top:35px;
-  text-align:center;
-  color:#666;
-  font-size:12px;
-}
-</style>
-</head>
-
-<body>
-
-<h1>${safeTitle}</h1>
-
-${body}
-
-<div class="footer">
-Prepared by: SMATER CHAT AI
-</div>
-
-</body>
-</html>`;
-
-  return html;
-}
-
-
-/*
- * ---------------------------------------------------------
- * API HANDLER
+ * REQUEST HANDLER
  * ---------------------------------------------------------
  */
 
@@ -1686,11 +1162,9 @@ export default async function handler(
   req,
   res
 ) {
-  if (
-    req.method !== "POST"
-  ) {
+  if (req.method !== "POST") {
     return res.status(405).json({
-      success: false,
+      ok: false,
       error:
         "Method not allowed"
     });
@@ -1701,153 +1175,120 @@ export default async function handler(
       req.body || {};
 
     const prompt =
-      String(
-        body.prompt ||
-        body.description ||
-        body.text ||
-        ""
-      ).trim();
+      body.prompt ||
+      body.description ||
+      body.text ||
+      "";
 
-    if (!prompt) {
+    if (
+      !String(prompt).trim()
+    ) {
       return res.status(400).json({
-        success: false,
+        ok: false,
         error:
-          "Please provide a document description."
+          "Please provide a PDF description."
       });
     }
 
-
     /*
-     * Language is controlled by the command.
+     * Language rules:
+     * No language specified = English.
      */
     const language =
       detectLanguage(
         prompt
       );
 
-
     /*
-     * Colour is only enabled when explicitly requested.
+     * Colour only when explicitly requested.
      */
     const colourful =
       isColourfulRequest(
         prompt
       );
 
+    console.log(
+      "SMATER CHAT AI: PDF request",
+      {
+        language,
+        colourful
+      }
+    );
 
     /*
-     * Requested format.
-     * Default = PDF.
+     * Generate the actual AI-written content.
      */
-    const format =
-      String(
-        body.format ||
-        "pdf"
-      ).toLowerCase();
-
-
-    /*
-     * Optional title from frontend.
-     */
-    const title =
-      String(
-        body.title ||
-        "SMATER CHAT AI"
-      ).trim() ||
-      "SMATER CHAT AI";
-
-
-    /*
-     * Generate professional AI content.
-     */
-    const content =
+    const aiContent =
       await generateAIContent(
         prompt,
         language
       );
 
-
-    /*
-     * TEXT
-     */
     if (
-      format === "txt" ||
-      format === "text"
+      !aiContent ||
+      !aiContent.trim()
     ) {
-      const file =
-        makeTextFile(
-          content,
-          title
-        );
-
-      return res.status(200).json({
-        success: true,
-        fileName:
-          file.fileName,
-        mimeType:
-          file.mimeType,
-        data:
-          file.buffer.toString(
-            "base64"
-          )
-      });
+      throw new Error(
+        "AI generated empty content"
+      );
     }
 
-
     /*
-     * HTML
+     * Build the actual PDF.
      */
-    if (
-      format === "html" ||
-      format === "htm"
-    ) {
-      const html =
-        makeHtmlFile(
-          content,
-          title,
-          colourful
-        );
-
-      return res.status(200).json({
-        success: true,
-        fileName:
-          `${safeFileName(
-            title
-          )}.html`,
-        mimeType:
-          "text/html;charset=utf-8",
-        data:
-          Buffer.from(
-            html,
-            "utf8"
-          ).toString(
-            "base64"
-          )
-      });
-    }
-
-
-    /*
-     * PDF
-     */
-    const pdf =
+    const pdfBuffer =
       await buildPdf(
-        content,
-        title,
+        aiContent,
         language,
         colourful
       );
 
+    if (
+      !pdfBuffer ||
+      !pdfBuffer.length
+    ) {
+      throw new Error(
+        "PDF buffer is empty"
+      );
+    }
+
+    /*
+     * Create a safe file name.
+     */
+    const baseName =
+      safeFileName(
+        "SMATER-CHAT-AI-PDF"
+      );
+
+    const fileName =
+      `${baseName}.pdf`;
+
+    /*
+     * Return the PDF as base64.
+     *
+     * This keeps the existing frontend
+     * response pattern compatible.
+     */
     return res.status(200).json({
+      ok: true,
+
       success: true,
-      fileName:
-        `${safeFileName(
-          title
-        )}.pdf`,
+
+      fileName,
+
+      fileType:
+        "application/pdf",
+
       mimeType:
         "application/pdf",
+
       data:
-        pdf.toString(
+        pdfBuffer.toString(
+          "base64"
+        ),
+
+      base64:
+        pdfBuffer.toString(
           "base64"
         )
     });
@@ -1859,238 +1300,12 @@ export default async function handler(
     );
 
     return res.status(500).json({
+      ok: false,
+
       success: false,
+
       error:
         "I couldn't create that file right now. Please try again."
     });
   }
-}
-// ============================================================
-// FINAL FONT RESOLUTION FIX
-// Paste this block at the VERY END of api/file.js
-// ============================================================
-
-try {
-  const __fontFs = await import("node:fs");
-  const __fontPath = await import("node:path");
-  const __fontModule = await import("node:module");
-
-  const __fs = __fontFs.default || __fontFs;
-  const __path = __fontPath.default || __fontPath;
-  const __createRequire = __fontModule.createRequire;
-
-  const __require = __createRequire(import.meta.url);
-
-  function __findFont(packageName, fileName) {
-    const candidates = [];
-
-    // 1. Resolve package itself, then go to /files
-    try {
-      const packageEntry = __require.resolve(packageName);
-      const packageDir = __path.dirname(packageEntry);
-
-      candidates.push(
-        __path.join(packageDir, "files", fileName)
-      );
-
-      candidates.push(
-        __path.join(
-          __path.dirname(packageDir),
-          packageName,
-          "files",
-          fileName
-        )
-      );
-    } catch (_) {}
-
-    // 2. Vercel / Node common locations
-    candidates.push(
-      __path.join(
-        process.cwd(),
-        "node_modules",
-        packageName,
-        "files",
-        fileName
-      )
-    );
-
-    candidates.push(
-      __path.join(
-        "/var/task/node_modules",
-        packageName,
-        "files",
-        fileName
-      )
-    );
-
-    for (const file of candidates) {
-      try {
-        if (__fs.existsSync(file)) {
-          return file;
-        }
-      } catch (_) {}
-    }
-
-    return null;
-  }
-
-  // Override the old resolver safely.
-  resolveFont = function (packageName, fileName) {
-    return __findFont(packageName, fileName);
-  };
-
-  console.log("SMATER CHAT AI: final font resolver installed");
-
-} catch (fontFixError) {
-  console.error(
-    "SMATER CHAT AI: final font resolver setup failed:",
-    fontFixError
-  );
-}
-// ============================================================
-// SMATER CHAT AI - FINAL STATIC FONT PATH FIX
-// PASTE AT THE VERY END OF api/file.js
-// ============================================================
-
-try {
-  const __staticFont = (relativePath) => {
-    try {
-      const url = new URL(
-        relativePath,
-        import.meta.url
-      );
-
-      const filePath =
-        url.pathname;
-
-      if (fs.existsSync(filePath)) {
-        return filePath;
-      }
-    } catch (_) {}
-
-    return null;
-  };
-
-  const __fontMap = {
-    "@fontsource/noto-sans": {
-      "noto-sans-latin-400-normal.woff2":
-        "../node_modules/@fontsource/noto-sans/files/noto-sans-latin-400-normal.woff2",
-
-      "noto-sans-latin-700-normal.woff2":
-        "../node_modules/@fontsource/noto-sans/files/noto-sans-latin-700-normal.woff2"
-    },
-
-    "@fontsource/noto-sans-devanagari": {
-      "noto-sans-devanagari-400-normal.woff2":
-        "../node_modules/@fontsource/noto-sans-devanagari/files/noto-sans-devanagari-400-normal.woff2",
-
-      "noto-sans-devanagari-700-normal.woff2":
-        "../node_modules/@fontsource/noto-sans-devanagari/files/noto-sans-devanagari-700-normal.woff2"
-    }
-  };
-
-  resolveFont = function (
-    packageName,
-    fileName
-  ) {
-    const relative =
-      __fontMap?.[packageName]?.[fileName];
-
-    if (relative) {
-      const found =
-        __staticFont(relative);
-
-      if (found) {
-        console.log(
-          "SMATER CHAT AI: font found:",
-          packageName,
-          fileName
-        );
-
-        return found;
-      }
-    }
-
-    return null;
-  };
-
-  console.log(
-    "SMATER CHAT AI: static font resolver installed"
-  );
-
-} catch (error) {
-  console.error(
-    "SMATER CHAT AI: static font resolver failed:",
-    error
-  );
-}
-// ============================================================
-// SMATER CHAT AI - PDF FONT FALLBACK FIX
-// ============================================================
-
-try {
-  const __fs = await import("node:fs");
-  const __path = await import("node:path");
-
-  const fs = __fs.default || __fs;
-  const path = __path.default || __path;
-
-  function findSystemFont(names) {
-    const locations = [
-      "/usr/share/fonts/truetype/dejavu",
-      "/usr/share/fonts/truetype/noto",
-      "/usr/share/fonts/opentype/noto",
-      "/usr/share/fonts"
-    ];
-
-    for (const location of locations) {
-      for (const name of names) {
-        const file = path.join(location, name);
-
-        try {
-          if (fs.existsSync(file)) {
-            return file;
-          }
-        } catch (_) {}
-      }
-    }
-
-    return null;
-  }
-
-  const systemEnglish =
-    findSystemFont([
-      "DejaVuSans.ttf",
-      "DejaVuSans.ttf"
-    ]);
-
-  if (systemEnglish) {
-    const originalFindFonts = findFonts;
-
-    findFonts = function () {
-      const fonts = originalFindFonts();
-
-      return {
-        ...fonts,
-        englishRegular:
-          fonts.englishRegular || systemEnglish,
-        englishBold:
-          fonts.englishBold || systemEnglish
-      };
-    };
-
-    console.log(
-      "SMATER CHAT AI: English PDF fallback font enabled"
-    );
-  } else {
-    console.log(
-      "SMATER CHAT AI: no system English fallback font found"
-    );
-  }
-
-} catch (pdfFontFallbackError) {
-  console.error(
-    "SMATER CHAT AI: PDF fallback setup failed:",
-    pdfFontFallbackError
-  );
 }
