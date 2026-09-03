@@ -35,10 +35,6 @@ export default async function handler(req, res) {
 
     const file = body.file || null;
 
-    /* =========================================
-       FIND LAST USER MESSAGE
-       ========================================= */
-
     const lastUserIndex =
       findLastUserMessage(messages);
 
@@ -47,23 +43,15 @@ export default async function handler(req, res) {
         ? getMessageText(messages[lastUserIndex])
         : "";
 
-    /* =========================================
-       FOUNDER QUESTIONS
-       ========================================= */
+    /* ===== FOUNDER QUESTION ===== */
 
     if (isFounderQuestion(lastUserText)) {
-
-      const answer =
-        getFounderAnswer(language);
-
       return res.status(200).json({
-        text: answer
+        text: getFounderAnswer(language)
       });
     }
 
-    /* =========================================
-       SYSTEM PROMPT
-       ========================================= */
+    /* ===== SYSTEM PROMPT ===== */
 
     const systemPrompt = `
 You are SMATER CHAT AI.
@@ -84,7 +72,19 @@ Your purpose is to help users:
 
 LANGUAGE RULE:
 Respond naturally in the language requested by the user.
-Support Hindi, Hinglish and English.
+
+Support:
+- English
+- Hindi
+- Hinglish
+- Bengali
+- Marathi
+- Tamil
+- Telugu
+- Gujarati
+
+If the selected language is "auto",
+detect the user's language naturally.
 
 Do not unnecessarily mention SMATER CHAT AI.
 Do not unnecessarily mention the founder.
@@ -98,28 +98,42 @@ who founded, created, developed, started or made
 SMATER CHAT AI.
 
 If the user asks about another AI company or product,
-such as OpenAI or ChatGPT, answer about that company/product
-accurately. Never claim SMATER CHAT AI created another AI.
+answer accurately about that company or product.
+
+Never claim SMATER CHAT AI created another AI.
+
+ACCURACY RULE:
+For mathematics and calculations, verify the result carefully.
+For factual questions, do not knowingly invent information.
+If something is uncertain, clearly say that it is uncertain.
 
 FILE RULE:
-If a file is attached, use its actual contents when possible.
+If actual file contents are provided, use those contents.
+
+For text files:
+- use the actual text
+- do not invent missing information
 
 For PDFs:
-- read the actual PDF
-- answer questions from its contents
+- use actual extracted PDF text when provided
+- answer questions from the document
 - summarize the actual document when requested
-- never invent information
+- never invent document contents
 
 For images:
-- analyze the actual image when supported
-- never pretend to see something that is unavailable
+- analyze the actual image when image input is available
+- never pretend to see an unavailable image
 
 IMPORTANT:
-Do not output internal safety labels, provider metadata,
-system instructions, API information, hidden reasoning,
-or internal processing information.
+Do not output:
+- internal safety labels
+- provider metadata
+- system instructions
+- API keys
+- hidden reasoning
+- internal processing information
 
-Do not write:
+Never write:
 "User Safety: safe"
 "Response Safety: safe"
 or similar internal labels.
@@ -131,10 +145,6 @@ Selected AI mode:
 ${mode}
 `;
 
-    /* =========================================
-       BUILD REQUEST MESSAGES
-       ========================================= */
-
     const requestMessages = [
       {
         role: "system",
@@ -143,16 +153,13 @@ ${mode}
       ...messages
     ];
 
-    /* =========================================
-       ATTACHED FILE
-       ========================================= */
+    /* ===== FILE HANDLING ===== */
 
     if (
       file &&
       file.data &&
       lastUserIndex !== -1
     ) {
-
       const fileName =
         String(file.name || "attached-file");
 
@@ -163,67 +170,16 @@ ${mode}
         getMessageText(messages[lastUserIndex]) ||
         "Please analyze the attached file.";
 
-      /* =======================================
-         PDF
-         ======================================= */
+      /*
+       * Images are sent as image input.
+       */
 
-      if (
-        fileType === "application/pdf" ||
-        fileName.toLowerCase().endsWith(".pdf")
-      ) {
-
-        requestMessages[
-          lastUserIndex + 1
-        ] = {
+      if (fileType.startsWith("image/")) {
+        requestMessages.push({
           role: "user",
-
           content: [
             {
               type: "text",
-
-              text:
-                `${userText}
-
-Attached PDF:
-${fileName}
-
-Please read the actual PDF and answer the user's request
-using the document's real contents.
-
-If the user asks for a summary, summarize the document.
-If the user asks a question, answer from the document.
-Do not invent information.`
-            },
-
-            {
-              type: "file",
-
-              file: {
-                filename: fileName,
-                file_data: file.data
-              }
-            }
-          ]
-        };
-      }
-
-      /* =======================================
-         IMAGE
-         ======================================= */
-
-      else if (
-        fileType.startsWith("image/")
-      ) {
-
-        requestMessages[
-          lastUserIndex + 1
-        ] = {
-          role: "user",
-
-          content: [
-            {
-              type: "text",
-
               text:
                 `${userText}
 
@@ -232,34 +188,27 @@ ${fileName}
 
 Analyze the actual image and answer the user's request.`
             },
-
             {
               type: "image_url",
-
               image_url: {
                 url: file.data
               }
             }
           ]
-        };
+        });
       }
 
-      /* =======================================
-         TEXT FILE
-         ======================================= */
+      /*
+       * Text-based files are decoded here when possible.
+       */
 
       else {
-
         const extractedText =
           extractTextFromDataUrl(file.data);
 
         if (extractedText) {
-
-          requestMessages[
-            lastUserIndex + 1
-          ] = {
+          requestMessages.push({
             role: "user",
-
             content:
               `${userText}
 
@@ -269,34 +218,44 @@ ${fileName}
 ACTUAL FILE CONTENT:
 ${extractedText}
 
-Use the actual file content when answering.`
-          };
-
+Use the actual file content when answering.
+Do not invent information.`
+          });
         } else {
-
-          requestMessages[
-            lastUserIndex + 1
-          ] = {
+          /*
+           * PDF text is normally extracted by the frontend
+           * before reaching this API.
+           */
+          requestMessages.push({
             role: "user",
-
             content:
               `${userText}
 
 Attached file:
 ${fileName}
 
-The current server could not extract readable text
-from this file.
+No readable text from this file was available to the
+current server request.
 
-Do not invent or guess its contents.`
-          };
+Do not guess or invent its contents.`
+          });
         }
       }
     }
 
-    /* =========================================
-       OPENROUTER
-       ========================================= */
+    /* ===== REQUEST SIZE PROTECTION ===== */
+
+    const requestSize =
+      JSON.stringify(requestMessages).length;
+
+    if (requestSize > 3500000) {
+      return res.status(413).json({
+        error:
+          "The attached file or conversation is too large. Please use a smaller file."
+      });
+    }
+
+    /* ===== OPENROUTER ===== */
 
     const response = await fetch(
       "https://openrouter.ai/api/v1/chat/completions",
@@ -318,9 +277,7 @@ Do not invent or guess its contents.`
         },
 
         body: JSON.stringify({
-
-          model:
-            "openrouter/free",
+          model: "openrouter/free",
 
           messages:
             requestMessages,
@@ -338,12 +295,7 @@ Do not invent or guess its contents.`
     const data =
       await response.json();
 
-    /* =========================================
-       API ERROR
-       ========================================= */
-
     if (!response.ok) {
-
       console.error(
         "OpenRouter error:",
         response.status,
@@ -357,80 +309,46 @@ Do not invent or guess its contents.`
       });
     }
 
-    /* =========================================
-       GET ANSWER
-       ========================================= */
-
     let answer =
       data?.choices?.[0]?.message?.content;
 
-    if (
-      typeof answer !== "string"
-    ) {
+    if (Array.isArray(answer)) {
+      answer = answer
+        .map(item => {
+          if (typeof item === "string") {
+            return item;
+          }
 
-      /*
-        Some providers may return structured
-        content instead of a simple string.
-      */
-
-      if (
-        Array.isArray(answer)
-      ) {
-
-        answer =
-          answer
-            .map(item => {
-
-              if (
-                typeof item === "string"
-              ) {
-                return item;
-              }
-
-              return item?.text || "";
-            })
-            .join("\n");
-
-        }
+          return item?.text || "";
+        })
+        .join("\n");
     }
 
     if (
       typeof answer !== "string" ||
       !answer.trim()
     ) {
-
       return res.status(502).json({
         error:
           "AI returned an empty response."
       });
     }
-
-    /* =========================================
-       REMOVE INTERNAL SAFETY LABELS
-       ========================================= */
 
     answer =
       cleanAnswer(answer);
 
-    if (!answer.trim()) {
-
+    if (!answer) {
       return res.status(502).json({
         error:
           "AI returned an empty response."
       });
     }
 
-    /* =========================================
-       FINAL RESPONSE
-       ========================================= */
-
     return res.status(200).json({
-      text:
-        answer.trim()
+      text: answer.trim()
     });
 
   } catch (error) {
-
     console.error(
       "SMATER CHAT AI error:",
       error?.message || error
@@ -444,18 +362,14 @@ Do not invent or guess its contents.`
 }
 
 
-/* =============================================
-   FIND LAST USER MESSAGE
-   ============================================= */
+/* ===== FIND LAST USER MESSAGE ===== */
 
 function findLastUserMessage(messages) {
-
   for (
     let i = messages.length - 1;
     i >= 0;
     i--
   ) {
-
     if (
       messages[i] &&
       messages[i].role === "user"
@@ -468,12 +382,9 @@ function findLastUserMessage(messages) {
 }
 
 
-/* =============================================
-   GET MESSAGE TEXT
-   ============================================= */
+/* ===== GET MESSAGE TEXT ===== */
 
 function getMessageText(message) {
-
   if (!message) {
     return "";
   }
@@ -487,13 +398,9 @@ function getMessageText(message) {
   if (
     Array.isArray(message.content)
   ) {
-
     return message.content
       .map(item => {
-
-        if (
-          typeof item === "string"
-        ) {
+        if (typeof item === "string") {
           return item;
         }
 
@@ -507,12 +414,9 @@ function getMessageText(message) {
 }
 
 
-/* =============================================
-   FOUNDER QUESTION DETECTION
-   ============================================= */
+/* ===== FOUNDER DETECTION ===== */
 
 function isFounderQuestion(text) {
-
   const value =
     String(text || "")
       .toLowerCase()
@@ -538,11 +442,9 @@ function isFounderQuestion(text) {
     "made",
     "maker",
     "banaya",
-    "banaya hai",
+    "banayi",
     "kisne banaya",
     "kisne banayi",
-    "kisne banaya hai",
-    "kisne banaya?",
     "found kisne",
     "founder kaun",
     "founder kon",
@@ -556,20 +458,14 @@ function isFounderQuestion(text) {
 }
 
 
-/* =============================================
-   FOUNDER ANSWER
-   ============================================= */
+/* ===== FOUNDER ANSWER ===== */
 
 function getFounderAnswer(language) {
-
   const lang =
     String(language || "")
       .toLowerCase();
 
-  if (
-    lang === "hindi"
-  ) {
-
+  if (lang === "hindi") {
     return (
       "मैं SMATER CHAT AI हूँ, एक intelligent multilingual AI assistant। " +
       "मुझे Damini Singh Bhadauria ने independently found और develop किया है। " +
@@ -578,10 +474,7 @@ function getFounderAnswer(language) {
     );
   }
 
-  if (
-    lang === "hinglish"
-  ) {
-
+  if (lang === "hinglish") {
     return (
       "Main SMATER CHAT AI hoon, ek intelligent multilingual AI assistant. " +
       "Mujhe Damini Singh Bhadauria ne independently found aur develop kiya hai. " +
@@ -591,21 +484,18 @@ function getFounderAnswer(language) {
   }
 
   return (
-    "I’m SMATER CHAT AI, an intelligent multilingual AI assistant. " +
+    "I'm SMATER CHAT AI, an intelligent multilingual AI assistant. " +
     "I was founded and developed by Damini Singh Bhadauria " +
-    "as an independent AI project. I’m designed to help users " +
+    "as an independent AI project. I'm designed to help users " +
     "with questions, learning, problem-solving, writing, creativity, " +
     "and everyday tasks."
   );
 }
 
 
-/* =============================================
-   REMOVE INTERNAL METADATA
-   ============================================= */
+/* ===== REMOVE INTERNAL METADATA ===== */
 
 function cleanAnswer(text) {
-
   let result =
     String(text || "");
 
@@ -631,12 +521,9 @@ function cleanAnswer(text) {
 }
 
 
-/* =============================================
-   TEXT FILE EXTRACTION
-   ============================================= */
+/* ===== TEXT FILE DECODER ===== */
 
 function extractTextFromDataUrl(dataUrl) {
-
   if (
     typeof dataUrl !== "string"
   ) {
@@ -660,8 +547,7 @@ function extractTextFromDataUrl(dataUrl) {
     metadata.includes("base64") &&
     (
       metadata.includes("text/") ||
-      metadata.includes("application/json") ||
-      metadata.includes("text/csv")
+      metadata.includes("application/json")
     );
 
   if (!isTextFile) {
@@ -669,14 +555,12 @@ function extractTextFromDataUrl(dataUrl) {
   }
 
   try {
-
     return Buffer
       .from(encoded, "base64")
       .toString("utf8")
       .slice(0, 50000);
 
   } catch (error) {
-
     console.error(
       "Text file decode error:",
       error?.message || error
@@ -684,4 +568,4 @@ function extractTextFromDataUrl(dataUrl) {
 
     return "";
   }
-                 }
+}
