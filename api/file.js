@@ -1793,17 +1793,9 @@ function sendPdf(
     "application/pdf"
   );
 
-   const safeName =
-  safeFileName(
-    fileName.replace(/\.pdf$/i, "")
-  ) + ".pdf";
-
-const encodedName =
-  encodeURIComponent(fileName);
-
 res.setHeader(
   "Content-Disposition",
-  `attachment; filename="${safeName}"; filename*=UTF-8''${encodedName}`
+  'attachment; filename="smater-chat-ai.pdf"'
 );
 
   res.setHeader(
