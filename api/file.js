@@ -1,1351 +1,324 @@
 import PDFDocument from "pdfkit";
 
-/* =========================================
-   SMATER CHAT AI — PDF ENGINE
-   PART 1 / FINAL BUILD
-========================================= */
-
 const OPENROUTER_URL =
   "https://openrouter.ai/api/v1/chat/completions";
-
-/*
-  Tiro Devanagari Hindi
-  Regular TTF is used for Hindi text.
-
-  We deliberately avoid the previous
-  Noto Sans Devanagari font because the
-  earlier PDF generation encountered a
-  fontkit GPOS-anchor problem with it.
-*/
 
 const HINDI_FONT_URL =
   "https://raw.githubusercontent.com/google/fonts/main/ofl/tirodevanagarihindi/TiroDevaHindi-Regular.ttf";
 
-/* =========================================
-   BASIC TEXT HELPERS
-========================================= */
+let hindiFontBuffer = null;
 
-function cleanText(value) {
-  return String(value ?? "")
-    .replace(/\r\n/g, "\n")
-    .replace(/\r/g, "\n")
-    .trim();
-}
 
-function safeFileName(value) {
-  const name =
-    cleanText(value)
-      .replace(
-        /[<>:"/\\|?*\x00-\x1F]/g,
-        ""
-      )
-      .replace(/\s+/g, "-")
-      .slice(0, 80);
+/* =========================
+   MAIN HANDLER
+========================= */
 
-  return (
-    name ||
-    "smater-chat-ai"
-  );
-}
+export default async function handler(req, res) {
 
-/* =========================================
-   LANGUAGE DETECTION
-========================================= */
-
-function detectLanguage(prompt) {
-  const text =
-    cleanText(prompt)
-      .toLowerCase();
-
-  const explicitlyBoth =
-    (
-      /\b(hindi\s*(and|&|\+)\s*english)\b/
-        .test(text) ||
-      /\b(english\s*(and|&|\+)\s*hindi)\b/
-        .test(text) ||
-      /हिंदी.*अंग्रेज़ी/
-        .test(text) ||
-      /अंग्रेज़ी.*हिंदी/
-        .test(text)
-    );
-
-  if (explicitlyBoth) {
-    return "both";
-  }
-
-  const explicitlyHindi =
-    /\b(hindi|हिंदी|हिन्दी)\b/
-      .test(text);
-
-  if (explicitlyHindi) {
-    return "hindi";
-  }
-
-  const explicitlyEnglish =
-    /\benglish\b/
-      .test(text);
-
-  if (explicitlyEnglish) {
-    return "english";
-  }
-
-  /*
-    Hinglish / Roman Hindi alone
-    remains English PDF.
-  */
-
-  return "english";
-}
-
-/* =========================================
-   COLOUR REQUEST
-========================================= */
-
-function isColourfulRequest(prompt) {
-  const text =
-    cleanText(prompt)
-      .toLowerCase();
-
-  return (
-    /\b(color|colour|colorful|colourful)\b/
-      .test(text) &&
-    (
-      text.includes("pdf") ||
-      text.includes("file") ||
-      text.includes("document")
-    )
-  );
-}
-
-/* =========================================
-   FORMAT REQUEST HELPERS
-========================================= */
-
-function wantsTable(prompt) {
-  return /\b(table|tables|tabular)\b/i
-    .test(cleanText(prompt));
-}
-
-function wantsBullets(prompt) {
-  return /\b(bullet|bullets|bullet points)\b/i
-    .test(cleanText(prompt));
-}
-
-function wantsNumbered(prompt) {
-  return /\b(numbered|numbered points|steps|step[- ]by[- ]step)\b/i
-    .test(cleanText(prompt));
-}
-
-function wantsSummary(prompt) {
-  return /\b(summary|summarize|key takeaways|takeaways)\b/i
-    .test(cleanText(prompt));
-}
-
-function wantsDetailed(prompt) {
-  return /\b(detailed|detail|in depth|in-depth|deep)\b/i
-    .test(cleanText(prompt));
-}
-
-function wantsShort(prompt) {
-  return /\b(short|brief|concise|small)\b/i
-    .test(cleanText(prompt));
-}
-
-/* =========================================
-   PROMPT VALIDATION
-========================================= */
-
-function hasUsablePrompt(prompt) {
-  const value =
-    cleanText(prompt);
-
-  if (!value) {
-    return false;
-  }
-
-  return value.length >= 2;
-}
-
-/* =========================================
-   MARKDOWN HELPERS
-========================================= */
-
-function isHeading(line) {
-  return /^#{1,6}\s+/.test(
-    cleanText(line)
-  );
-}
-
-function isBullet(line) {
-  return /^\s*[-*+]\s+/.test(
-    cleanText(line)
-  );
-}
-
-function isNumbered(line) {
-  return /^\s*\d+[.)]\s+/.test(
-    cleanText(line)
-  );
-}
-
-function isTableLine(line) {
-  const value =
-    cleanText(line);
-
-  return (
-    value.includes("|") &&
-    value.split("|").length >= 3
-  );
-}
-
-function isTableSeparator(line) {
-  const value =
-    cleanText(line)
-      .replace(/\|/g, "")
-      .replace(/:/g, "")
-      .replace(/-/g, "")
-      .trim();
-
-  return (
-    value.length === 0 &&
-    /-/.test(line)
-  );
-}
-
-function cleanHeading(line) {
-  return cleanText(line)
-    .replace(/^#{1,6}\s+/, "")
-    .trim();
-}
-
-function cleanBullet(line) {
-  return cleanText(line)
-    .replace(/^\s*[-*+]\s+/, "")
-    .trim();
-}
-
-function cleanNumbered(line) {
-  return cleanText(line)
-    .replace(/^\s*\d+[.)]\s+/, "")
-    .trim();
-}
-
-function stripMarkdown(value) {
-  return String(value || "")
-    .replace(/^#{1,6}\s+/gm, "")
-    .replace(/^\s*[-*+]\s+/gm, "")
-    .replace(/^\s*\d+[.)]\s+/gm, "")
-    .replace(/\*\*(.*?)\*\*/g, "$1")
-    .replace(/__(.*?)__/g, "$1")
-    .replace(/`([^`]+)`/g, "$1")
-    .trim();
-}
-
-function parseTableRow(line) {
-  return cleanText(line)
-    .replace(/^\|/, "")
-    .replace(/\|$/, "")
-    .split("|")
-    .map(cell =>
-      stripMarkdown(cell)
-        .trim()
-    );
-}
-
-/* =========================================
-   PAGE SETTINGS
-========================================= */
-
-const PAGE_MARGIN = {
-  top: 55,
-  bottom: 55,
-  left: 55,
-  right: 55
-};
-
-const COLORS = {
-  text: "#222222",
-  muted: "#666666",
-  heading: "#173B57",
-  accent: "#2E6F95",
-  table: "#E9EEF2"
-};
-const __fontCache = {
-  hindi: null
-};
-
-/* =========================================
-   HINDI FONT LOADER
-========================================= */
-
-async function loadHindiFont() {
-  if (__fontCache.hindi) {
-    return __fontCache.hindi;
-  }
-
-  const response =
-    await fetch(HINDI_FONT_URL);
-
-  if (!response.ok) {
-    throw new Error(
-      `Hindi font download failed: ${response.status}`
-    );
-  }
-
-  const arrayBuffer =
-    await response.arrayBuffer();
-
-  const fontBuffer =
-    Buffer.from(arrayBuffer);
-
-  if (
-    !fontBuffer ||
-    fontBuffer.length < 1000
-  ) {
-    throw new Error(
-      "Hindi font file is invalid or empty."
-    );
-  }
-
-  __fontCache.hindi =
-    fontBuffer;
-
-  return fontBuffer;
-}
-
-/* =========================================
-   FONT REGISTRATION
-========================================= */
-
-async function registerDocumentFonts(
-  doc,
-  language
-) {
-  if (
-    language === "hindi" ||
-    language === "both"
-  ) {
-    const hindiFont =
-      await loadHindiFont();
-
-    doc.registerFont(
-      "SMATER-Hindi",
-      hindiFont
-    );
-  }
-}
-
-/* =========================================
-   FONT SELECTION
-========================================= */
-
-function useRegularFont(
-  doc,
-  language,
-  hasHindi = false
-) {
-  if (
-    hasHindi &&
-    (
-      language === "hindi" ||
-      language === "both"
-    )
-  ) {
-    doc.font(
-      "SMATER-Hindi"
-    );
-  } else {
-    doc.font(
-      "Helvetica"
-    );
-  }
-
-  return doc;
-}
-
-function useBoldFont(
-  doc,
-  language,
-  hasHindi = false
-) {
-  /*
-    Helvetica-Bold is used for headings
-    unless Hindi shaping is required.
-  */
-
-  if (
-    hasHindi &&
-    (
-      language === "hindi" ||
-      language === "both"
-    )
-  ) {
-    doc.font(
-      "SMATER-Hindi"
-    );
-  } else {
-    doc.font(
-      "Helvetica-Bold"
-    );
-  }
-
-  return doc;
-}
-
-/* =========================================
-   DEVANAGARI DETECTION
-========================================= */
-
-function containsHindi(text) {
-  return /[\u0900-\u097F]/.test(
-    String(text || "")
-  );
-}
-
-/* =========================================
-   MIXED LANGUAGE TEXT
-========================================= */
-
-function splitLanguageRuns(text) {
-  const value =
-    String(text || "");
-
-  if (!value) {
-    return [];
-  }
-
-  const runs = [];
-  let current = "";
-  let currentHindi = null;
-
-  for (const char of value) {
-    const hindi =
-      /[\u0900-\u097F]/.test(char);
-
-    if (
-      currentHindi !== null &&
-      hindi !== currentHindi
-    ) {
-      runs.push({
-        text: current,
-        hindi: currentHindi
-      });
-
-      current = "";
-    }
-
-    current += char;
-    currentHindi = hindi;
-  }
-
-  if (current) {
-    runs.push({
-      text: current,
-      hindi: currentHindi
+  if (req.method !== "POST") {
+    return res.status(405).json({
+      error: "Method not allowed"
     });
   }
 
-  return runs;
-}
+  try {
 
-/* =========================================
-   SAFE TEXT WRITER
-========================================= */
+    const result =
+      await processFileRequest(req);
 
-function writeMixedText(
-  doc,
-  text,
-  language,
-  options = {}
-) {
-  const value =
-    String(text || "");
-
-  if (!value) {
-    return;
-  }
-
-  const runs =
-    splitLanguageRuns(value);
-
-  if (!runs.length) {
-    return;
-  }
-
-  const startX =
-    options.x ??
-    doc.x;
-
-  const startY =
-    options.y ??
-    doc.y;
-
-  const width =
-    options.width ??
-    (
-      doc.page.width -
-      doc.page.margins.left -
-      doc.page.margins.right
+    return sendFile(
+      res,
+      result.buffer,
+      result.filename
     );
 
-  const fontSize =
-    options.fontSize ??
-    11;
+  } catch (error) {
 
-  const lineGap =
-    options.lineGap ??
-    4;
-
-  doc.fontSize(fontSize);
-
-  let first = true;
-
-  for (const run of runs) {
-    if (!run.text) {
-      continue;
-    }
-
-    if (
-      run.hindi &&
-      (
-        language === "hindi" ||
-        language === "both"
-      )
-    ) {
-      doc.font(
-        "SMATER-Hindi"
-      );
-    } else {
-      doc.font(
-        "Helvetica"
-      );
-    }
-
-    doc.text(
-      run.text,
-      {
-        ...(first
-          ? {
-              x: startX,
-              y: startY
-            }
-          : {}),
-
-        width,
-
-        lineGap,
-
-        continued:
-          !(
-            run ===
-            runs[runs.length - 1]
-          )
-      }
+    console.error(
+      "SMATER file error:",
+      error?.message || error
     );
 
-    first = false;
+    return res.status(
+      error?.statusCode || 500
+    ).json({
+      error:
+        error?.publicMessage ||
+        "Unable to create the file right now."
+    });
   }
-
-  doc.x =
-    startX;
-
-  return doc.y;
 }
 
-/* =========================================
-   PAGE SPACE CHECK
-========================================= */
 
-function ensureSpace(
-  doc,
-  requiredHeight
-) {
-  const bottomLimit =
-    doc.page.height -
-    doc.page.margins.bottom;
+/* =========================
+   REQUEST PROCESSOR
+========================= */
+
+async function processFileRequest(req) {
+
+  const body =
+    typeof req.body === "string"
+      ? JSON.parse(req.body)
+      : (req.body || {});
+
+
+  const prompt =
+    typeof body.prompt === "string"
+      ? body.prompt.trim()
+      : "";
+
+
+  const format =
+    String(
+      body.format || "pdf"
+    ).toLowerCase();
+
+
+  const language =
+    typeof body.language === "string"
+      ? body.language
+      : "auto";
+
+
+  const mode =
+    typeof body.mode === "string"
+      ? body.mode
+      : "normal";
+
+
+  if (!prompt) {
+
+    throw publicError(
+      400,
+      "Please describe what you want to create."
+    );
+  }
+
+
+  if (prompt.length > 12000) {
+
+    throw publicError(
+      413,
+      "The file description is too large. Please use a shorter description."
+    );
+  }
+
 
   if (
-    doc.y +
-      requiredHeight >
-    bottomLimit
+    !["pdf", "txt", "html"].includes(format)
   ) {
-    doc.addPage();
-  }
-}
 
-/* =========================================
-   PAGE NUMBER
-========================================= */
-
-function drawPageNumber(
-  doc,
-  pageNumber,
-  totalPages
-) {
-  const oldY =
-    doc.y;
-
-  doc.font(
-    "Helvetica"
-  );
-
-  doc.fontSize(8);
-
-  doc.fillColor(
-    COLORS.muted
-  );
-
-  doc.text(
-    `Page ${pageNumber} of ${totalPages}`,
-    doc.page.margins.left,
-    doc.page.height - 32,
-    {
-      width:
-        doc.page.width -
-        doc.page.margins.left -
-        doc.page.margins.right,
-
-      align:
-        "center",
-
-      lineBreak:
-        false
-    }
-  );
-
-  doc.y =
-    oldY;
-}
-/* =========================================
-   TEXT WRITING HELPERS
-========================================= */
-
-function writeTitle(doc, text, language, colourful) {
-  ensureSpace(doc, 70);
-
-  const title =
-    stripMarkdown(text);
-
-  useBoldFont(
-    doc,
-    language,
-    containsHindi(title)
-  );
-
-  doc.fontSize(22);
-
-  doc.fillColor(
-    colourful
-      ? COLORS.accent
-      : COLORS.heading
-  );
-
-  doc.text(
-    title,
-    {
-      width:
-        doc.page.width -
-        doc.page.margins.left -
-        doc.page.margins.right,
-
-      align: "center",
-
-      lineGap: 6,
-
-      paragraphGap: 12
-    }
-  );
-
-  doc.moveDown(0.5);
-
-  doc.fillColor(
-    COLORS.text
-  );
-}
-
-function writeHeading(
-  doc,
-  text,
-  level,
-  language,
-  colourful
-) {
-  ensureSpace(
-    doc,
-    level <= 2 ? 50 : 38
-  );
-
-  const heading =
-    cleanHeading(text);
-
-  useBoldFont(
-    doc,
-    language,
-    containsHindi(heading)
-  );
-
-  const size =
-    level === 1
-      ? 17
-      : level === 2
-      ? 14
-      : 12;
-
-  doc.fontSize(size);
-
-  doc.fillColor(
-    colourful
-      ? COLORS.accent
-      : COLORS.heading
-  );
-
-  doc.text(
-    heading,
-    {
-      width:
-        doc.page.width -
-        doc.page.margins.left -
-        doc.page.margins.right,
-
-      lineGap: 4,
-
-      paragraphGap: 8
-    }
-  );
-
-  doc.fillColor(
-    COLORS.text
-  );
-
-  doc.moveDown(0.2);
-}
-
-function writeBullet(
-  doc,
-  text,
-  language
-) {
-  const value =
-    cleanBullet(text);
-
-  ensureSpace(
-    doc,
-    30
-  );
-
-  useRegularFont(
-    doc,
-    language,
-    containsHindi(value)
-  );
-
-  doc.fontSize(11);
-
-  doc.fillColor(
-    COLORS.text
-  );
-
-  const bulletX =
-    doc.page.margins.left;
-
-  const textX =
-    bulletX + 14;
-
-  doc.text(
-    "•",
-    bulletX,
-    doc.y,
-    {
-      width: 10,
-      lineBreak: false
-    }
-  );
-
-  doc.text(
-    value,
-    textX,
-    doc.y,
-    {
-      width:
-        doc.page.width -
-        textX -
-        doc.page.margins.right,
-
-      lineGap: 4,
-
-      paragraphGap: 4
-    }
-  );
-}
-
-function writeNumbered(
-  doc,
-  text,
-  number,
-  language
-) {
-  const value =
-    cleanNumbered(text);
-
-  ensureSpace(
-    doc,
-    30
-  );
-
-  useRegularFont(
-    doc,
-    language,
-    containsHindi(value)
-  );
-
-  doc.fontSize(11);
-
-  doc.fillColor(
-    COLORS.text
-  );
-
-  const numberX =
-    doc.page.margins.left;
-
-  const textX =
-    numberX + 20;
-
-  doc.text(
-    `${number}.`,
-    numberX,
-    doc.y,
-    {
-      width: 16,
-      lineBreak: false
-    }
-  );
-
-  doc.text(
-    value,
-    textX,
-    doc.y,
-    {
-      width:
-        doc.page.width -
-        textX -
-        doc.page.margins.right,
-
-      lineGap: 4,
-
-      paragraphGap: 4
-    }
-  );
-}
-
-function writeParagraph(
-  doc,
-  text,
-  language
-) {
-  const value =
-    stripMarkdown(text);
-
-  if (!value) {
-    return;
+    throw publicError(
+      400,
+      "Unsupported file format."
+    );
   }
 
-  ensureSpace(
-    doc,
-    32
-  );
 
-  useRegularFont(
-    doc,
-    language,
-    containsHindi(value)
-  );
-
-  doc.fontSize(11);
-
-  doc.fillColor(
-    COLORS.text
-  );
-
-  doc.text(
-    value,
-    {
-      width:
-        doc.page.width -
-        doc.page.margins.left -
-        doc.page.margins.right,
-
-      lineGap: 5,
-
-      paragraphGap: 8,
-
-      align: "left"
-    }
-  );
-}
-
-/* =========================================
-   TABLE DRAWER
-========================================= */
-
-function drawTable(
-  doc,
-  rows,
-  language,
-  colourful
-) {
-  if (
-    !Array.isArray(rows) ||
-    rows.length === 0
-  ) {
-    return;
-  }
-
-  const pageWidth =
-    doc.page.width -
-    doc.page.margins.left -
-    doc.page.margins.right;
-
-  const columnCount =
-    Math.max(
-      ...rows.map(row =>
-        Array.isArray(row)
-          ? row.length
-          : 0
-      )
+  const content =
+    await generateAIContent(
+      prompt,
+      language,
+      mode
     );
 
-  if (
-    !columnCount ||
-    columnCount < 2
-  ) {
-    return;
+
+  const normalized =
+    normalizeContent(content);
+
+
+  if (!normalized.trim()) {
+
+    throw publicError(
+      502,
+      "The AI returned empty document content."
+    );
   }
 
-  const colWidth =
-    pageWidth /
-    columnCount;
 
-  for (
-    let rowIndex = 0;
-    rowIndex < rows.length;
-    rowIndex++
-  ) {
-    const row =
-      Array.isArray(rows[rowIndex])
-        ? rows[rowIndex]
-        : [];
+  const prepared =
+    prepareFileContent(
+      normalized,
+      prompt
+    );
 
-    const cells =
-      Array.from(
-        { length: columnCount },
-        (_, index) =>
-          stripMarkdown(
-            row[index] || ""
-          )
+
+  if (format === "txt") {
+
+    const buffer =
+      Buffer.from(
+        stripMarkdown(prepared),
+        "utf8"
       );
 
-    const cellHeight = Math.max(
-      28,
-      ...cells.map(cell => {
-        useRegularFont(
-          doc,
-          language,
-          containsHindi(cell)
-        );
 
-        doc.fontSize(
-          rowIndex === 0
-            ? 9
-            : 9
-        );
-
-        return (
-          doc.heightOfString(
-            cell || " ",
-            {
-              width:
-                colWidth - 10,
-
-              lineGap: 2
-            }
-          ) + 12
-        );
-      })
-    );
-
-    ensureSpace(
-      doc,
-      cellHeight + 4
-    );
-
-    const y =
-      doc.y;
-
-    for (
-      let column = 0;
-      column < columnCount;
-      column++
-    ) {
-      const x =
-        doc.page.margins.left +
-        column * colWidth;
-
-      doc
-        .rect(
-          x,
-          y,
-          colWidth,
-          cellHeight
+    return {
+      buffer,
+      filename:
+        createFileName(
+          prompt,
+          "txt"
         )
-        .lineWidth(0.5)
-        .stroke(
-          colourful
-            ? COLORS.accent
-            : "#777777"
-        );
-
-      if (rowIndex === 0) {
-        doc
-          .rect(
-            x,
-            y,
-            colWidth,
-            cellHeight
-          )
-          .fillAndStroke(
-            colourful
-              ? COLORS.table
-              : "#EEEEEE",
-            colourful
-              ? COLORS.accent
-              : "#777777"
-          );
-      }
-
-      const cell =
-        cells[column];
-
-      useBoldFont(
-        doc,
-        language,
-        rowIndex === 0 &&
-          containsHindi(cell)
-      );
-
-      if (rowIndex !== 0) {
-        useRegularFont(
-          doc,
-          language,
-          containsHindi(cell)
-        );
-      }
-
-      doc.fontSize(9);
-
-      doc.fillColor(
-        COLORS.text
-      );
-
-      doc.text(
-        cell || " ",
-        x + 5,
-        y + 6,
-        {
-          width:
-            colWidth - 10,
-
-          height:
-            cellHeight - 10,
-
-          lineGap: 2,
-
-          align: "left"
-        }
-      );
-    }
-
-    doc.y =
-      y + cellHeight;
+    };
   }
 
-  doc.moveDown(0.8);
-}
 
-/* =========================================
-   CONTENT RENDERER
-========================================= */
+  if (format === "html") {
 
-function renderContent(
-  doc,
-  content,
-  language,
-  colourful
-) {
-  const lines =
-    cleanText(content)
-      .split("\n");
-
-  let i = 0;
-
-  while (
-    i < lines.length
-  ) {
-    const line =
-      cleanText(lines[i]);
-
-    if (!line) {
-      doc.moveDown(0.35);
-      i++;
-      continue;
-    }
-
-    /* TABLE */
-
-    if (
-      isTableLine(line) &&
-      i + 1 < lines.length &&
-      isTableSeparator(
-        lines[i + 1]
-      )
-    ) {
-      const tableRows = [];
-
-      tableRows.push(
-        parseTableRow(line)
+    const html =
+      buildHtmlFile(
+        prepared,
+        prompt
       );
 
-      i += 2;
 
-      while (
-        i < lines.length &&
-        isTableLine(lines[i]) &&
-        !isTableSeparator(lines[i])
-      ) {
-        tableRows.push(
-          parseTableRow(
-            lines[i]
-          )
-        );
-
-        i++;
-      }
-
-      drawTable(
-        doc,
-        tableRows,
-        language,
-        colourful
+    const buffer =
+      Buffer.from(
+        html,
+        "utf8"
       );
 
-      continue;
-    }
 
-    /* HEADING */
+    return {
+      buffer,
+      filename:
+        createFileName(
+          prompt,
+          "html"
+        )
+    };
+  }
 
-    if (isHeading(line)) {
-      const match =
-        line.match(
-          /^(#{1,6})\s+/
-        );
 
-      const level =
-        match
-          ? match[1].length
-          : 2;
-
-      writeHeading(
-        doc,
-        line,
-        level,
-        language,
-        colourful
-      );
-
-      i++;
-      continue;
-    }
-
-    /* BULLET */
-
-    if (isBullet(line)) {
-      writeBullet(
-        doc,
-        line,
-        language
-      );
-
-      i++;
-      continue;
-    }
-
-    /* NUMBERED */
-
-    if (isNumbered(line)) {
-      const match =
-        line.match(
-          /^\s*(\d+)[.)]\s+/
-        );
-
-      const number =
-        match
-          ? Number(match[1])
-          : 1;
-
-      writeNumbered(
-        doc,
-        line,
-        number,
-        language
-      );
-
-      i++;
-      continue;
-    }
-
-    /* NORMAL PARAGRAPH */
-
-    const paragraph = [line];
-
-    i++;
-
-    while (
-      i < lines.length &&
-      cleanText(lines[i]) &&
-      !isHeading(lines[i]) &&
-      !isBullet(lines[i]) &&
-      !isNumbered(lines[i]) &&
-      !isTableLine(lines[i])
-    ) {
-      paragraph.push(
-        cleanText(lines[i])
-      );
-
-      i++;
-    }
-
-    writeParagraph(
-      doc,
-      paragraph.join(" "),
-      language
+  const buffer =
+    await buildPdf(
+      prepared,
+      prompt
     );
-  }
-}
-/* =========================================
-   PART 4 / 7
-   AI CONTENT GENERATION
-========================================= */
 
-async function generateAIContent(prompt) {
+
+  return {
+    buffer,
+    filename:
+      createFileName(
+        prompt,
+        "pdf"
+      )
+  };
+}
+
+
+/* =========================
+   AI CONTENT GENERATION
+========================= */
+
+async function generateAIContent(
+  prompt,
+  language,
+  mode
+) {
+
   const apiKey =
     process.env.OPENROUTER_API_KEY;
 
+
   if (!apiKey) {
-    throw new Error(
-      "OPENROUTER_API_KEY is not configured."
+
+    throw publicError(
+      500,
+      "AI service is not configured."
     );
   }
 
-  const language =
-    detectLanguage(prompt);
 
-  const instructions = [];
+  const selectedLanguage =
+    String(
+      language || "auto"
+    ).toLowerCase();
 
-  if (wantsTable(prompt)) {
-    instructions.push(
-      "Use a useful Markdown table when the topic genuinely supports comparison or organized data."
-    );
-  }
-
-  if (wantsBullets(prompt)) {
-    instructions.push(
-      "Use clear Markdown bullet points."
-    );
-  }
-
-  if (wantsNumbered(prompt)) {
-    instructions.push(
-      "Use clear numbered points or steps."
-    );
-  }
-
-  if (wantsSummary(prompt)) {
-    instructions.push(
-      "Include a clear Summary or Key Takeaways section."
-    );
-  }
-
-  if (wantsDetailed(prompt)) {
-    instructions.push(
-      "Make the document detailed and well structured."
-    );
-  }
-
-  if (wantsShort(prompt)) {
-    instructions.push(
-      "Keep the document short, concise and focused."
-    );
-  }
 
   let languageInstruction =
-    "Write the document in English.";
+    "Use English by default.";
 
-  if (language === "hindi") {
+
+  if (
+    selectedLanguage === "hindi"
+  ) {
+
     languageInstruction =
       "Write the document in Hindi using Devanagari script.";
-  }
 
-  if (language === "both") {
+  } else if (
+    selectedLanguage === "hinglish"
+  ) {
+
     languageInstruction =
-      "Write the document in both English and Hindi. Keep the two languages clearly readable.";
+      "Write naturally in Hinglish using Roman script.";
+
+  } else if (
+    selectedLanguage === "both"
+  ) {
+
+    languageInstruction =
+      "Use both English and Hindi where appropriate.";
+
+  } else if (
+    selectedLanguage === "english"
+  ) {
+
+    languageInstruction =
+      "Write the document in clear professional English.";
+
+  } else {
+
+    languageInstruction =
+      "Use English unless the user explicitly requests another language.";
   }
 
-  const colourInstruction =
-    isColourfulRequest(prompt)
-      ? "The PDF will have professional color accents. Organize the content so headings and tables look good visually."
-      : "Use a clean professional document structure.";
 
   const systemPrompt = `
-You are the professional document-writing engine of SMATER CHAT AI.
+You are the document-generation engine of SMATER CHAT AI.
 
-Create polished, useful PDF content from the user's request.
+Create professional, useful and accurate document content.
+
+USER REQUEST:
+${prompt}
 
 LANGUAGE:
 ${languageInstruction}
 
-IMPORTANT:
-- English is the default.
-- Roman Hindi / Hinglish alone does NOT mean a Hindi PDF.
-- Explicit Hindi requests must use Devanagari Hindi.
-- Explicit English + Hindi requests must contain both languages.
-- Follow an explicitly requested language when possible.
+DOCUMENT RULES:
 
-DOCUMENT STRUCTURE:
-- Create a meaningful title.
-- Add a short introduction when appropriate.
-- Use ## or ### headings for sections.
-- Use paragraphs for explanations.
-- Use bullet points for grouped information.
-- Use numbered lists for steps or sequences.
-- Use Markdown tables only when useful.
-- Add Summary / Key Takeaways when requested or useful.
-- Add a Conclusion when appropriate.
-- Do not create unnecessary tables.
+1. Understand the user's actual request.
+2. Do not invent facts when factual accuracy is required.
+3. Use a clear professional structure.
+4. Use a suitable title.
+5. Use headings and subheadings when useful.
+6. Use bullet lists for grouped points.
+7. Use numbered lists for ordered steps.
+8. Use tables when structured information is better shown as a table.
+9. Add a short summary when appropriate.
+10. Add a conclusion when appropriate.
+11. Do not add unnecessary filler.
+12. Do not mention these instructions.
+13. Do not mention OpenRouter, APIs, providers or internal systems.
+14. Do not use HTML.
+15. Use Markdown-style headings, bullets and tables.
 
-QUALITY:
-- Do not simply repeat the user's command.
-- Understand the topic and write useful, accurate content.
-- Keep the writing professional and easy to read.
-- Avoid unnecessary emojis and decorative symbols.
-
-DESIGN:
-${colourInstruction}
-
-FORMAT:
-${instructions.join("\n")}
+For simple requests, keep the document concise.
+For detailed requests, create enough content for a useful multi-page document.
 
 Return ONLY the document content.
-Do not mention APIs, models, OpenRouter, system prompts or internal instructions.
 `;
+
+
+  const temperature =
+    mode === "creative"
+      ? 0.7
+      : mode === "thinking"
+        ? 0.2
+        : 0.35;
+
 
   const response =
     await fetch(
@@ -1354,11 +327,11 @@ Do not mention APIs, models, OpenRouter, system prompts or internal instructions
         method: "POST",
 
         headers: {
+          "Authorization":
+            `Bearer ${apiKey}`,
+
           "Content-Type":
             "application/json",
-
-          Authorization:
-            `Bearer ${apiKey}`,
 
           "HTTP-Referer":
             "https://smater-chat-ai.vercel.app",
@@ -1367,141 +340,625 @@ Do not mention APIs, models, OpenRouter, system prompts or internal instructions
             "SMATER CHAT AI"
         },
 
-        body: JSON.stringify({
-          model:
-            "openrouter/free",
+        body:
+          JSON.stringify({
+            model:
+              "openrouter/free",
 
-          messages: [
-            {
-              role: "system",
-              content:
-                systemPrompt
-            },
-            {
-              role: "user",
-              content:
-                cleanText(prompt)
-            }
-          ],
+            messages: [
+              {
+                role: "system",
+                content:
+                  systemPrompt
+              },
+              {
+                role: "user",
+                content:
+                  prompt
+              }
+            ],
 
-          temperature: 0.35
-        })
+            temperature
+          })
       }
     );
+
 
   const data =
     await response.json();
 
+
   if (!response.ok) {
+
     console.error(
-      "OpenRouter PDF error:",
+      "OpenRouter document error:",
       response.status,
       data
     );
 
-    throw new Error(
+
+    throw publicError(
+      502,
       data?.error?.message ||
-      "AI content generation failed."
+        "AI document generation failed."
     );
   }
+
 
   let content =
     data?.choices?.[0]?.message?.content;
 
-  if (
-    Array.isArray(content)
-  ) {
+
+  if (Array.isArray(content)) {
+
     content =
       content
-        .map(item =>
-          typeof item === "string"
-            ? item
-            : item?.text || ""
-        )
+        .map(item => {
+
+          if (
+            typeof item === "string"
+          ) {
+            return item;
+          }
+
+          return item?.text || "";
+
+        })
         .join("\n");
   }
 
-  content =
-    cleanText(content);
 
-  if (!content) {
-    throw new Error(
-      "AI returned empty PDF content."
+  if (
+    typeof content !== "string" ||
+    !content.trim()
+  ) {
+
+    throw publicError(
+      502,
+      "AI returned empty document content."
     );
   }
 
-  return content;
+
+  return content.trim();
 }
 
-/* =========================================
-   PDF BUILDER
-========================================= */
 
-async function buildPdf({
-  prompt,
-  language,
-  colourful
-}) {
-  const content =
-    cleanText(prompt);
+/* =========================
+   CONTENT PREPARATION
+========================= */
 
-  if (!content) {
-    throw new Error(
-      "PDF content is empty."
+function normalizeContent(
+  content
+) {
+
+  return String(
+    content || ""
+  )
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n")
+    .trim();
+}
+
+
+function prepareFileContent(
+  content,
+  prompt
+) {
+
+  let result =
+    normalizeContent(
+      content
     );
+
+
+  result =
+    result.replace(
+      /^```(?:markdown|md|text)?\s*/i,
+      ""
+    );
+
+
+  result =
+    result.replace(
+      /\s*```$/i,
+      ""
+    );
+
+
+  if (!result.trim()) {
+    result = prompt.trim();
   }
+
+
+  return result.trim();
+}
+function publicError(statusCode, publicMessage) {
+  const error =
+    new Error(publicMessage);
+
+  error.statusCode =
+    statusCode;
+
+  error.publicMessage =
+    publicMessage;
+
+  return error;
+}
+
+function createFileName(prompt, extension) {
+  let topic =
+    String(prompt || "")
+      .replace(
+        /[^a-zA-Z0-9\s-]/g,
+        ""
+      )
+      .trim()
+      .replace(/\s+/g, "-")
+      .slice(0, 55);
+
+  if (!topic) {
+    topic = "smater-chat-ai";
+  }
+
+  return `smater-chat-ai-${topic}.${extension}`;
+}
+
+function stripMarkdown(text) {
+  return String(text || "")
+    .replace(
+      /^#{1,6}\s+/gm,
+      ""
+    )
+    .replace(
+      /^\s*[-*+]\s+/gm,
+      "• "
+    )
+    .replace(
+      /^\s*\d+\.\s+/gm,
+      ""
+    )
+    .replace(
+      /\*\*(.*?)\*\*/g,
+      "$1"
+    )
+    .replace(
+      /__(.*?)__/g,
+      "$1"
+    )
+    .replace(
+      /\*(.*?)\*/g,
+      "$1"
+    )
+    .replace(
+      /_(.*?)_/g,
+      "$1"
+    )
+    .replace(
+      /`([^`]+)`/g,
+      "$1"
+    )
+    .replace(
+      /^>\s?/gm,
+      ""
+    )
+    .replace(
+      /\|/g,
+      " | "
+    )
+    .replace(
+      /\n{3,}/g,
+      "\n\n"
+    )
+    .trim();
+}
+
+function escapeHtml(text) {
+  return String(text || "")
+    .replace(
+      /&/g,
+      "&amp;"
+    )
+    .replace(
+      /</g,
+      "&lt;"
+    )
+    .replace(
+      />/g,
+      "&gt;"
+    )
+    .replace(
+      /"/g,
+      "&quot;"
+    )
+    .replace(
+      /'/g,
+      "&#39;"
+    );
+}
+
+function markdownToHtml(markdown) {
+  const lines =
+    String(markdown || "")
+      .split("\n");
+
+  let html = "";
+  let inList = false;
+  let listType = "";
+
+  function closeList() {
+    if (inList) {
+      html +=
+        listType === "ol"
+          ? "</ol>"
+          : "</ul>";
+
+      inList = false;
+      listType = "";
+    }
+  }
+
+  function inline(value) {
+    return escapeHtml(value)
+      .replace(
+        /\*\*(.*?)\*\*/g,
+        "<strong>$1</strong>"
+      )
+      .replace(
+        /__(.*?)__/g,
+        "<strong>$1</strong>"
+      )
+      .replace(
+        /`([^`]+)`/g,
+        "<code>$1</code>"
+      );
+  }
+
+  for (const rawLine of lines) {
+    const line =
+      rawLine.trim();
+
+    if (!line) {
+      closeList();
+      continue;
+    }
+
+    const heading =
+      line.match(
+        /^(#{1,6})\s+(.+)$/
+      );
+
+    if (heading) {
+      closeList();
+
+      const level =
+        heading[1].length;
+
+      html +=
+        `<h${level}>${inline(
+          heading[2]
+        )}</h${level}>`;
+
+      continue;
+    }
+
+    const bullet =
+      line.match(
+        /^[-*+]\s+(.+)$/
+      );
+
+    if (bullet) {
+      if (
+        !inList ||
+        listType !== "ul"
+      ) {
+        closeList();
+
+        html += "<ul>";
+
+        inList = true;
+        listType = "ul";
+      }
+
+      html +=
+        `<li>${inline(
+          bullet[1]
+        )}</li>`;
+
+      continue;
+    }
+
+    const numbered =
+      line.match(
+        /^\d+\.\s+(.+)$/
+      );
+
+    if (numbered) {
+      if (
+        !inList ||
+        listType !== "ol"
+      ) {
+        closeList();
+
+        html += "<ol>";
+
+        inList = true;
+        listType = "ol";
+      }
+
+      html +=
+        `<li>${inline(
+          numbered[1]
+        )}</li>`;
+
+      continue;
+    }
+
+    closeList();
+
+    html +=
+      `<p>${inline(line)}</p>`;
+  }
+
+  closeList();
+
+  return html;
+}
+
+function buildHtmlFile(content, prompt) {
+  const title =
+    String(prompt || "SMATER CHAT AI")
+      .trim()
+      .slice(0, 120);
+
+  const body =
+    markdownToHtml(content);
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${escapeHtml(title)}</title>
+
+<style>
+body {
+  margin: 0;
+  padding: 40px;
+  background: #f5f7fb;
+  color: #172033;
+  font-family:
+    Arial,
+    "Noto Sans",
+    sans-serif;
+  line-height: 1.7;
+}
+
+.document {
+  max-width: 850px;
+  margin: 0 auto;
+  background: #ffffff;
+  padding: 50px;
+  border-radius: 18px;
+  box-shadow:
+    0 8px 30px rgba(0,0,0,0.08);
+}
+
+.brand {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  margin-bottom: 25px;
+}
+
+h1 {
+  font-size: 32px;
+  margin-top: 0;
+}
+
+h2 {
+  margin-top: 30px;
+}
+
+h3 {
+  margin-top: 24px;
+}
+
+p {
+  margin: 12px 0;
+}
+
+li {
+  margin: 7px 0;
+}
+
+code {
+  background: #f0f2f5;
+  padding: 2px 6px;
+  border-radius: 5px;
+}
+
+.footer {
+  margin-top: 45px;
+  padding-top: 18px;
+  border-top: 1px solid #ddd;
+  font-size: 12px;
+  opacity: .65;
+}
+
+@media print {
+  body {
+    background: white;
+    padding: 0;
+  }
+
+  .document {
+    box-shadow: none;
+    max-width: none;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<main class="document">
+
+<div class="brand">
+SMATER CHAT AI
+</div>
+
+${body}
+
+<div class="footer">
+Generated by SMATER CHAT AI
+</div>
+
+</main>
+
+</body>
+</html>`;
+}
+
+async function loadHindiFont() {
+  if (hindiFontBuffer) {
+    return hindiFontBuffer;
+  }
+
+  try {
+    const response =
+      await fetch(HINDI_FONT_URL);
+
+    if (!response.ok) {
+      throw new Error(
+        `Hindi font request failed: ${response.status}`
+      );
+    }
+
+    hindiFontBuffer =
+      Buffer.from(
+        await response.arrayBuffer()
+      );
+
+    return hindiFontBuffer;
+
+  } catch (error) {
+    console.error(
+      "Hindi font loading error:",
+      error?.message || error
+    );
+
+    return null;
+  }
+}
+
+function containsDevanagari(text) {
+  return /[\u0900-\u097F]/.test(
+    String(text || "")
+  );
+}
+
+function hasHindiContent(text) {
+  return containsDevanagari(text);
+}
+
+function safePdfText(text) {
+  return String(text || "")
+    .replace(/\r/g, "")
+    .trim();
+}
+
+function parseTableRow(line) {
+  return String(line || "")
+    .trim()
+    .replace(/^\|/, "")
+    .replace(/\|$/, "")
+    .split("|")
+    .map(cell =>
+      cell.trim()
+    );
+}
+
+function isTableSeparator(line) {
+  const cells =
+    parseTableRow(line);
+
+  if (
+    cells.length === 0
+  ) {
+    return false;
+  }
+
+  return cells.every(cell =>
+    /^:?-{3,}:?$/.test(
+      cell.trim()
+    )
+  );
+}
+
+function detectContentFeatures(content) {
+  const text =
+    String(content || "");
+
+  return {
+    hasHindi:
+      hasHindiContent(text),
+
+    hasBullets:
+      /^[-*+]\s+/m.test(text),
+
+    hasNumbered:
+      /^\d+\.\s+/m.test(text),
+
+    hasTable:
+      text
+        .split("\n")
+        .some(line =>
+          line.includes("|")
+        ),
+
+    hasHeadings:
+      /^#{1,6}\s+/m.test(text)
+  };
+}
+
+async function buildPdf(content, prompt) {
+  const features =
+    detectContentFeatures(content);
+
+  const hindiFont =
+    features.hasHindi
+      ? await loadHindiFont()
+      : null;
 
   const doc =
     new PDFDocument({
       size: "A4",
-
-      margins: PAGE_MARGIN,
-
-      bufferPages: true,
-
+      margins: {
+        top: 55,
+        bottom: 55,
+        left: 55,
+        right: 55
+      },
       autoFirstPage: true,
-
-      compress: true,
-
-      info: {
-        Title:
-          "SMATER CHAT AI Document",
-
-        Author:
-          "SMATER CHAT AI",
-
-        Creator:
-          "SMATER CHAT AI"
-      }
+      bufferPages: true
     });
-
-  await registerDocumentFonts(
-    doc,
-    language
-  );
 
   const chunks = [];
 
-  const pdfPromise =
+  doc.on(
+    "data",
+    chunk => chunks.push(chunk)
+  );
+
+  const finished =
     new Promise(
       (resolve, reject) => {
         doc.on(
-          "data",
-          chunk =>
-            chunks.push(chunk)
-        );
-
-        doc.on(
           "end",
-          () => {
-            try {
-              resolve(
-                Buffer.concat(chunks)
-              );
-            } catch (error) {
-              reject(error);
-            }
-          }
+          () => resolve(
+            Buffer.concat(chunks)
+          )
         );
 
         doc.on(
@@ -1511,296 +968,779 @@ async function buildPdf({
       }
     );
 
-  /* =======================================
-     TITLE
-  ======================================= */
+  if (hindiFont) {
+    doc.registerFont(
+      "SMATER-HINDI",
+      hindiFont
+    );
+  }
 
-  writeTitle(
+  const normalFont =
+    "Helvetica";
+
+  const hindiFontName =
+    hindiFont
+      ? "SMATER-HINDI"
+      : normalFont;
+
+  drawPdfHeader(
     doc,
-    "SMATER CHAT AI",
-    language,
-    colourful
+    prompt,
+    normalFont
   );
 
-  /* =======================================
-     CONTENT
-  ======================================= */
-
-  renderContent(
+  renderPdfMarkdown(
     doc,
     content,
-    language,
-    colourful
+    {
+      normalFont,
+      hindiFontName
+    }
   );
 
-  /* =======================================
-     FOOTER
-  ======================================= */
+  addPageNumbers(doc);
 
-  ensureSpace(
+  doc.end();
+
+  return await finished;
+}
+
+function drawPdfHeader(
+  doc,
+  prompt,
+  font
+) {
+  doc
+    .font(font)
+    .fontSize(9)
+    .fillColor("#666666")
+    .text(
+      "SMATER CHAT AI",
+      55,
+      35,
+      {
+        width: 485,
+        align: "right"
+      }
+    );
+
+  doc
+    .font(font)
+    .fontSize(22)
+    .fillColor("#1f2937")
+    .text(
+      safePdfText(prompt)
+        .slice(0, 120),
+      {
+        align: "left"
+      }
+    );
+
+  doc
+    .moveDown(0.8)
+    .font(font)
+    .fontSize(9)
+    .fillColor("#777777")
+    .text(
+      "Generated by SMATER CHAT AI"
+    );
+
+  doc
+    .moveDown(1.2);
+}
+
+function chooseFont(text, fonts) {
+  if (
+    containsDevanagari(text) &&
+    fonts.hindiFontName
+  ) {
+    return fonts.hindiFontName;
+  }
+
+  return fonts.normalFont;
+}
+
+function ensurePdfSpace(
+  doc,
+  requiredHeight = 30
+) {
+  const bottom =
+    doc.page.height -
+    doc.page.margins.bottom;
+
+  if (
+    doc.y + requiredHeight >
+    bottom
+  ) {
+    doc.addPage();
+
+    return true;
+  }
+
+  return false;
+}
+
+function renderPdfMarkdown(
+  doc,
+  content,
+  fonts
+) {
+  const lines =
+    String(content || "")
+      .split("\n");
+
+  let index = 0;
+
+  while (
+    index < lines.length
+  ) {
+    const raw =
+      lines[index];
+
+    const line =
+      raw.trim();
+
+    if (!line) {
+      doc.moveDown(0.45);
+      index++;
+      continue;
+    }
+
+    if (
+      index + 1 < lines.length &&
+      line.includes("|") &&
+      isTableSeparator(
+        lines[index + 1]
+      )
+    ) {
+      const rows = [];
+
+      rows.push(
+        parseTableRow(line)
+      );
+
+      index += 2;
+
+      while (
+        index < lines.length &&
+        lines[index].includes("|")
+      ) {
+        rows.push(
+          parseTableRow(
+            lines[index]
+          )
+        );
+
+        index++;
+      }
+
+      drawPdfTable(
+        doc,
+        rows,
+        fonts
+      );
+
+      continue;
+    }
+
+    const heading =
+      line.match(
+        /^(#{1,6})\s+(.+)$/
+      );
+
+    if (heading) {
+      drawPdfHeading(
+        doc,
+        heading[2],
+        heading[1].length,
+        fonts
+      );
+
+      index++;
+      continue;
+    }
+
+    const bullet =
+      line.match(
+        /^[-*+]\s+(.+)$/
+      );
+
+    if (bullet) {
+      drawPdfBullet(
+        doc,
+        bullet[1],
+        fonts
+      );
+
+      index++;
+      continue;
+    }
+
+    const numbered =
+      line.match(
+        /^(\d+)\.\s+(.+)$/
+      );
+
+    if (numbered) {
+      drawPdfNumbered(
+        doc,
+        numbered[1],
+        numbered[2],
+        fonts
+      );
+
+      index++;
+      continue;
+    }
+
+    drawPdfParagraph(
+      doc,
+      line,
+      fonts
+    );
+
+    index++;
+  }
+     }
+function drawPdfHeading(
+  doc,
+  text,
+  level,
+  fonts
+) {
+  const cleanText =
+    safePdfText(text);
+
+  if (!cleanText) {
+    return;
+  }
+
+  const sizes = {
+    1: 18,
+    2: 15,
+    3: 13,
+    4: 12,
+    5: 11,
+    6: 10
+  };
+
+  const size =
+    sizes[level] || 11;
+
+  ensurePdfSpace(
     doc,
-    40
+    size + 30
   );
 
-  doc.font(
-    "Helvetica"
+  doc
+    .moveDown(level === 1 ? 0.5 : 0.3)
+    .font(
+      chooseFont(
+        cleanText,
+        fonts
+      )
+    )
+    .fontSize(size)
+    .fillColor("#202938")
+    .text(
+      cleanText,
+      {
+        width:
+          doc.page.width -
+          doc.page.margins.left -
+          doc.page.margins.right,
+        lineGap: 3
+      }
+    );
+
+  doc
+    .moveDown(0.35);
+}
+
+function drawPdfBullet(
+  doc,
+  text,
+  fonts
+) {
+  const cleanText =
+    safePdfText(text);
+
+  if (!cleanText) {
+    return;
+  }
+
+  ensurePdfSpace(
+    doc,
+    28
   );
 
-  doc.fontSize(9);
+  const font =
+    chooseFont(
+      cleanText,
+      fonts
+    );
 
-  doc.fillColor(
-    COLORS.muted
+  const bulletX =
+    doc.page.margins.left;
+
+  const textX =
+    bulletX + 16;
+
+  const width =
+    doc.page.width -
+    doc.page.margins.right -
+    textX;
+
+  doc
+    .font(font)
+    .fontSize(10.5)
+    .fillColor("#202938");
+
+  doc
+    .circle(
+      bulletX + 4,
+      doc.y + 6,
+      2
+    )
+    .fill("#202938");
+
+  doc
+    .text(
+      cleanText,
+      textX,
+      doc.y,
+      {
+        width,
+        lineGap: 3
+      }
+    );
+
+  doc.moveDown(0.25);
+}
+
+function drawPdfNumbered(
+  doc,
+  number,
+  text,
+  fonts
+) {
+  const cleanText =
+    safePdfText(text);
+
+  if (!cleanText) {
+    return;
+  }
+
+  ensurePdfSpace(
+    doc,
+    28
+  );
+
+  const label =
+    `${number}.`;
+
+  const labelX =
+    doc.page.margins.left;
+
+  const textX =
+    labelX + 20;
+
+  const width =
+    doc.page.width -
+    doc.page.margins.right -
+    textX;
+
+  doc
+    .font(
+      chooseFont(
+        cleanText,
+        fonts
+      )
+    )
+    .fontSize(10.5)
+    .fillColor("#202938");
+
+  const startY =
+    doc.y;
+
+  doc.text(
+    label,
+    labelX,
+    startY,
+    {
+      width: 16
+    }
   );
 
   doc.text(
-    "Prepared by: SMATER CHAT AI",
+    cleanText,
+    textX,
+    startY,
     {
-      width:
-        doc.page.width -
-        doc.page.margins.left -
-        doc.page.margins.right,
-
-      align: "center",
-
+      width,
       lineGap: 3
     }
   );
 
-  /* =======================================
-     PAGE NUMBERS
-  ======================================= */
+  doc.moveDown(0.25);
+}
 
-  const pageRange =
-    doc.bufferedPageRange();
+function drawPdfParagraph(
+  doc,
+  text,
+  fonts
+) {
+  const cleanText =
+    safePdfText(text);
 
-  const totalPages =
-    pageRange.count;
+  if (!cleanText) {
+    return;
+  }
+
+  ensurePdfSpace(
+    doc,
+    32
+  );
+
+  doc
+    .font(
+      chooseFont(
+        cleanText,
+        fonts
+      )
+    )
+    .fontSize(10.5)
+    .fillColor("#303846")
+    .text(
+      cleanText,
+      {
+        width:
+          doc.page.width -
+          doc.page.margins.left -
+          doc.page.margins.right,
+        lineGap: 4,
+        paragraphGap: 6
+      }
+    );
+}
+
+function drawPdfTable(
+  doc,
+  rows,
+  fonts
+) {
+  if (
+    !Array.isArray(rows) ||
+    rows.length === 0
+  ) {
+    return;
+  }
+
+  const normalizedRows =
+    rows
+      .filter(
+        row =>
+          Array.isArray(row) &&
+          row.length > 0
+      )
+      .map(row =>
+        row.map(cell =>
+          safePdfText(cell)
+        )
+      );
+
+  if (
+    normalizedRows.length === 0
+  ) {
+    return;
+  }
+
+  const columnCount =
+    Math.max(
+      ...normalizedRows.map(
+        row => row.length
+      )
+    );
+
+  if (
+    columnCount < 1
+  ) {
+    return;
+  }
+
+  for (const row of normalizedRows) {
+    while (
+      row.length <
+      columnCount
+    ) {
+      row.push("");
+    }
+  }
+
+  const pageWidth =
+    doc.page.width -
+    doc.page.margins.left -
+    doc.page.margins.right;
+
+  const columnWidth =
+    pageWidth /
+    columnCount;
+
+  const cellPadding = 5;
+  const fontSize = 8.5;
+  const lineHeight = 11;
+
+  let y =
+    doc.y;
 
   for (
-    let index = 0;
-    index < totalPages;
-    index++
+    let rowIndex = 0;
+    rowIndex < normalizedRows.length;
+    rowIndex++
+  ) {
+    const row =
+      normalizedRows[rowIndex];
+
+    const isHeader =
+      rowIndex === 0;
+
+    let maxLines = 1;
+
+    for (const cell of row) {
+      const font =
+        chooseFont(
+          cell,
+          fonts
+        );
+
+      doc
+        .font(font)
+        .fontSize(fontSize);
+
+      const availableWidth =
+        Math.max(
+          20,
+          columnWidth -
+          cellPadding * 2
+        );
+
+      const height =
+        doc.heightOfString(
+          cell || " ",
+          {
+            width:
+              availableWidth,
+            lineGap: 1
+          }
+        );
+
+      const lines =
+        Math.max(
+          1,
+          Math.ceil(
+            height /
+            lineHeight
+          )
+        );
+
+      maxLines =
+        Math.max(
+          maxLines,
+          lines
+        );
+    }
+
+    const rowHeight =
+      Math.max(
+        24,
+        maxLines *
+          lineHeight +
+          cellPadding * 2
+      );
+
+    if (
+      y + rowHeight >
+      doc.page.height -
+      doc.page.margins.bottom
+    ) {
+      doc.addPage();
+
+      y =
+        doc.y;
+    }
+
+    for (
+      let col = 0;
+      col < columnCount;
+      col++
+    ) {
+      const x =
+        doc.page.margins.left +
+        col * columnWidth;
+
+      const cell =
+        row[col] || "";
+
+      if (isHeader) {
+        doc
+          .rect(
+            x,
+            y,
+            columnWidth,
+            rowHeight
+          )
+          .fill("#e9eef7");
+      } else {
+        doc
+          .rect(
+            x,
+            y,
+            columnWidth,
+            rowHeight
+          )
+          .fill("#ffffff");
+      }
+
+      doc
+        .rect(
+          x,
+          y,
+          columnWidth,
+          rowHeight
+        )
+        .lineWidth(0.5)
+        .stroke("#cfd6df");
+
+      doc
+        .font(
+          chooseFont(
+            cell,
+            fonts
+          )
+        )
+        .fontSize(fontSize)
+        .fillColor(
+          isHeader
+            ? "#172033"
+            : "#303846"
+        )
+        .text(
+          cell,
+          x + cellPadding,
+          y + cellPadding,
+          {
+            width:
+              Math.max(
+                20,
+                columnWidth -
+                cellPadding * 2
+              ),
+            height:
+              rowHeight -
+              cellPadding * 2,
+            lineGap: 1
+          }
+        );
+    }
+
+    y += rowHeight;
+
+    if (
+      y >
+      doc.page.height -
+      doc.page.margins.bottom
+    ) {
+      doc.addPage();
+      y =
+        doc.y;
+    }
+  }
+
+  doc.y =
+    y + 12;
+}
+
+function addPageNumbers(doc) {
+  const range =
+    doc.bufferedPageRange();
+
+  for (
+    let i = 0;
+    i < range.count;
+    i++
   ) {
     doc.switchToPage(
-      pageRange.start + index
+      range.start + i
     );
 
-    drawPageNumber(
-      doc,
-      index + 1,
-      totalPages
-    );
+    const pageNumber =
+      i + 1;
+
+    const totalPages =
+      range.count;
+
+    const footer =
+      `SMATER CHAT AI  •  Page ${pageNumber} of ${totalPages}`;
+
+    doc
+      .font("Helvetica")
+      .fontSize(8)
+      .fillColor("#777777")
+      .text(
+        footer,
+        doc.page.margins.left,
+        doc.page.height - 32,
+        {
+          width:
+            doc.page.width -
+            doc.page.margins.left -
+            doc.page.margins.right,
+          align: "center"
+        }
+      );
   }
-
-  doc.end();
-
-  return await pdfPromise;
-}
-/* =========================================
-   PART 5 / 7
-   REQUEST + RESPONSE HELPERS
-========================================= */
-
-function getPromptFromRequest(req) {
-  const body = req?.body;
-
-  if (!body) {
-    return "";
-  }
-
-  if (typeof body === "string") {
-    return cleanText(body);
-  }
-
-  if (typeof body.prompt === "string") {
-    return cleanText(body.prompt);
-  }
-
-  if (typeof body.content === "string") {
-    return cleanText(body.content);
-  }
-
-  if (typeof body.message === "string") {
-    return cleanText(body.message);
-  }
-
-  return "";
 }
 
-/* =========================================
-   FILE NAME
-========================================= */
-
-function createPdfFileName(
-  prompt,
-  language
+function sendFile(
+  res,
+  buffer,
+  filename
 ) {
-  let topic =
-    cleanText(prompt)
-      .replace(
-        /(?:please\s*)?(?:make|create|generate|prepare|write)\s+(?:a\s+)?(?:pdf|file|document)\s*(?:on|about|for|regarding)?/i,
-        ""
-      )
-      .trim();
-
-  topic =
-    stripMarkdown(topic);
-
-  if (!topic) {
-    topic =
-      language === "hindi"
-        ? "Hindi-Document"
-        : language === "both"
-        ? "English-Hindi-Document"
-        : "Document";
-  }
-
-  return `${safeFileName(topic)}.pdf`;
-}
-
-/* =========================================
-   CONTENT NORMALIZATION
-========================================= */
-
-function normalizeAIContent(
-  content
-) {
-  let value =
-    cleanText(content);
-
-  /*
-    Remove accidental code fences
-    if the model returns them.
-  */
-
-  value =
-    value
-      .replace(/^```(?:markdown|md|text)?\s*/i, "")
-      .replace(/\s*```$/i, "")
-      .trim();
-
-  return value;
-}
-
-/* =========================================
-   CONTENT SAFETY CHECK
-========================================= */
-
-function validateGeneratedContent(
-  content
-) {
-  const value =
-    cleanText(content);
-
-  if (!value) {
-    throw new Error(
-      "Generated PDF content is empty."
-    );
-  }
-
-  /*
-    Prevent an accidental API/system
-    response from becoming the PDF.
-  */
-
-  const lower =
-    value.toLowerCase();
-
-  const unwanted =
-    [
-      "openrouter api key",
-      "system prompt",
-      "internal instruction",
-      "api secret"
-    ];
-
   if (
-    unwanted.some(
-      item =>
-        lower.includes(item)
+    !Buffer.isBuffer(buffer)
+  ) {
+    return res.status(500).json({
+      error:
+        "Generated file is invalid."
+    });
+  }
+
+  const safeName =
+    String(
+      filename ||
+      "smater-chat-ai.pdf"
     )
-  ) {
-    throw new Error(
-      "Generated content failed validation."
-    );
-  }
+      .replace(
+        /[^a-zA-Z0-9._-]/g,
+        "-"
+      )
+      .slice(0, 120);
 
-  return value;
-}
-
-/* =========================================
-   AI CONTENT PIPELINE
-========================================= */
-
-async function preparePdfContent(
-  prompt
-) {
-  if (
-    !hasUsablePrompt(prompt)
-  ) {
-    throw new Error(
-      "Please provide a topic or content for the PDF."
-    );
-  }
-
-  const generated =
-    await generateAIContent(
-      prompt
-    );
-
-  const normalized =
-    normalizeAIContent(
-      generated
-    );
-
-  return validateGeneratedContent(
-    normalized
-  );
-}
-
-/* =========================================
-   HTTP RESPONSE HELPERS
-========================================= */
-
-function sendJson(
-  res,
-  statusCode,
-  payload
-) {
-  res.statusCode =
-    statusCode;
+  res.status(200);
 
   res.setHeader(
     "Content-Type",
-    "application/json; charset=utf-8"
+    getContentType(safeName)
   );
-
-  res.end(
-    JSON.stringify(payload)
-  );
-}
-
-function sendPdf(
-  res,
-  pdfBuffer,
-  fileName
-) {
-  res.statusCode =
-    200;
-
-  res.setHeader(
-    "Content-Type",
-    "application/pdf"
-  );
-
-res.setHeader(
-  "Content-Disposition",
-  'attachment; filename="smater-chat-ai.pdf"'
-);
 
   res.setHeader(
     "Content-Length",
-    String(pdfBuffer.length)
+    String(buffer.length)
+  );
+
+  res.setHeader(
+    "Content-Disposition",
+    `attachment; filename="${safeName}"`
   );
 
   res.setHeader(
@@ -1808,149 +1748,28 @@ res.setHeader(
     "no-store"
   );
 
-  res.end(
-    pdfBuffer
-  );
+  return res.end(buffer);
 }
-/* =========================================
-   PART 6 / 7
-   PDF REQUEST PROCESSOR
-========================================= */
 
-async function processPdfRequest(
-  req,
-  res
+function getContentType(
+  filename
 ) {
-  try {
-    const prompt =
-      getPromptFromRequest(req);
+  const lower =
+    String(filename || "")
+      .toLowerCase();
 
-    if (
-      !hasUsablePrompt(prompt)
-    ) {
-      return sendJson(
-        res,
-        400,
-        {
-          success: false,
-          error:
-            "Please provide a topic or content for the PDF."
-        }
-      );
-    }
-
-    const language =
-      detectLanguage(prompt);
-
-    const colourful =
-      isColourfulRequest(
-        prompt
-      );
-
-    /* =====================================
-       AI CONTENT
-    ===================================== */
-
-    const aiContent =
-      await preparePdfContent(
-        prompt
-      );
-
-    /* =====================================
-       BUILD PDF
-    ===================================== */
-
-    const pdfBuffer =
-      await buildPdf({
-        prompt: aiContent,
-        language,
-        colourful
-      });
-
-    if (
-      !pdfBuffer ||
-      !Buffer.isBuffer(pdfBuffer) ||
-      pdfBuffer.length === 0
-    ) {
-      throw new Error(
-        "PDF generation returned an empty file."
-      );
-    }
-
-    /* =====================================
-       FILE NAME
-    ===================================== */
-
-    const fileName =
-      createPdfFileName(
-        prompt,
-        language
-      );
-
-    /* =====================================
-       SEND PDF
-    ===================================== */
-
-    return sendPdf(
-      res,
-      pdfBuffer,
-      fileName
-    );
-
-  } catch (error) {
-    console.error(
-      "SMATER CHAT AI PDF error:",
-      error
-    );
-
-    return sendJson(
-      res,
-      500,
-      {
-        success: false,
-        error:
-          error?.message ||
-          "I couldn't create that file right now. Please try again."
-      }
-    );
-  }
-}
-/* =========================================
-   PART 7 / 7
-   VERCEL SERVERLESS HANDLER
-========================================= */
-
-export default async function handler(
-  req,
-  res
-) {
-  /*
-    Only POST requests are accepted.
-  */
-
-  if (req.method !== "POST") {
-    res.setHeader(
-      "Allow",
-      "POST"
-    );
-
-    return sendJson(
-      res,
-      405,
-      {
-        success: false,
-        error:
-          "Method not allowed. Use POST."
-      }
-    );
+  if (
+    lower.endsWith(".html") ||
+    lower.endsWith(".htm")
+  ) {
+    return "text/html; charset=utf-8";
   }
 
-  /*
-    Generate and return the PDF.
-  */
+  if (
+    lower.endsWith(".txt")
+  ) {
+    return "text/plain; charset=utf-8";
+  }
 
-  return processPdfRequest(
-    req,
-    res
-  );
+  return "application/pdf";
 }
