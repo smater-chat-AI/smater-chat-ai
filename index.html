@@ -102,7 +102,7 @@
     img {
       max-width: 100%;
     }
-     <style>
+
     /* ===== APP LAYOUT ===== */
 
     .app {
@@ -328,7 +328,7 @@
       flex: 1;
       min-height: 0;
       overflow-y: auto;
-      padding: 28px 18px 150px;
+            padding: 28px 18px 150px;
       scroll-behavior: smooth;
     }
 
@@ -648,7 +648,7 @@
     .send-btn:disabled {
       opacity: .45;
       cursor: not-allowed;
-    }
+          }
 
     .composer-note {
       padding: 7px 4px 0;
@@ -951,6 +951,98 @@
       display: flex;
       align-items: center;
       gap: 10px;
+      margin-top: 10px;
+      padding: 11px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--panel2);
+    }
+
+    .file-card-icon {
+      width: 38px;
+      height: 38px;
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+      border-radius: 10px;
+      background: var(--panel3);
+      font-size: 18px;
+    }
+
+    .file-card-info {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .file-card-name {
+      font-size: 12px;
+      font-weight: 750;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .file-card-size {
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 10px;
+    }
+
+    /* ===== FILE CREATOR ===== */
+
+    .creator-format-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .creator-format-label {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    /* ===== HIDDEN INPUTS ===== */
+
+    .hidden-input {
+      display: none;
+    }
+
+    /* ===== MOBILE ===== */
+
+    @media (max-width: 800px) {
+      .sidebar {
+        position: fixed;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        transform: translateX(-100%);
+        box-shadow: 15px 0 45px rgba(0,0,0,.25);
+      }
+
+      .sidebar.open {
+        transform: translateX(0);
+      }
+
+      .menu-btn {
+        display: block;
+      }
+
+      .composer-wrap {
+        left: 0;
+      }
+
+      .quick-actions {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .image-results {
+        grid-template-columns: 1fr;
+      }
+    }
+             display: flex;
+      align-items: center;
+      gap: 10px;
       padding: 11px;
       margin-top: 9px;
       border: 1px solid var(--border);
@@ -1247,8 +1339,7 @@
       <!-- ===== MAIN ===== -->
 
       <main class="main">
-
-        <!-- TOPBAR -->
+                <!-- TOPBAR -->
 
         <header class="topbar">
 
@@ -1549,6 +1640,14 @@
                 aria-label="Send message"
               >
                 ➤
+              </button>
+
+            </div>
+
+          </div>
+
+        </div>
+                        ➤
               </button>
 
             </div>
@@ -2146,9 +2245,7 @@
     "click",
     clearFile
   );
-
-
-  /* ===== INPUT FILE HANDLERS ===== */
+       /* ===== FILE INPUT EVENTS ===== */
 
   cameraBtn.addEventListener(
     "click",
@@ -2158,7 +2255,6 @@
     }
   );
 
-
   galleryBtn.addEventListener(
     "click",
     () => {
@@ -2166,7 +2262,6 @@
       galleryInput.click();
     }
   );
-
 
   fileBtn.addEventListener(
     "click",
@@ -2176,27 +2271,17 @@
     }
   );
 
-
   pdfBtn.addEventListener(
     "click",
     () => {
       plusMenu.classList.remove("show");
-
-      fileInput.accept =
-        "application/pdf,.pdf";
-
+      fileInput.accept = "application/pdf";
       fileInput.click();
-
-      setTimeout(() => {
-        fileInput.accept = "*/*";
-      }, 1000);
     }
   );
 
 
-  function handleSelectedFile(
-    selectedFile
-  ) {
+  function handleSelectedFile(selectedFile) {
 
     if (!selectedFile) {
       return;
@@ -2204,9 +2289,7 @@
 
     file = selectedFile;
 
-    showFilePreview(
-      selectedFile
-    );
+    showFilePreview(selectedFile);
 
     messageInput.focus();
   }
@@ -2235,218 +2318,234 @@
   fileInput.addEventListener(
     "change",
     () => {
+
       handleSelectedFile(
         fileInput.files?.[0]
+      );
+
+      fileInput.accept = "*/*";
+    }
+  );
+
+
+  /* ===== NEW CHAT ===== */
+
+  const newChatBtn =
+    $("newChatBtn");
+
+  newChatBtn.addEventListener(
+    "click",
+    () => {
+
+      messages = [];
+      file = null;
+
+      saveHistory();
+      clearFile();
+
+      chatInner.innerHTML = "";
+
+      const newWelcome =
+        document.createElement("div");
+
+      newWelcome.className =
+        "welcome";
+
+      newWelcome.id =
+        "welcome";
+
+      newWelcome.innerHTML = `
+        <div class="welcome-logo">
+          S
+        </div>
+
+        <h1>
+          What can I help you with?
+        </h1>
+
+        <p>
+          SMATER CHAT AI is an intelligent,
+          multilingual AI assistant designed to
+          help you understand, create, solve,
+          analyze, and get more done.
+        </p>
+
+        <div class="quick-actions">
+
+          <button
+            class="quick-btn"
+            type="button"
+            data-prompt="Explain this topic in a simple way."
+          >
+            💡 Explain
+          </button>
+
+          <button
+            class="quick-btn"
+            type="button"
+            data-prompt="Help me solve this problem step by step."
+          >
+            🧠 Solve
+          </button>
+
+          <button
+            class="quick-btn"
+            type="button"
+            data-prompt="Write a professional answer about this topic."
+          >
+            ✍️ Write
+          </button>
+
+          <button
+            class="quick-btn"
+            type="button"
+            data-prompt="Give me useful ideas about this topic."
+          >
+            🚀 Ideas
+          </button>
+
+        </div>
+      `;
+
+      chatInner.appendChild(
+        newWelcome
+      );
+
+      bindQuickActions();
+
+      messageInput.value = "";
+      resizeInput();
+      messageInput.focus();
+    }
+  );
+
+
+  /* ===== QUICK ACTION BINDING ===== */
+
+  function bindQuickActions() {
+
+    document.querySelectorAll(
+      ".quick-btn"
+    ).forEach((button) => {
+
+      button.addEventListener(
+        "click",
+        () => {
+
+          const prompt =
+            button.dataset.prompt || "";
+
+          messageInput.value =
+            prompt;
+
+          resizeInput();
+          messageInput.focus();
+        }
+      );
+
+    });
+  }
+
+
+  /* ===== MOBILE SIDEBAR ===== */
+
+  const sidebar =
+    $("sidebar");
+
+  const menuBtn =
+    $("menuBtn");
+
+  menuBtn.addEventListener(
+    "click",
+    () => {
+      sidebar.classList.toggle(
+        "open"
       );
     }
   );
 
 
-  /* ===== INITIALIZE ===== */
+  document.addEventListener(
+    "click",
+    (event) => {
 
-  loadHistory();
-  resizeInput();
-
-     </script>
-     <script>
-  /* ===== FILE READING ===== */
-
-  function smaterReadText(selectedFile) {
-    return new Promise((resolve, reject) => {
-
-      const reader = new FileReader();
-
-      reader.onload = () => {
-        resolve(String(reader.result || ""));
-      };
-
-      reader.onerror = () => {
-        reject(
-          new Error("Unable to read this file.")
+      if (
+        window.innerWidth <= 800 &&
+        sidebar.classList.contains("open") &&
+        !sidebar.contains(event.target) &&
+        event.target !== menuBtn
+      ) {
+        sidebar.classList.remove(
+          "open"
         );
-      };
+      }
 
-      reader.readAsText(selectedFile);
-    });
-  }
-
-
-  /* ===== FILE TO DATA URL ===== */
-
-  function smaterFileToDataURL(selectedFile) {
-    return new Promise((resolve, reject) => {
-
-      const reader = new FileReader();
-
-      reader.onload = () => {
-        resolve(String(reader.result || ""));
-      };
-
-      reader.onerror = () => {
-        reject(
-          new Error("Unable to prepare this file.")
-        );
-      };
-
-      reader.readAsDataURL(selectedFile);
-    });
-  }
+    }
+  );
 
 
-  /* ===== PDF.JS LOADER ===== */
+  /* ===== THEME ===== */
 
-  let smaterPdfLibraryPromise = null;
+  const themeBtn =
+    $("themeBtn");
 
-  function smaterLoadPdfLibrary() {
+  function applyTheme(theme) {
 
-    if (window.pdfjsLib) {
-      return Promise.resolve(
-        window.pdfjsLib
+    if (theme === "light") {
+      document.body.classList.add(
+        "light"
+      );
+    } else {
+      document.body.classList.remove(
+        "light"
       );
     }
 
-    if (smaterPdfLibraryPromise) {
-      return smaterPdfLibraryPromise;
-    }
-
-    smaterPdfLibraryPromise =
-      new Promise((resolve, reject) => {
-
-        const existing =
-          document.querySelector(
-            'script[data-smater-pdfjs="true"]'
-          );
-
-        if (existing) {
-
-          existing.addEventListener(
-            "load",
-            () => {
-
-              if (window.pdfjsLib) {
-                resolve(
-                  window.pdfjsLib
-                );
-              } else {
-                reject(
-                  new Error(
-                    "PDF library loaded but is unavailable."
-                  )
-                );
-              }
-
-            }
-          );
-
-          existing.addEventListener(
-            "error",
-            () => {
-              reject(
-                new Error(
-                  "Unable to load PDF reader."
-                )
-              );
-            }
-          );
-
-          return;
-        }
-
-
-        const script =
-          document.createElement("script");
-
-        script.src =
-          "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
-
-        script.async = true;
-
-        script.dataset.smaterPdfjs =
-          "true";
-
-
-        script.onload = () => {
-
-          if (!window.pdfjsLib) {
-            reject(
-              new Error(
-                "PDF reader is unavailable."
-              )
-            );
-
-            return;
-          }
-
-
-          try {
-
-            window.pdfjsLib.GlobalWorkerOptions.workerSrc =
-              "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
-
-          } catch (error) {
-            console.warn(
-              "PDF worker setup warning:",
-              error
-            );
-          }
-
-
-          resolve(
-            window.pdfjsLib
-          );
-        };
-
-
-        script.onerror = () => {
-
-          reject(
-            new Error(
-              "Unable to load the PDF reader. Please check your internet connection."
-            )
-          );
-
-        };
-
-
-        document.head.appendChild(
-          script
-        );
-
-      });
-
-    return smaterPdfLibraryPromise;
+    localStorage.setItem(
+      "smater_theme",
+      theme
+    );
   }
 
 
-  /* ===== EXTRACT PDF TEXT ===== */
+  function loadTheme() {
 
-  async function smaterExtractPdfText(
-    selectedFile
-  ) {
+    const saved =
+      localStorage.getItem(
+        "smater_theme"
+      ) || "dark";
 
-    const pdfjs =
-      await smaterLoadPdfLibrary();
-
-
-    const buffer =
-      await selectedFile.arrayBuffer();
+    applyTheme(saved);
+  }
 
 
-    const loadingTask =
-      pdfjs.getDocument({
-        data: buffer
-      });
+  themeBtn.addEventListener(
+    "click",
+    () => {
+
+      const isLight =
+        document.body.classList.contains(
+          "light"
+        );
+
+      applyTheme(
+        isLight
+          ? "dark"
+          : "light"
+      );
+    }
+  );
 
 
-    const pdf =
-      await loadingTask.promise;
+  loadTheme();
 
 
-    let fullText = "";
+  /* ===== INITIALIZE ===== */
 
+  bindQuickActions();
+  loadHistory();
 
-    const maxPages =
-      Math.min(
+</script>
         pdf.numPages,
         100
       );
@@ -2680,7 +2779,6 @@
         throw new Error(
           "This text file is too large. Please use a file under 2 MB."
         );
-
       }
 
 
@@ -2715,7 +2813,6 @@
         throw new Error(
           "This image is too large. Please use an image under 8 MB."
         );
-
       }
 
 
@@ -2745,11 +2842,8 @@
       throw new Error(
         "This file type is currently limited to 2 MB."
       );
-
     }
-
-
-    const data =
+            const data =
       await smaterFileToDataURL(
         selectedFile
       );
@@ -2772,7 +2866,6 @@
   ) {
 
     try {
-
       const data =
         await response.json();
 
@@ -3157,6 +3250,114 @@ Do not invent information.`
 
     }
   }
+       Attached file:
+${preparedFile.name}
+
+ACTUAL FILE CONTENT:
+${preparedFile.text}
+
+Use the actual file contents when answering.
+Do not invent information.`
+          });
+
+
+          const answer =
+            await smaterRequestAI(
+              requestMessages
+            );
+
+
+          removeTyping();
+
+
+          addMessage(
+            "assistant",
+            answer
+          );
+
+
+          clearFile();
+
+
+          return;
+        }
+
+      }
+
+
+      /*
+        Normal message or image/other
+        supported attachment.
+      */
+
+      const requestMessages =
+        [
+          ...messages
+        ];
+
+
+      /*
+        For binary attachments the backend
+        receives the file separately.
+      */
+
+      const answer =
+        await smaterRequestAI(
+          requestMessages,
+          preparedFile
+        );
+
+
+      removeTyping();
+
+
+      addMessage(
+        "assistant",
+        answer
+      );
+
+
+      clearFile();
+
+
+    } catch (error) {
+
+      console.error(
+        "SMATER send error:",
+        error
+      );
+
+
+      removeTyping();
+
+
+      const message =
+        error?.message ||
+        "Something went wrong while processing your request.";
+
+
+      addMessage(
+        "assistant",
+        `Sorry, ${message}`
+      );
+
+
+      /*
+        Keep the selected file visible
+        if processing failed, so the user
+        can retry instead of losing it.
+      */
+
+    } finally {
+
+      sending = false;
+
+      sendBtn.disabled = false;
+
+      messageInput.focus();
+
+    }
+  }
 
 
   /* ===== SEND BUTTON ===== */
@@ -3355,6 +3556,13 @@ Do not invent information.`
     );
 
   });
+          }
+        
+      }
+    );
+
+  });
+
 
      </script>
      <script>
@@ -3654,6 +3862,43 @@ Do not invent information.`
       }
 
 
+      try {
+
+        recognition.lang =
+          language === "hi"
+            ? "hi-IN"
+            : language === "mr"
+              ? "mr-IN"
+              : language === "bn"
+                ? "bn-IN"
+                : language === "ta"
+                  ? "ta-IN"
+                  : language === "te"
+                    ? "te-IN"
+                    : language === "gu"
+                      ? "gu-IN"
+                      : "en-IN";
+
+
+        recognition.start();
+
+      } catch (error) {
+
+        console.warn(
+          "Voice start failed:",
+          error
+        );
+
+      }
+
+    }
+  );
+              recognition.stop();
+
+        return;
+      }
+
+
       /*
         Auto language follows the selected
         SMATER language preference.
@@ -3947,11 +4192,9 @@ Do not invent information.`
         document.body.appendChild(
           link
         );
-
-        link.click();
+             link.click();
 
         link.remove();
-
       };
 
 
@@ -4248,25 +4491,19 @@ Do not invent information.`
 
         const image =
           document.createElement("img");
-
-        image.src =
+                image.src =
           item.image;
 
         image.alt =
           item.title ||
-          "Search result";
+          "Image search result";
 
         image.loading =
           "lazy";
 
-
-        image.onerror =
-          () => {
-
-            card.style.display =
-              "none";
-
-          };
+        card.appendChild(
+          image
+        );
 
 
         const info =
@@ -4287,23 +4524,43 @@ Do not invent information.`
           "Image";
 
 
-        const meta =
-          document.createElement("div");
+        info.appendChild(
+          title
+        );
 
-        meta.className =
-          "image-result-meta";
 
-        meta.textContent =
-          [
-            item.author
-              ? `By ${item.author}`
-              : "",
-            item.license
-              ? item.license
-              : ""
-          ]
-            .filter(Boolean)
-            .join(" • ");
+        if (item.license) {
+
+          const license =
+            document.createElement("div");
+
+          license.className =
+            "image-result-meta";
+
+          license.textContent =
+            `License: ${item.license}`;
+
+          info.appendChild(
+            license
+          );
+        }
+
+
+        if (item.source) {
+
+          const source =
+            document.createElement("div");
+
+          source.className =
+            "image-result-meta";
+
+          source.textContent =
+            `Source: ${item.source}`;
+
+          info.appendChild(
+            source
+          );
+        }
 
 
         const actions =
@@ -4313,91 +4570,106 @@ Do not invent information.`
           "image-result-actions";
 
 
-        if (item.original) {
+        const openBtn =
+          document.createElement("button");
 
-          const openBtn =
-            document.createElement(
-              "button"
-            );
+        openBtn.type =
+          "button";
 
-          openBtn.type =
-            "button";
+        openBtn.className =
+          "image-result-btn";
 
-          openBtn.textContent =
-            "Open";
+        openBtn.textContent =
+          "Open";
 
-          openBtn.onclick =
-            () => {
+
+        openBtn.onclick =
+          () => {
+
+            const url =
+              item.original ||
+              item.image;
+
+            if (url) {
 
               window.open(
-                item.original,
+                url,
                 "_blank",
                 "noopener,noreferrer"
               );
 
-            };
+            }
 
-          actions.appendChild(
-            openBtn
-          );
-        }
+          };
 
 
-        if (item.source) {
+        const saveBtn =
+          document.createElement("button");
 
-          const sourceBtn =
-            document.createElement(
-              "button"
+        saveBtn.type =
+          "button";
+
+        saveBtn.className =
+          "image-result-btn";
+
+        saveBtn.textContent =
+          "Save";
+
+
+        saveBtn.onclick =
+          () => {
+
+            const url =
+              item.original ||
+              item.image;
+
+            if (!url) {
+              return;
+            }
+
+
+            const link =
+              document.createElement("a");
+
+            link.href =
+              url;
+
+            link.target =
+              "_blank";
+
+            link.rel =
+              "noopener";
+
+            link.download =
+              "smater-image";
+
+            document.body.appendChild(
+              link
             );
 
-          sourceBtn.type =
-            "button";
+            link.click();
 
-          sourceBtn.textContent =
-            "Source";
+            link.remove();
 
-          sourceBtn.onclick =
-            () => {
-
-              window.open(
-                item.source,
-                "_blank",
-                "noopener,noreferrer"
-              );
-
-            };
-
-          actions.appendChild(
-            sourceBtn
-          );
-        }
+          };
 
 
-        info.appendChild(
-          title
+        actions.appendChild(
+          openBtn
         );
 
-        if (
-          meta.textContent
-        ) {
-          info.appendChild(
-            meta
-          );
-        }
+        actions.appendChild(
+          saveBtn
+        );
+
 
         info.appendChild(
           actions
         );
 
-
-        card.appendChild(
-          image
-        );
-
         card.appendChild(
           info
         );
-
 
         grid.appendChild(
           card
@@ -4414,7 +4686,6 @@ Do not invent information.`
     bubble.appendChild(
       grid
     );
-
 
     wrapper.appendChild(
       bubble
@@ -4442,8 +4713,8 @@ Do not invent information.`
 
       openPromptModal(
         "Image Search",
-        "Search for images using Wikimedia Commons.",
-        "Example: Artificial Intelligence",
+        "What image do you want to search for?",
+        "Example: Taj Mahal sunset",
         "Search Images",
         async (query) => {
 
@@ -4457,55 +4728,14 @@ Do not invent information.`
     }
   );
 
-         </script>
-         <script>
-  /* ===== MODAL HELPERS ===== */
 
-  function showInfoModal(
-    title,
-    text
-  ) {
-
-    modalTitle.textContent =
-      title;
-
-    modalBody.textContent =
-      text;
-
-    modalActions.innerHTML = "";
-
-
-    const okBtn =
-      document.createElement("button");
-
-    okBtn.type = "button";
-    okBtn.className =
-      "modal-btn primary";
-
-    okBtn.textContent =
-      "OK";
-
-
-    okBtn.onclick =
-      closeModal;
-
-
-    modalActions.appendChild(
-      okBtn
-    );
-
-
-    modalOverlay.classList.add(
-      "show"
-    );
-  }
-
+  /* ===== GENERIC PROMPT MODAL ===== */
 
   function openPromptModal(
     title,
     description,
     placeholder,
-    buttonText,
+    actionText,
     callback
   ) {
 
@@ -4513,16 +4743,17 @@ Do not invent information.`
       title;
 
 
-    modalBody.innerHTML = "";
+    modalBody.innerHTML =
+      "";
 
 
-    const descriptionElement =
+    const descriptionEl =
       document.createElement("div");
 
-    descriptionElement.className =
-      "modal-text";
+    descriptionEl.className =
+      "modal-description";
 
-    descriptionElement.textContent =
+    descriptionEl.textContent =
       description;
 
 
@@ -4530,26 +4761,132 @@ Do not invent information.`
       document.createElement("textarea");
 
     input.className =
-      "modal-textarea";
+      "modal-input";
 
     input.placeholder =
       placeholder;
 
+    input.rows =
+      5;
 
-    input.style.marginTop =
-      "12px";
+
+    const actions =
+      document.createElement("div");
+
+    actions.className =
+      "modal-actions";
+
+
+    const cancelBtn =
+      document.createElement("button");
+
+    cancelBtn.type =
+      "button";
+
+    cancelBtn.className =
+      "modal-btn secondary";
+
+    cancelBtn.textContent =
+      "Cancel";
+
+
+    cancelBtn.onclick =
+      closeModal;
+
+
+    const actionBtn =
+      document.createElement("button");
+
+    actionBtn.type =
+      "button";
+
+    actionBtn.className =
+      "modal-btn primary";
+
+    actionBtn.textContent =
+      actionText;
+
+
+    actionBtn.onclick =
+      async () => {
+
+        const value =
+          input.value.trim();
+
+
+        if (!value) {
+
+          input.focus();
+
+          return;
+        }
+
+
+        actionBtn.disabled =
+          true;
+
+
+        try {
+
+          await callback(
+            value
+          );
+
+          closeModal();
+
+        } catch (error) {
+
+          console.error(
+            "Prompt action failed:",
+            error
+          );
+
+        } finally {
+
+          actionBtn.disabled =
+            false;
+
+        }
+
+      };
+
+
+    actions.appendChild(
+      cancelBtn
+    );
+
+    actions.appendChild(
+      actionBtn
+    );
 
 
     modalBody.appendChild(
-      descriptionElement
+      descriptionEl
     );
 
     modalBody.appendChild(
       input
     );
 
+    modalActions.innerHTML =
+      "";
 
-    modalActions.innerHTML = "";
+    modalActions.appendChild(
+      actions
+    );
+
+
+    modalOverlay.classList.add(
+      "show"
+    );
+
+
+    setTimeout(
+      () => input.focus(),
+      50
+    );
+  }
+       modalActions.innerHTML = "";
 
 
     const cancelBtn =
@@ -4846,9 +5183,7 @@ Do not invent information.`
     modalOverlay.classList.add(
       "show"
     );
-
-
-    setTimeout(() => {
+       setTimeout(() => {
       prompt.focus();
     }, 50);
   }
@@ -4959,8 +5294,10 @@ Do not invent information.`
       const link =
         document.createElement("a");
 
+
       link.href =
         url;
+
 
       link.download =
         `smater-chat-ai.${extension}`;
@@ -5148,9 +5485,7 @@ Do not invent information.`
         closeModal();
 
       };
-
-
-    modalActions.appendChild(
+        modalActions.appendChild(
       cancelBtn
     );
 
@@ -5448,9 +5783,7 @@ Do not invent information.`
 
     const account =
       getAccount();
-
-
-    modalTitle.textContent =
+        modalTitle.textContent =
       "Account";
 
 
@@ -5747,8 +6080,7 @@ Do not invent information.`
       () => {
 
         toggleTheme();
-
-        closeModal();
+                closeModal();
 
       };
 
@@ -6049,6 +6381,220 @@ Do not invent information.`
                 : "SMATER CHAT AI"
               }:\n${item.content}`
           )
+          .join(
+            "\n\n"
+          );
+
+
+      try {
+
+        if (
+          navigator.share
+        ) {
+
+          await navigator.share({
+            title:
+              "SMATER CHAT AI",
+            text:
+              exportText
+          });
+
+          return;
+        }
+
+
+        if (
+          navigator.clipboard
+        ) {
+
+          await navigator.clipboard.writeText(
+            exportText
+          );
+
+          showInfoModal(
+            "Share / Export",
+            "The conversation has been copied to your clipboard."
+          );
+
+          return;
+        }
+
+
+        showInfoModal(
+          "Share / Export",
+          exportText
+        );
+
+      } catch (error) {
+
+        if (
+          error?.name ===
+          "AbortError"
+        ) {
+          return;
+        }
+
+
+        showInfoModal(
+          "Share / Export",
+          exportText
+        );
+
+      }
+
+    }
+  );
+
+
+  /* ===== HISTORY ===== */
+
+  function openHistoryModal() {
+
+    modalTitle.textContent =
+      "Chat History";
+
+
+    modalBody.innerHTML = "";
+
+
+    if (!messages.length) {
+
+      const empty =
+        document.createElement(
+          "div"
+        );
+
+      empty.className =
+        "modal-text";
+
+      empty.textContent =
+        "There are no messages in the current conversation.";
+
+      modalBody.appendChild(
+        empty
+      );
+
+    } else {
+
+      messages.forEach(
+        (item, index) => {
+
+          const row =
+            document.createElement(
+              "div"
+            );
+
+          row.className =
+            "history-row";
+
+
+          const role =
+            document.createElement(
+              "div"
+            );
+
+          role.className =
+            "history-role";
+
+          role.textContent =
+            item.role === "user"
+              ? "You"
+              : "SMATER CHAT AI";
+
+
+          const text =
+            document.createElement(
+              "div"
+            );
+
+          text.className =
+            "history-text";
+
+          text.textContent =
+            item.content;
+
+
+          row.appendChild(
+            role
+          );
+
+          row.appendChild(
+            text
+          );
+
+
+          row.onclick =
+            () => {
+
+              closeModal();
+
+              const target =
+                document.querySelector(
+                  `[data-message-index="${index}"]`
+                );
+
+              if (target) {
+
+                target.scrollIntoView({
+                  behavior:
+                    "smooth",
+                  block:
+                    "center"
+                });
+
+              }
+
+            };
+
+
+          modalBody.appendChild(
+            row
+          );
+
+        }
+      );
+
+    }
+
+
+    modalActions.innerHTML = "";
+
+
+    const doneBtn =
+      document.createElement(
+        "button"
+      );
+
+    doneBtn.className =
+      "modal-btn primary";
+
+    doneBtn.type =
+      "button";
+
+    doneBtn.textContent =
+      "Done";
+
+    doneBtn.onclick =
+      closeModal;
+
+
+    modalActions.appendChild(
+      doneBtn
+    );
+
+
+    modalOverlay.classList.add(
+      "show"
+    );
+
+  }
+
+
+  $("historyBtn").addEventListener(
+    "click",
+    openHistoryModal
+  );
+               )
           .join("\n\n");
 
 
@@ -6258,12 +6804,12 @@ Do not invent information.`
       hasFile
     ) {
 
-      sendButton.disabled =
+      sendBtn.disabled =
         false;
 
     } else {
 
-      sendButton.disabled =
+      sendBtn.disabled =
         true;
 
     }
@@ -6336,7 +6882,7 @@ Do not invent information.`
 
       if (
         !plusMenu.contains(event.target) &&
-        event.target !== plusButton
+        event.target !== plusBtn
       ) {
 
         plusMenu.classList.remove(
@@ -6479,4 +7025,5 @@ Do not invent information.`
 </script>
 
 </body>
-</html>
+</html>      
+        
